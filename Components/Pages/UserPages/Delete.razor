@@ -1,0 +1,53 @@
+@page "/users/delete"
+@using Microsoft.AspNetCore.Identity
+@using FinalAssignemnt_APDP.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Delete User</PageTitle>
+
+<div class="container-fluid p-4">
+ <div class="d-flex align-items-center mb-4">
+ <a href="/users" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+ <h1 class="mb-0"><i class="bi bi-trash text-primary"></i> Delete User</h1>
+ </div>
+
+ @if (User is null)
+ {
+ <div class="card shadow-sm"><div class="card-body">Loading...</div></div>
+ }
+ else
+ {
+ <div class="card shadow-sm"><div class="card-body">
+ <div class="alert alert-danger">Are you sure you want to delete user <strong>@User.Email</strong>?</div>
+ <EditForm OnValidSubmit="DeleteUser" Model="User" FormName="delete-user">
+ <div class="d-flex gap-2">
+ <button class="btn btn-danger" type="submit">Delete</button>
+ <a class="btn btn-outline-secondary" href="/users">Cancel</a>
+ </div>
+ </EditForm>
+ </div></div>
+ }
+</div>
+
+@code {
+ [SupplyParameterFromQuery]
+ public string Id { get; set; } = "";
+ private ApplicationUser? User { get; set; }
+ protected override async Task OnInitializedAsync()
+ {
+ if (!string.IsNullOrEmpty(Id))
+ {
+ User = await UserManager.FindByIdAsync(Id);
+ if (User is null) { NavigationManager.NavigateTo("notfound"); return; }
+ }
+ }
+
+ private async Task DeleteUser()
+ {
+ if (User is null) return;
+ var result = await UserManager.DeleteAsync(User);
+ if (!result.Succeeded) { /* TODO: show errors */ return; }
+ NavigationManager.NavigateTo("/users");
+ }
+}

@@ -1,7 +1,8 @@
 ﻿@using FinalAssignemnt_APDP.Components.Account.Shared
+@using FinalAssignemnt_APDP.Components.Layout
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
             <NotAuthorized>
                 <RedirectToLogin />
             </NotAuthorized>

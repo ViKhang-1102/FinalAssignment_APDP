@@ -1,0 +1,66 @@
+@page "/users"
+@using System.Linq
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using Microsoft.AspNetCore.Identity
+@using FinalAssignemnt_APDP.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Users</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0"><i class="bi bi-people text-primary"></i> Users</h1>
+        <a href="users/create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create New User</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <QuickGrid Class="table table-hover" Items="Users.AsQueryable()">
+                <PropertyColumn Title="Email" Property="u => u.Email" />
+                <PropertyColumn Title="Name" Property="u => u.Name" />
+                <PropertyColumn Title="Student ID" Property="u => u.StudentId" />
+                <PropertyColumn Title="Roles" Property="u => u.Roles" />
+                <TemplateColumn Title="Actions" Context="user">
+                    <div class="btn-group" role="group">
+                        <a href="@($"users/edit?id={user.Id}")" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+                        <a href="@($"users/details?id={user.Id}")" class="btn btn-outline-info btn-sm"><i class="bi bi-info-circle"></i> Details</a>
+                        <a href="@($"users/delete?id={user.Id}")" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i> Delete</a>
+                    </div>
+                </TemplateColumn>
+            </QuickGrid>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<UserRow> Users { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var allUsers = await UserManager.Users.ToListAsync();
+        Users = new List<UserRow>(allUsers.Count);
+        foreach (var u in allUsers)
+        {
+            var roles = await UserManager.GetRolesAsync(u);
+            Users.Add(new UserRow
+            {
+                Id = u.Id,
+                Email = u.Email ?? "",
+                Name = u.Name,
+                StudentId = u.StudentId ?? "",
+                Roles = string.Join(", ", roles)
+            });
+        }
+    }
+
+    private sealed class UserRow
+    {
+        public string Id { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string StudentId { get; set; } = "";
+        public string Roles { get; set; } = "";
+    }
+}

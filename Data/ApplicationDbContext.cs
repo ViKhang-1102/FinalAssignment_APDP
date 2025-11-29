@@ -3,7 +3,29 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FinalAssignemnt_APDP.Data
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
+    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : IdentityDbContext<ApplicationUser>(options)
     {
+        public DbSet<Department> Departments { get; set; } = null;
+        public DbSet<Subject> Subjects { get; set; } = null;
+        public DbSet<Semester> Semesters { get; set; } = null;
+        public DbSet<Major> Majors { get; set; } = null;
+        public DbSet<Course> Courses { get; set; } = null;
+        public DbSet<Enrollment> Enrollments { get; set; } = null;
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(sc => sc.Student)
+                .WithMany()
+                .HasForeignKey(sc => sc.StudentID)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(sc => sc.Course)
+                .WithMany()
+                .HasForeignKey(sc => sc.CourseID)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 }

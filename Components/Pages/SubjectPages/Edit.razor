@@ -1,0 +1,94 @@
+﻿@page "/subjects/edit"
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>Subject</h2>
+<hr />
+@if (Subject is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="Subject" OnValidSubmit="UpdateSubject" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="Subject.Id" value="@Subject.Id" />
+                <div class="mb-3">
+                    <label for="code" class="form-label">Code:</label>
+                    <InputText id="code" @bind-Value="Subject.Code" class="form-control" />
+                    <ValidationMessage For="() => Subject.Code" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name:</label>
+                    <InputText id="name" @bind-Value="Subject.Name" class="form-control" />
+                    <ValidationMessage For="() => Subject.Name" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/subjects">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private Subject? Subject { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Subject ??= await context.Subjects.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Subject is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    private async Task UpdateSubject()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(Subject!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!SubjectExists(Subject!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        Toasts.Enqueue("Cập nhật môn học thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
+        NavigationManager.NavigateTo("/subjects");
+    }
+
+    private bool SubjectExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Subjects.Any(e => e.Id == id);
+    }
+}

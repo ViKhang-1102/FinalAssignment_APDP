@@ -1,0 +1,39 @@
+﻿@page "/courses"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Index</h1>
+
+<p>
+    <a href="courses/create">Create New</a>
+</p>
+
+<QuickGrid Class="table" Items="context.Courses">
+    <PropertyColumn Property="course => course.Name" />
+    <PropertyColumn Property="course => course.SubjectID" />
+    <PropertyColumn Property="course => course.SemesterID" />
+    <PropertyColumn Property="course => course.LectureID" />
+
+    <TemplateColumn Context="course">
+        <a href="@($"courses/edit?id={course.Id}")">Edit</a> |
+        <a href="@($"courses/details?id={course.Id}")">Details</a> |
+        <a href="@($"courses/delete?id={course.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
+
+@code {
+    private ApplicationDbContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

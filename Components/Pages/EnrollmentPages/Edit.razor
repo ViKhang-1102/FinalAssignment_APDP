@@ -1,0 +1,94 @@
+﻿@page "/enrollments/edit"
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Edit</PageTitle>
+
+<h1>Edit</h1>
+
+<h2>Enrollment</h2>
+<hr />
+@if (Enrollment is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-4">
+            <EditForm method="post" Model="Enrollment" OnValidSubmit="UpdateEnrollment" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary role="alert"/>
+                <input type="hidden" name="Enrollment.Id" value="@Enrollment.Id" />
+                <div class="mb-3">
+                    <label for="studentid" class="form-label">StudentID:</label>
+                    <InputText id="studentid" @bind-Value="Enrollment.StudentID" class="form-control" />
+                    <ValidationMessage For="() => Enrollment.StudentID" class="text-danger" />
+                </div>
+                <div class="mb-3">
+                    <label for="courseid" class="form-label">CourseID:</label>
+                    <InputNumber id="courseid" @bind-Value="Enrollment.CourseID" class="form-control" />
+                    <ValidationMessage For="() => Enrollment.CourseID" class="text-danger" />
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div>
+    <a href="/enrollments">Back to List</a>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private Enrollment? Enrollment { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Enrollment ??= await context.Enrollments.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (Enrollment is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    // To protect from overposting attacks, enable the specific properties you want to bind to.
+    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
+    private async Task UpdateEnrollment()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Attach(Enrollment!).State = EntityState.Modified;
+
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!EnrollmentExists(Enrollment!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/enrollments");
+    }
+
+    private bool EnrollmentExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Enrollments.Any(e => e.Id == id);
+    }
+}
