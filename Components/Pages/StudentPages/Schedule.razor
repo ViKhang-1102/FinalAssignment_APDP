@@ -1,0 +1,243 @@
+@page "/student/schedule"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize(Roles = "Student")]
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Schedule</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0"><i class="bi bi-calendar3 text-primary"></i> Class Schedule</h1>
+            <p class="text-muted">Weekly schedule</p>
+        </div>
+        <a href="/student/dashboard" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    @if (currentUser == null)
+    {
+        <div class="alert alert-info">Loading...</div>
+    }
+    else if (!enrollments.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You haven't enrolled in any courses yet.
+        </div>
+    }
+    else
+    {
+        <!-- Filter by semester -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Select Semester:</label>
+                        <select class="form-select" @bind="selectedSemesterId" @bind:after="FilterSchedule">
+                            <option value="0">-- All --</option>
+                            @foreach (var semester in semesters)
+                            {
+                                <option value="@semester.Id">@semester.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly schedule table -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Weekly Schedule</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 100px;">Day</th>
+                                <th>Morning (7:00 - 12:00)</th>
+                                <th>Afternoon (13:00 - 17:00)</th>
+                                <th>Evening (18:00 - 21:00)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var day in weekDays)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@day</td>
+                                    @foreach (var shift in new[] { "Morning", "Afternoon", "Evening" })
+                                    {
+                                        <td>
+                                            @{
+                                                var coursesInSlot = GetCoursesForDayShift(day, shift);
+                                            }
+                                            @if (coursesInSlot.Any())
+                                            {
+                                                @foreach (var course in coursesInSlot)
+                                                {
+                                                    <div class="p-2 mb-2 rounded @GetShiftClass(shift)">
+                                                        <strong>@course.Subject?.Name</strong><br />
+                                                        <small>@course.Name</small><br />
+                                                        <small class="text-muted">Lecturer: @course.Lecture?.Name</small><br />
+                                                        @if (!string.IsNullOrEmpty(course.Room))
+                                                        {
+                                                            <small class="text-muted">Room: @course.Room</small>
+                                                        }
+                                                    </div>
+                                                }
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course list -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Course List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Course Code</th>
+                                <th>Course Name</th>
+                                <th>Class</th>
+                                <th>Lecturer</th>
+                                <th>Semester</th>
+                                <th>Schedule</th>
+                                <th>Room</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var enrollment in filteredEnrollments)
+                            {
+                                <tr>
+                                    <td>@enrollment.Course?.Subject?.Code</td>
+                                    <td>@enrollment.Course?.Subject?.Name</td>
+                                    <td>@enrollment.Course?.Name</td>
+                                    <td>@enrollment.Course?.Lecture?.Name</td>
+                                    <td>@enrollment.Course?.Semester?.Name</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(enrollment.Course?.DayOfWeek))
+                                        {
+                                            <span>@enrollment.Course.DayOfWeek - @enrollment.Course.TimeSlot</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No schedule</span>
+                                        }
+                                    </td>
+                                    <td>@(enrollment.Course?.Room ?? "TBA")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .shift-morning {
+        background-color: #fff3cd;
+        border-left: 3px solid #ffc107;
+    }
+    .shift-afternoon {
+        background-color: #d1ecf1;
+        border-left: 3px solid #17a2b8;
+    }
+    .shift-evening {
+        background-color: #d4edda;
+        border-left: 3px solid #28a745;
+    }
+</style>
+
+@code {
+    private ApplicationUser? currentUser;
+    private List<Enrollment> enrollments = new();
+    private List<Enrollment> filteredEnrollments = new();
+    private List<Semester> semesters = new();
+    private int selectedSemesterId = 0;
+
+    private string[] weekDays = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+            
+            if (currentUser != null)
+            {
+                using var context = DbFactory.CreateDbContext();
+                
+                enrollments = await context.Enrollments
+                    .Include(e => e.Course)
+                        .ThenInclude(c => c.Subject)
+                    .Include(e => e.Course)
+                        .ThenInclude(c => c.Lecture)
+                    .Include(e => e.Course)
+                        .ThenInclude(c => c.Semester)
+                    .Where(e => e.StudentID == currentUser.Id)
+                    .ToListAsync();
+
+                filteredEnrollments = enrollments;
+
+                semesters = await context.Semesters.ToListAsync();
+            }
+        }
+    }
+
+    private void FilterSchedule()
+    {
+        if (selectedSemesterId == 0)
+        {
+            filteredEnrollments = enrollments;
+        }
+        else
+        {
+            filteredEnrollments = enrollments
+                .Where(e => e.Course?.SemesterID == selectedSemesterId)
+                .ToList();
+        }
+    }
+
+    private List<Course> GetCoursesForDayShift(string day, string shift)
+    {
+        return filteredEnrollments
+            .Where(e => e.Course != null && 
+                       e.Course.DayOfWeek == day && 
+                       e.Course.TimeSlot == shift)
+            .Select(e => e.Course!)
+            .ToList();
+    }
+
+    private string GetShiftClass(string shift)
+    {
+        return shift switch
+        {
+            "Morning" => "shift-morning",
+            "Afternoon" => "shift-afternoon",
+            "Evening" => "shift-evening",
+            _ => ""
+        };
+    }
+}

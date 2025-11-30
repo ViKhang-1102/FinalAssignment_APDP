@@ -1,0 +1,189 @@
+@page "/student/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize(Roles = "Student")]
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Student Dashboard</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="mb-4">
+        <h1 class="mb-0"><i class="bi bi-mortarboard-fill text-primary"></i> Student Dashboard</h1>
+        <p class="text-muted">Welcome back, @currentUser?.Name</p>
+    </div>
+
+    @if (currentUser == null)
+    {
+        <div class="alert alert-info">Loading...</div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <!-- Personal Information -->
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-person-circle"></i> Personal Information</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        @if (!string.IsNullOrEmpty(currentUser.Avatar))
+                        {
+                            <img src="@currentUser.Avatar" class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="Avatar" />
+                        }
+                        else
+                        {
+                            <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px;">
+                                <i class="bi bi-person-fill text-white" style="font-size: 3rem;"></i>
+                            </div>
+                        }
+                        <h5>@currentUser.Name</h5>
+                        <p class="text-muted mb-1">@currentUser.Email</p>
+                        <p class="text-muted mb-1">Student ID: @currentUser.StudentId</p>
+                        <p class="text-muted">DOB: @(currentUser.DOB?.ToString("dd/MM/yyyy") ?? "N/A")</p>
+                        <a href="/student/profile" class="btn btn-outline-primary mt-2">View Details</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="col-md-8">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-book-fill text-primary" style="font-size: 2.5rem;"></i>
+                                <h3 class="mt-2">@enrollments.Count</h3>
+                                <p class="text-muted mb-0">Current Courses</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-clipboard-check-fill text-success" style="font-size: 2.5rem;"></i>
+                                <h3 class="mt-2">@completedCourses</h3>
+                                <p class="text-muted mb-0">Completed Courses</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <i class="bi bi-star-fill text-warning" style="font-size: 2.5rem;"></i>
+                                <h3 class="mt-2">@averageGrade</h3>
+                                <p class="text-muted mb-0">Average Grade</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Menu -->
+        <div class="row mt-4 g-3">
+            <div class="col-md-3">
+                <a href="/student/schedule" class="text-decoration-none">
+                    <div class="card shadow-sm hover-shadow">
+                        <div class="card-body text-center">
+                            <i class="bi bi-calendar3 text-info" style="font-size: 2.5rem;"></i>
+                            <h5 class="mt-3">Schedule</h5>
+                            <p class="text-muted small">View class schedule</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/student/grades" class="text-decoration-none">
+                    <div class="card shadow-sm hover-shadow">
+                        <div class="card-body text-center">
+                            <i class="bi bi-clipboard-data text-success" style="font-size: 2.5rem;"></i>
+                            <h5 class="mt-3">Grades</h5>
+                            <p class="text-muted small">View course grades</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/student/courses" class="text-decoration-none">
+                    <div class="card shadow-sm hover-shadow">
+                        <div class="card-body text-center">
+                            <i class="bi bi-journal-text text-primary" style="font-size: 2.5rem;"></i>
+                            <h5 class="mt-3">Courses</h5>
+                            <p class="text-muted small">Current classes</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="/student/edit-profile" class="text-decoration-none">
+                    <div class="card shadow-sm hover-shadow">
+                        <div class="card-body text-center">
+                            <i class="bi bi-gear-fill text-warning" style="font-size: 2.5rem;"></i>
+                            <h5 class="mt-3">Update</h5>
+                            <p class="text-muted small">Edit information</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .hover-shadow {
+        transition: all 0.3s ease;
+    }
+
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+</style>
+
+@code {
+    private ApplicationUser? currentUser;
+    private List<Enrollment> enrollments = new();
+    private int completedCourses = 0;
+    private string averageGrade = "N/A";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+            
+            if (currentUser != null)
+            {
+                using var context = DbFactory.CreateDbContext();
+                enrollments = await context.Enrollments
+                    .Include(e => e.Course)
+                    .ThenInclude(c => c.Subject)
+                    .Where(e => e.StudentID == currentUser.Id)
+                    .ToListAsync();
+
+                // Calculate average grade and completed courses
+                var grades = await context.Grades
+                    .Where(g => g.StudentID == currentUser.Id)
+                    .ToListAsync();
+                
+                if (grades.Any())
+                {
+                    var validGrades = grades.Where(g => g.AverageScore.HasValue).ToList();
+                    if (validGrades.Any())
+                    {
+                        double avgScore = validGrades.Average(g => g.AverageScore!.Value);
+                        averageGrade = avgScore.ToString("F1");
+                    }
+                    completedCourses = grades.Count(g => g.IsPassed);
+                }
+            }
+        }
+    }
+}

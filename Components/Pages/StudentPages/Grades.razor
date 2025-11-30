@@ -1,0 +1,243 @@
+﻿@page "/student/grades"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize(Roles = "Student")]
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Grades</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0"><i class="bi bi-clipboard-data text-success"></i> Grade Report</h1>
+            <p class="text-muted">Academic results</p>
+        </div>
+        <a href="/student/dashboard" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    @if (currentUser == null)
+    {
+        <div class="alert alert-info">Loading...</div>
+    }
+    else if (!grades.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> No grades have been recorded yet.
+        </div>
+    }
+    else
+    {
+        <!-- Overall statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center">
+                    <div class="card-body">
+                        <h3 class="text-primary">@averageGPA.ToString("F1")</h3>
+                        <p class="text-muted mb-0">Overall GPA</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center">
+                    <div class="card-body">
+                        <h3 class="text-success">@passedCount</h3>
+                        <p class="text-muted mb-0">Passed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center">
+                    <div class="card-body">
+                        <h3 class="text-danger">@failedCount</h3>
+                        <p class="text-muted mb-0">Failed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm text-center">
+                    <div class="card-body">
+                        <h3 class="text-info">@totalCredits</h3>
+                        <p class="text-muted mb-0">Total Credits</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter by semester -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Select Semester:</label>
+                        <select class="form-select" @bind="selectedSemesterId" @bind:after="FilterGrades">
+                            <option value="0">-- All --</option>
+                            @foreach (var semester in semesters)
+                            {
+                                <option value="@semester.Id">@semester.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade table -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Grade Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Course Code</th>
+                                <th>Course Name</th>
+                                <th>Semester</th>
+                                <th class="text-center">Midterm (40%)</th>
+                                <th class="text-center">Final (60%)</th>
+                                <th class="text-center">Average</th>
+                                <th class="text-center">Letter Grade</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var grade in filteredGrades.OrderByDescending(g => g.Course?.Semester?.Id))
+                            {
+                                <tr>
+                                    <td>@grade.Course?.Subject?.Code</td>
+                                    <td>@grade.Course?.Subject?.Name</td>
+                                    <td>@grade.Course?.Semester?.Name</td>
+                                    <td class="text-center">@(grade.MidtermScore?.ToString("F1") ?? "-")</td>
+                                    <td class="text-center">@(grade.FinalScore?.ToString("F1") ?? "-")</td>
+                                    <td class="text-center fw-bold">@(grade.AverageScore?.ToString("F1") ?? "-")</td>
+                                    <td class="text-center">
+                                        <span class="badge @GetGradeBadgeClass(grade.LetterGrade)">
+                                            @(grade.LetterGrade ?? "N/A")
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (grade.IsPassed)
+                                        {
+                                            <span class="badge bg-success">Passed</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Failed</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h6 class="fw-bold">Notes:</h6>
+                <ul class="small">
+                    <li><strong>Grading scale:</strong> 0 - 100 points</li>
+                    <li><strong>Midterm:</strong> Midterm exam (40%)</li>
+                    <li><strong>Final:</strong> Final exam (60%)</li>
+                    <li><strong>Passing grade:</strong> 65 points or higher</li>
+                    <li><strong>Letter grade classification:</strong></li>
+                    <ul>
+                        <li><span class="badge bg-success">D</span> - Distinction: 80 points or higher</li>
+                        <li><span class="badge bg-warning">M</span> - Merit: 65 to 79 points</li>
+                        <li><span class="badge bg-danger">F</span> - Fail: below 65 points</li>
+                    </ul>
+                    <li><strong>Note:</strong> Grades cannot be negative or greater than 100</li>
+                </ul>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+private ApplicationUser? currentUser;
+private List<Grade> grades = new();
+private List<Grade> filteredGrades = new();
+private List<Semester> semesters = new();
+private int selectedSemesterId = 0;
+
+private double averageGPA = 0;
+private int passedCount = 0;
+private int failedCount = 0;
+private int totalCredits = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+            
+            if (currentUser != null)
+            {
+                using var context = DbFactory.CreateDbContext();
+                
+                grades = await context.Grades
+                    .Include(g => g.Course)
+                        .ThenInclude(c => c.Subject)
+                    .Include(g => g.Course)
+                        .ThenInclude(c => c.Semester)
+                    .Where(g => g.StudentID == currentUser.Id)
+                    .ToListAsync();
+
+                filteredGrades = grades;
+                semesters = await context.Semesters.ToListAsync();
+
+                CalculateStatistics();
+            }
+        }
+    }
+
+    private void FilterGrades()
+    {
+        if (selectedSemesterId == 0)
+        {
+            filteredGrades = grades;
+        }
+        else
+        {
+            filteredGrades = grades
+                .Where(g => g.Course?.SemesterID == selectedSemesterId)
+                .ToList();
+        }
+        CalculateStatistics();
+    }
+
+    private void CalculateStatistics()
+    {
+        if (filteredGrades.Any())
+        {
+            var validGrades = filteredGrades.Where(g => g.AverageScore.HasValue).ToList();
+            averageGPA = validGrades.Any() ? validGrades.Average(g => g.AverageScore!.Value) : 0;
+            passedCount = filteredGrades.Count(g => g.IsPassed);
+            failedCount = filteredGrades.Count(g => !g.IsPassed);
+            totalCredits = filteredGrades.Count; // Assuming 3 credits per course, can be modified
+        }
+    }
+
+    private string GetGradeBadgeClass(string? letterGrade)
+    {
+        return letterGrade switch
+        {
+            "D" => "bg-success",      // Distinction (80+)
+            "M" => "bg-warning",      // Merit (65-79)
+            "F" => "bg-danger",       // Fail (< 65)
+            _ => "bg-secondary"
+        };
+    }
+}
