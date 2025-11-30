@@ -18,6 +18,7 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ToastQueue>();
+builder.Services.AddScoped<FileUploadService>();
 
 builder.Services.AddAuthentication(options =>
 {
