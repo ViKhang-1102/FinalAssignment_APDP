@@ -2,102 +2,28 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Data
 @implements IAsyncDisposable
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
-<PageTitle>Enrollment Management</PageTitle>
+<PageTitle>Index</PageTitle>
 
-<div class="container py-5 fade-in">
-    <!-- Header Section -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h2 class="fw-bold text-primary mb-1">
-                <i class="bi bi-person-check-fill me-2"></i>Enrollments
-            </h2>
-            <p class="text-muted mb-0">Manage student course registrations.</p>
-        </div>
-        <div>
-            <!-- Nút Create Gradient -->
-            <a href="enrollments/create" class="btn btn-gradient-primary px-4 py-2 rounded-pill d-inline-flex align-items-center">
-                <i class="bi bi-person-plus-fill me-2"></i> Enroll New Student
-            </a>
-        </div>
-    </div>
+<h1>Index</h1>
 
-    <!-- Main Content Card -->
-    <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-        <div class="card-body p-0">
-            
-            <!-- QuickGrid -->
-            <!-- QUAN TRỌNG: Thêm .Include() để lấy thông tin chi tiết của Student và Course -->
-            <QuickGrid Class="table table-borderless custom-table mb-0 align-middle" 
-                       Items="DbFactory.CreateDbContext().Enrollments.Include(e => e.Student).Include(e => e.Course)">
-                
-                <!-- Column 1: Student Information -->
-                <TemplateColumn Title="Student Profile" Sortable="true" Class="ps-4">
-                    <div class="d-flex align-items-center py-2">
-                        <!-- Avatar giả lập -->
-                        <div class="bg-gradient-secondary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" 
-                             style="width: 45px; height: 45px; font-size: 1.2rem; flex-shrink: 0;">
-                            @(string.IsNullOrEmpty(context.Student?.Name) ? "?" : context.Student.Name.Substring(0, 1).ToUpper())
-                        </div>
-                        
-                        <div class="d-flex flex-column">
-                            <span class="fw-bold text-dark fs-6">
-                                @(context.Student?.Name ?? "Unknown Student")
-                            </span>
-                            <!-- Hiển thị Student ID dạng mã code nhỏ -->
-                            <div class="d-flex align-items-center mt-1">
-                                <i class="bi bi-card-heading text-secondary me-1" style="font-size: 0.8rem;"></i>
-                                <span class="text-muted small font-monospace">
-                                    @(context.Student?.StudentId ?? "N/A")
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </TemplateColumn>
+<p>
+    <a href="enrollments/create">Create New</a>
+</p>
 
-                <!-- Column 2: Course Information -->
-                <TemplateColumn Title="Enrolled Course" Sortable="true">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-soft-primary text-primary rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
-                            <i class="bi bi-journal-bookmark-fill"></i>
-                        </div>
-                        <div>
-                            <span class="d-block fw-bold text-dark">@(context.Course?.Name ?? "Unknown Course")</span>
-                            <span class="badge bg-light text-secondary border border-light rounded-pill px-2 py-0 mt-1" style="font-size: 0.7rem;">
-                                ID: @context.CourseID
-                            </span>
-                        </div>
-                    </div>
-                </TemplateColumn>
+<QuickGrid Class="table" Items="context.Enrollments">
+    <PropertyColumn Property="enrollment => enrollment.StudentID" />
+    <PropertyColumn Property="enrollment => enrollment.CourseID" />
 
-                <!-- Column 3: Actions -->
-                <TemplateColumn Title="Actions" Class="text-end pe-4">
-                    <div class="btn-group shadow-sm rounded-3" role="group">
-                        <a href="@($"enrollments/edit?id={context.Id}")" class="btn btn-light btn-sm text-primary" title="Edit">
-                            <i class="bi bi-pencil-square"></i>
-                        </a>
-                        <a href="@($"enrollments/details?id={context.Id}")" class="btn btn-light btn-sm text-info" title="Details">
-                            <i class="bi bi-info-circle"></i>
-                        </a>
-                        <a href="@($"enrollments/delete?id={context.Id}")" class="btn btn-light btn-sm text-danger" title="Delete">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                    </div>
-                </TemplateColumn>
-
-            </QuickGrid>
-        </div>
-        
-        <!-- Footer thống kê -->
-        <div class="card-footer bg-white border-top border-light py-3 px-4">
-             <small class="text-muted">
-                <i class="bi bi-list-check me-1"></i> Registration Records
-            </small>
-        </div>
-    </div>
-</div>
+    <TemplateColumn Context="enrollment">
+        <a href="@($"enrollments/edit?id={enrollment.Id}")">Edit</a> |
+        <a href="@($"enrollments/details?id={enrollment.Id}")">Details</a> |
+        <a href="@($"enrollments/delete?id={enrollment.Id}")">Delete</a>
+    </TemplateColumn>
+</QuickGrid>
 
 @code {
     private ApplicationDbContext context = default!;

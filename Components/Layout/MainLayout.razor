@@ -1,25 +1,18 @@
 ﻿@inherits LayoutComponentBase
-@implements IDisposable
-@using Microsoft.AspNetCore.Components.Authorization
-
-@inject NavigationManager NavigationManager
-@inject AuthenticationStateProvider AuthStateProvider
+@inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
+@inject IJSRuntime JSRuntime
 
 <div class="page">
-    @if (ShowSidebar)
-    {
-        <div class="sidebar">
-            <NavMenu />
-        </div>
-    }
+    <div class="sidebar">
+        <NavMenu />
+    </div>
 
     <main>
-        @if (ShowSidebar)
-        {
-            <div class="nav-item">
-                <NavLink href="profile"></NavLink>
-            </div>
-        }
+        <div class="top-row px-4">
+            <NavLink class="nav-link" href="Account/Manage">
+                <span class="bi bi-person-circle" aria-hidden="true"></span> Profile
+            </NavLink>
+        </div>
 
         <article class="content px-4">
             @Body
@@ -33,42 +26,13 @@
     <a class="dismiss">🗙</a>
 </div>
 
+<div aria-live="polite" aria-atomic="true" class="position-relative">
+    <div class="toast-container position-absolute top-0 end-0 p-3"></div>
+</div>
+
 @code {
-    private bool isAuthenticated = false;
-    private string currentUrl = "";
-
-    // Logic: Show Sidebar when (Logged in) OR (Not on home page)
-    // Hide when: (Not logged in) AND (On home page - currentUrl is empty)
-    private bool ShowSidebar => isAuthenticated || !string.IsNullOrEmpty(currentUrl);
-
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // 1. Get current URL
-        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-
-        // 2. Register event to track when user navigates
-        NavigationManager.LocationChanged += OnLocationChanged;
-
-        // 3. Check authentication status
-        await CheckAuthStatus();
-    }
-
-    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-    {
-        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
-        await CheckAuthStatus();
-        StateHasChanged();
-    }
-
-    private async Task CheckAuthStatus()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        isAuthenticated = authState.User.Identity?.IsAuthenticated ?? false;
-    }
-
-    public void Dispose()
-    {
-        // Unsubscribe from event to avoid memory leaks
-        NavigationManager.LocationChanged -= OnLocationChanged;
+        await Toasts.FlushAsync(JSRuntime);
     }
 }

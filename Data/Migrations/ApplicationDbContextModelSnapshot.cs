@@ -110,9 +110,6 @@ namespace FinalAssignemnt_APDP.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("DayOfWeek")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("LectureID")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -121,17 +118,11 @@ namespace FinalAssignemnt_APDP.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Room")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("SemesterID")
                         .HasColumnType("int");
 
                     b.Property<int>("SubjectID")
                         .HasColumnType("int");
-
-                    b.Property<string>("TimeSlot")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -183,48 +174,6 @@ namespace FinalAssignemnt_APDP.Migrations
                     b.HasIndex("StudentID");
 
                     b.ToTable("Enrollments");
-                });
-
-            modelBuilder.Entity("FinalAssignemnt_APDP.Data.Grade", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<double?>("AverageScore")
-                        .HasColumnType("float");
-
-                    b.Property<int>("CourseID")
-                        .HasColumnType("int");
-
-                    b.Property<double?>("FinalScore")
-                        .HasColumnType("float");
-
-                    b.Property<bool>("IsPassed")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LetterGrade")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double?>("MidtermScore")
-                        .HasColumnType("float");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StudentID")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseID");
-
-                    b.HasIndex("StudentID");
-
-                    b.ToTable("Grades");
                 });
 
             modelBuilder.Entity("FinalAssignemnt_APDP.Data.Major", b =>
@@ -448,25 +397,6 @@ namespace FinalAssignemnt_APDP.Migrations
                 });
 
             modelBuilder.Entity("FinalAssignemnt_APDP.Data.Enrollment", b =>
-                {
-                    b.HasOne("FinalAssignemnt_APDP.Data.Course", "Course")
-                        .WithMany()
-                        .HasForeignKey("CourseID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FinalAssignemnt_APDP.Data.ApplicationUser", "Student")
-                        .WithMany()
-                        .HasForeignKey("StudentID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Student");
-                });
-
-            modelBuilder.Entity("FinalAssignemnt_APDP.Data.Grade", b =>
                 {
                     b.HasOne("FinalAssignemnt_APDP.Data.Course", "Course")
                         .WithMany()

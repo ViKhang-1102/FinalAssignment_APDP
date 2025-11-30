@@ -1,4 +1,4 @@
-﻿@page "/users/edit"
+@page "/users/edit"
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Logging
@@ -9,139 +9,57 @@
 
 <PageTitle>Edit User</PageTitle>
 
-<div class="container py-5 fade-in">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+<div class="container-fluid p-4">
+    <div class="d-flex align-items-center mb-4">
+        <a href="/users" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+        <h1 class="mb-0"><i class="bi bi-pencil text-primary"></i> Edit User</h1>
+    </div>
 
-            <!-- Header Section -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="fw-bold text-primary mb-0">
-                        <i class="bi bi-person-gear me-2"></i>Edit User
-                    </h2>
-                    <p class="text-muted mb-0">Update user account information.</p>
-                </div>
-                <a href="/users" class="btn btn-outline-secondary rounded-pill px-3">
-                    <i class="bi bi-arrow-left me-1"></i> Back
-                </a>
-            </div>
-
-            @if (User is null)
-            {
-                <!-- Loading State -->
-                <div class="d-flex flex-column align-items-center justify-content-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <span class="text-muted">Loading user profile...</span>
-                </div>
-            }
-            else
-            {
-                <!-- Form Card -->
-                <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                    <div class="card-body p-4 p-md-5">
-
-                        <!-- Avatar Visual -->
-                        <div class="d-flex justify-content-center mb-4">
-                            <div class="bg-gradient-secondary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm border border-4 border-white"
-                                 style="width: 80px; height: 80px; font-size: 2rem;">
-                                @(string.IsNullOrEmpty(User.Name) ? "?" : User.Name.Substring(0, 1).ToUpper())
-                            </div>
-                        </div>
-
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    @if (User is null)
+                    {
+                        <div>Loading...</div>
+                    }
+                    else
+                    {
                         <EditForm Model="User" OnValidSubmit="SaveUser" FormName="edit-user" method="post" Enhance>
                             <DataAnnotationsValidator />
-
-                            <!-- Validation Summary -->
-                            <div class="mb-3">
-                                <ValidationSummary class="text-danger alert alert-danger border-0 bg-soft-danger" role="alert" />
-                            </div>
-
-                            <!-- HIDDEN ID -->
+                            <ValidationSummary class="text-danger" />
                             <input type="hidden" name="User.Id" value="@User.Id" />
-
-                            <div class="row g-3">
-                                <!-- Field: Email (Full Width) -->
-                                <div class="col-12 mb-2">
-                                    <label class="form-label fw-bold text-secondary">
-                                        <i class="bi bi-envelope-fill me-1"></i>Email Address
-                                    </label>
-                                    <InputText @bind-Value="User.Email" class="form-control form-control-lg" placeholder="name@example.com" />
-                                    <ValidationMessage For="() => User.Email" class="text-danger small mt-1" />
-                                </div>
-
-                                <!-- Field: Name (Full Width) -->
-                                <div class="col-12 mb-2">
-                                    <label class="form-label fw-bold text-secondary">
-                                        <i class="bi bi-person-badge-fill me-1"></i>Full Name
-                                    </label>
-                                    <InputText @bind-Value="User.Name" class="form-control form-control-lg" placeholder="e.g. Nguyen Van A" />
-                                    <ValidationMessage For="() => User.Name" class="text-danger small mt-1" />
-                                </div>
-
-                                <!-- Field: Student ID (Half Width) -->
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label fw-bold text-secondary">
-                                        <i class="bi bi-card-heading me-1"></i>Student ID
-                                    </label>
-                                    <InputText @bind-Value="User.StudentId" class="form-control form-control-lg font-monospace" placeholder="e.g. 21000123" />
-                                    <ValidationMessage For="() => User.StudentId" class="text-danger small mt-1" />
-                                </div>
-
-                                <!-- Field: Role (Half Width) -->
-                                <div class="col-md-6 mb-2">
-                                    <label class="form-label fw-bold text-secondary">
-                                        <i class="bi bi-shield-lock-fill me-1"></i>System Role
-                                    </label>
-                                    <InputSelect @bind-Value="SelectedRole" class="form-select form-select-lg" name="SelectedRole">
-                                        <option value="">-- Select role --</option>
-                                        @foreach (var r in Roles)
-                                        {
-                                            <option value="@r">@r</option>
-                                        }
-                                    </InputSelect>
-                                </div>
+                            <div class="form-floating mb-3">
+                                <InputText @bind-Value="User.Email" class="form-control" placeholder="name@example.com" />
+                                <label>Email</label>
                             </div>
-
-                            <!-- Action Buttons -->
-                            <div class="d-flex justify-content-end gap-2 mt-4">
-                                <a href="/users" class="btn btn-light btn-lg px-4 rounded-pill">Cancel</a>
-
-                                <!-- Nút Save Gradient -->
-                                <button type="submit" class="btn btn-gradient-primary btn-lg px-4 rounded-pill shadow-sm">
-                                    <i class="bi bi-save me-2"></i>Save Changes
-                                </button>
+                            <div class="form-floating mb-3">
+                                <InputText @bind-Value="User.Name" class="form-control" placeholder="Full name" />
+                                <label>Name</label>
                             </div>
-
+                            <div class="form-floating mb-3">
+                                <InputText @bind-Value="User.StudentId" class="form-control" placeholder="Student Id" />
+                                <label>Student ID</label>
+                            </div>
+                            <div class="mb-3">
+                                <label>Role</label>
+                                <InputSelect @bind-Value="SelectedRole" class="form-select" name="SelectedRole">
+                                    <option value="">-- Select role --</option>
+                                    @foreach (var r in Roles)
+                                    {<option value="@r">@r</option>}
+                                </InputSelect>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" type="submit">Save</button>
+                                <a class="btn btn-outline-secondary" href="/users">Cancel</a>
+                            </div>
                         </EditForm>
-                    </div>
+                    }
                 </div>
-            }
-
+            </div>
         </div>
     </div>
 </div>
-
-<style>
-
-    .bg-gradient-secondary {
-        background: linear-gradient(45deg, #a8b8d8, #6c757d);
-    }
-
-    .font-monospace {
-        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-
-    .form-control-lg, .form-select-lg {
-        font-size: 1rem;
-        padding: 0.75rem 1rem;
-    }
-
-    .bg-soft-danger {
-        background-color: rgba(220, 53, 69, 0.1);
-    }
-</style>
 
 @code {
     [SupplyParameterFromQuery]

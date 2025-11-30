@@ -15,10 +15,5 @@
         public string LectureID { get; set; }
 
         public ApplicationUser Lecture { get; set; }
-
-        // Timetable information
-        public string? DayOfWeek { get; set; } // Monday, Tusday, ...
-        public string? TimeSlot { get; set; }  // Morning, Afternoon, Evening
-        public string? Room { get; set; }       // Room number or location
     }
 }

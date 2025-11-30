@@ -7,151 +7,43 @@
 
 <PageTitle>User Details</PageTitle>
 
-<div class="container py-5 fade-in">
-    <div class="row justify-content-center">
-        <div class="col-lg-6">
+<div class="container-fluid p-4">
+ <div class="d-flex align-items-center mb-4">
+ <a href="/users" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+ <h1 class="mb-0"><i class="bi bi-info-circle text-primary"></i> User Details</h1>
+ </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="fw-bold text-primary mb-0">
-                        <i class="bi bi-person-vcard-fill me-2"></i>User Details
-                    </h2>
-                    <p class="text-muted mb-0">View user account information.</p>
-                </div>
-                <a href="/users" class="btn btn-outline-secondary rounded-pill px-3">
-                    <i class="bi bi-arrow-left me-1"></i> Back
-                </a>
-            </div>
-
-            @if (User is null)
-            {
-                <div class="d-flex flex-column align-items-center justify-content-center py-5">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <span class="text-muted">Loading user profile...</span>
-                </div>
-            }
-            else
-            {
-                <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                    <div class="bg-gradient-primary h-2"></div>
-
-                    <div class="card-body p-4 p-md-5 text-center position-relative">
-
-                        <div class="position-absolute top-0 start-0 w-100 h-100 overflow-hidden" style="z-index: 0; pointer-events: none;">
-                            <i class="bi bi-person-badge text-primary opacity-05 position-absolute" style="font-size: 15rem; top: -20%; right: -10%;"></i>
-                        </div>
-
-                        <div class="position-relative" style="z-index: 1;">
-
-                            <div class="mb-4 d-flex justify-content-center">
-                                <div class="bg-gradient-secondary text-white rounded-circle d-flex align-items-center justify-content-center shadow-lg border border-4 border-white"
-                                     style="width: 120px; height: 120px; font-size: 3rem;">
-                                    @(string.IsNullOrEmpty(User.Name) ? "?" : User.Name.Substring(0, 1).ToUpper())
-                                </div>
-                            </div>
-
-                            <div class="mb-4">
-                                <h3 class="fw-bold text-dark mb-1">@User.Name</h3>
-                                <div class="text-muted d-flex align-items-center justify-content-center">
-                                    <i class="bi bi-envelope-fill me-2"></i>@User.Email
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mb-5 justify-content-center">
-
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-light rounded-4 h-100 border border-light shadow-sm">
-                                        <div class="small text-muted fw-bold text-uppercase mb-2">Student ID</div>
-                                        @if (!string.IsNullOrEmpty(User.StudentId))
-                                        {
-                                            <span class="badge bg-white text-dark border border-secondary border-opacity-25 shadow-sm px-3 py-2 font-monospace fs-6">
-                                                <i class="bi bi-card-heading me-2 text-secondary"></i>@User.StudentId
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted fst-italic">Not provided</span>
-                                        }
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <div class="p-3 bg-light rounded-4 h-100 border border-light shadow-sm">
-                                        <div class="small text-muted fw-bold text-uppercase mb-2">System Roles</div>
-                                        @if (!string.IsNullOrEmpty(RolesStr))
-                                        {
-                                            <span class="badge bg-soft-info text-info border border-info border-opacity-25 rounded-pill px-3 py-2 fs-6">
-                                                <i class="bi bi-shield-lock-fill me-2"></i>@RolesStr
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-light text-secondary">No Roles</span>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-center gap-3">
-                                <a href="@($"/users/edit?id={User.Id}")" class="btn btn-gradient-primary btn-lg px-5 rounded-pill shadow-sm">
-                                    <i class="bi bi-pencil-square me-2"></i>Edit User
-                                </a>
-                                <a href="/users" class="btn btn-light btn-lg px-4 rounded-pill">
-                                    Back to List
-                                </a>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
+ @if (User is null)
+ {
+ <div class="card shadow-sm"><div class="card-body">Loading...</div></div>
+ }
+ else
+ {
+ <div class="card shadow-sm"><div class="card-body">
+ <dl class="row">
+ <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@User.Email</dd>
+ <dt class="col-sm-3">Name</dt><dd class="col-sm-9">@User.Name</dd>
+ <dt class="col-sm-3">Student ID</dt><dd class="col-sm-9">@User.StudentId</dd>
+ <dt class="col-sm-3">Roles</dt><dd class="col-sm-9">@RolesStr</dd>
+ </dl>
+ <a class="btn btn-outline-secondary" href="/users">Back to List</a>
+ </div></div>
+ }
 </div>
 
-<style>
-
-    .bg-gradient-primary {
-        background: linear-gradient(45deg, #4e73df, #224abe);
-    }
-
-    .bg-gradient-secondary {
-        background: linear-gradient(45deg, #a8b8d8, #6c757d);
-    }
-
-    .h-2 {
-        height: 8px;
-    }
-
-    .opacity-05 {
-        opacity: 0.05;
-    }
-
-    .bg-soft-info {
-        background-color: rgba(13, 202, 240, 0.1);
-        color: #0dcaf0;
-    }
-
-    .font-monospace {
-        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-</style>
-
 @code {
-    [SupplyParameterFromQuery]
-    public string Id { get; set; } = "";
-    private ApplicationUser? User { get; set; }
-    private string RolesStr { get; set; } = "";
-    protected override async Task OnInitializedAsync()
-    {
-        if (!string.IsNullOrEmpty(Id))
-        {
-            User = await UserManager.FindByIdAsync(Id);
-            if (User is null) { NavigationManager.NavigateTo("notfound"); return; }
-            var roles = await UserManager.GetRolesAsync(User);
-            RolesStr = string.Join(", ", roles);
-        }
-    }
+ [SupplyParameterFromQuery]
+ public string Id { get; set; } = "";
+ private ApplicationUser? User { get; set; }
+ private string RolesStr { get; set; } = "";
+ protected override async Task OnInitializedAsync()
+ {
+ if (!string.IsNullOrEmpty(Id))
+ {
+ User = await UserManager.FindByIdAsync(Id);
+ if (User is null) { NavigationManager.NavigateTo("notfound"); return; }
+ var roles = await UserManager.GetRolesAsync(User);
+ RolesStr = string.Join(", ", roles);
+ }
+ }
 }
