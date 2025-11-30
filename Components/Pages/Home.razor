@@ -1,11 +1,18 @@
 ﻿@page "/"
+<<<<<<< HEAD
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject AuthenticationStateProvider AuthStateProvider
+=======
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+>>>>>>> 3b31e35ed6e3fba8796b2d0d4de2eb2eafe9889a
 
 <PageTitle>Dashboard - SIMS</PageTitle>
 
+<<<<<<< HEAD
 <div class="container py-5 fade-in">
 
     <AuthorizeView>
@@ -308,3 +315,48 @@
         }
     }
 }
+=======
+<AuthorizeView>
+    <Authorized>
+        <AuthorizeView Roles="Student" Context="studentContext">
+            <Authorized>
+                <div class="text-center mt-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Redirecting to your dashboard...</p>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <h1>Welcome, @context.User.Identity?.Name!</h1>
+                <p>Welcome to the Student Information Management System.</p>
+            </NotAuthorized>
+        </AuthorizeView>
+    </Authorized>
+    <NotAuthorized>
+        <h1>Hello, world!</h1>
+        <p>Welcome to your new app.</p>
+        <p>Please <a href="/Account/Login">login</a> to continue.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask != null)
+        {
+            var authState = await AuthenticationStateTask;
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true && user.IsInRole("Student"))
+            {
+                Navigation.NavigateTo("/student/dashboard", forceLoad: false);
+            }
+        }
+    }
+}
+
+>>>>>>> 3b31e35ed6e3fba8796b2d0d4de2eb2eafe9889a

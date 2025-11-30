@@ -4,29 +4,98 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Details</PageTitle>
+<PageTitle>Enrollment Details</PageTitle>
 
-<h1>Details</h1>
+<div class="container py-5 fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
 
-<div>
-    <h2>Enrollment</h2>
-    <hr />
-    @if (enrollment is null)
-    {
-        <p><em>Loading...</em></p>
-    }
-    else {
-        <dl class="row">
-            <dt class="col-sm-2">StudentID</dt>
-            <dd class="col-sm-10">@enrollment.StudentID</dd>
-            <dt class="col-sm-2">CourseID</dt>
-            <dd class="col-sm-10">@enrollment.CourseID</dd>
-        </dl>
-        <div>
-            <a href="@($"/enrollments/edit?id={enrollment.Id}")">Edit</a> |
-            <a href="@($"/enrollments")">Back to List</a>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="fw-bold text-primary mb-0">
+                        <i class="bi bi-card-checklist me-2"></i>Enrollment Details
+                    </h2>
+                    <p class="text-muted mb-0">View registration information.</p>
+                </div>
+                <a href="/enrollments" class="btn btn-outline-secondary rounded-pill px-3">
+                    <i class="bi bi-arrow-left me-1"></i> Back
+                </a>
+            </div>
+
+            @if (enrollment is null)
+            {
+
+                <div class="d-flex flex-column align-items-center justify-content-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="text-muted">Loading details...</span>
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+
+                    <div class="bg-gradient-primary h-2"></div>
+
+                    <div class="card-body p-4 p-md-5 text-center position-relative">
+
+                        <div class="position-absolute top-0 start-0 w-100 h-100 overflow-hidden" style="z-index: 0; pointer-events: none;">
+                            <i class="bi bi-person-check text-primary opacity-05 position-absolute" style="font-size: 15rem; top: -20%; right: -10%;"></i>
+                        </div>
+
+                        <div class="position-relative" style="z-index: 1;">
+
+                            <div class="mb-4">
+                                <div class="d-inline-flex align-items-center justify-content-center bg-soft-primary text-primary rounded-circle p-4 shadow-sm mb-3" style="width: 100px; height: 100px;">
+                                    <i class="bi bi-person-lines-fill display-4"></i>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mb-5">
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-4 h-100 border border-light shadow-sm">
+                                        <div class="text-secondary mb-2"><i class="bi bi-person-badge fs-2"></i></div>
+                                        <div class="small text-muted fw-bold text-uppercase mb-1">Student ID</div>
+                                        <span class="badge bg-white text-dark border border-secondary border-opacity-25 px-3 py-1 font-monospace">
+                                            @enrollment.StudentID
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-4 h-100 border border-light shadow-sm">
+                                        <div class="text-success mb-2"><i class="bi bi-journal-bookmark-fill fs-2"></i></div>
+                                        <div class="small text-muted fw-bold text-uppercase mb-1">Course ID</div>
+                                        <span class="badge bg-white text-dark border border-secondary border-opacity-25 px-3 py-1 font-monospace">
+                                            @enrollment.CourseID
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-center gap-3">
+                                <a href="@($"/enrollments/edit?id={enrollment.Id}")" class="btn btn-gradient-primary btn-lg px-5 rounded-pill shadow-sm">
+                                    <i class="bi bi-pencil-square me-2"></i>Edit
+                                </a>
+                                <a href="/enrollments" class="btn btn-light btn-lg px-4 rounded-pill">
+                                    Back to List
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer bg-light border-0 py-3 text-center">
+                        <small class="text-muted font-monospace">
+                            Record ID: @enrollment.Id
+                        </small>
+                    </div>
+                </div>
+            }
         </div>
-    }
+    </div>
 </div>
 
 @code {

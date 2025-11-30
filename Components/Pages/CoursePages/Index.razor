@@ -2,37 +2,115 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using FinalAssignemnt_APDP.Data
-@using FinalAssignemnt_APDP.Data
 @implements IAsyncDisposable
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Course Management</PageTitle>
 
-<h1>Index</h1>
+<div class="container py-5 fade-in">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">
+                <i class="bi bi-journal-bookmark-fill me-2"></i>Course List
+            </h2>
+            <p class="text-muted mb-0">Manage your academic courses efficiently</p>
+        </div>
+        <div>
+            <a href="courses/create" class="btn btn-gradient-primary px-4 py-2 rounded-pill d-inline-flex align-items-center">
+                <i class="bi bi-plus-lg me-2"></i> Create New Course
+            </a>
+        </div>
+    </div>
 
-<p>
-    <a href="courses/create">Create New</a>
-</p>
+    @if (courses == null)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="text-muted">Loading course data...</span>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="card-body p-0">
+                <QuickGrid Class="table table-borderless custom-table mb-0 align-middle" Items="@courses">
 
-<QuickGrid Class="table" Items="context.Courses">
-    <PropertyColumn Property="course => course.Name" />
-    <PropertyColumn Property="course => course.SubjectID" />
-    <PropertyColumn Property="course => course.SemesterID" />
-    <PropertyColumn Property="course => course.LectureID" />
+                    <TemplateColumn Title="Course Name" Sortable="true" Class="ps-4">
+                        <div class="d-flex align-items-center py-2">
+                            <div class="bg-light text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-book"></i>
+                            </div>
+                            <div>
+                                <span class="fw-bold text-dark d-block">@context.Name</span>
+                            </div>
+                        </div>
+                    </TemplateColumn>
 
-    <TemplateColumn Context="course">
-        <a href="@($"courses/edit?id={course.Id}")">Edit</a> |
-        <a href="@($"courses/details?id={course.Id}")">Details</a> |
-        <a href="@($"courses/delete?id={course.Id}")">Delete</a>
-    </TemplateColumn>
-</QuickGrid>
+                    <TemplateColumn Title="Subject" Sortable="true">
+                        <span class="badge bg-soft-info text-info border border-info rounded-pill px-3">
+                            @context.Subject?.Name
+                        </span>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Semester" Sortable="true">
+                        <span class="badge bg-light text-dark border rounded-pill px-3">
+                            <i class="bi bi-calendar3 me-1"></i> @context.Semester?.Name
+                        </span>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Lecturer" Sortable="true">
+                        <div class="d-flex align-items-center text-secondary">
+                            <i class="bi bi-person-circle me-2"></i> @context.Lecture?.UserName
+                        </div>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Actions" Class="text-end pe-4">
+                        <div class="btn-group shadow-sm rounded-3" role="group">
+                            <a href="@($"courses/edit?id={context.Id}")" class="btn btn-light btn-sm text-primary" title="Edit">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <a href="@($"courses/details?id={context.Id}")" class="btn btn-light btn-sm text-info" title="Details">
+                                <i class="bi bi-info-circle"></i>
+                            </a>
+                            <a href="@($"courses/delete?id={context.Id}")" class="btn btn-light btn-sm text-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </TemplateColumn>
+
+                </QuickGrid>
+            </div>
+
+            <div class="card-footer bg-white border-top border-light py-3 px-4">
+                <small class="text-muted">Total courses: <strong>@courses.Count()</strong></small>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .bg-soft-info {
+        background-color: rgba(13, 202, 240, 0.1) !important;
+    }
+
+    .text-info {
+        color: #0dcaf0 !important;
+    }
+</style>
 
 @code {
     private ApplicationDbContext context = default!;
+    private IQueryable<Course>? courses;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
+        courses = context.Courses
+            .Include(m => m.Subject)
+            .Include(m => m.Semester)
+            .Include(m => m.Lecture);
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

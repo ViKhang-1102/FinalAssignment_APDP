@@ -17,47 +17,197 @@
 
 <PageTitle>Register</PageTitle>
 
-<h1>Register</h1>
+<div class="container py-5 fade-in">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
 
-<div class="row">
-    <div class="col-md-4">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Name" class="form-control" aria-required="true" placeholder="John Doe" />
-                <label for="name">Name</label>
-                <ValidationMessage For="() => Input.Name" class="text-danger" />
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="bg-gradient-primary h-2"></div>
+
+                <div class="card-body p-4 p-md-5">
+
+                    <div class="text-center mb-5">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-soft-success text-success rounded-circle p-3 shadow-sm mb-3" style="width: 80px; height: 80px;">
+                            <i class="bi bi-person-plus-fill fs-1"></i>
+                        </div>
+                        <h2 class="fw-bold text-dark">Create an Account</h2>
+                        <p class="text-muted">Join SIMS Portal to manage your academic profile.</p>
+                    </div>
+
+                    <StatusMessage Message="@Message" />
+
+                    <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register" Enhance>
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-4">
+                            <ValidationSummary class="text-danger alert alert-danger border-0 bg-soft-danger" role="alert" />
+                        </div>
+
+                        <h6 class="text-secondary fw-bold text-uppercase small mb-3">
+                            <i class="bi bi-shield-lock me-1"></i> Account Credentials
+                        </h6>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-secondary small">Email Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                                    <InputText @bind-Value="Input.Email" class="form-control bg-light border-start-0" autocomplete="username" placeholder="name@example.com" />
+                                </div>
+                                <ValidationMessage For="() => Input.Email" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-secondary small">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-key"></i></span>
+                                    <InputText type="password" @bind-Value="Input.Password" class="form-control bg-light border-start-0" autocomplete="new-password" placeholder="******" />
+                                </div>
+                                <ValidationMessage For="() => Input.Password" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-secondary small">Confirm Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-check-all"></i></span>
+                                    <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control bg-light border-start-0" autocomplete="new-password" placeholder="******" />
+                                </div>
+                                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger small mt-1" />
+                            </div>
+                        </div>
+
+                        <h6 class="text-secondary fw-bold text-uppercase small mb-3 mt-4 border-top pt-4">
+                            <i class="bi bi-person-vcard me-1"></i> Personal Details
+                        </h6>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-secondary small">Full Name</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                                    <InputText @bind-Value="Input.Name" class="form-control bg-light border-start-0" placeholder="e.g. Nguyen Van A" />
+                                </div>
+                                <ValidationMessage For="() => Input.Name" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-secondary small">Student ID</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-card-heading"></i></span>
+                                    <InputText @bind-Value="Input.StudentId" class="form-control bg-light border-start-0 font-monospace" placeholder="e.g. 2100123" />
+                                </div>
+                                <ValidationMessage For="() => Input.StudentId" class="text-danger small mt-1" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-secondary small">Address</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-geo-alt"></i></span>
+                                    <InputText @bind-Value="Input.Address" class="form-control bg-light border-start-0" placeholder="City, Country" />
+                                </div>
+                                <ValidationMessage For="() => Input.Address" class="text-danger small mt-1" />
+                            </div>
+                        </div>
+
+                        <div class="d-grid mb-4 pt-3">
+                            <button type="submit" class="btn btn-gradient-primary btn-lg rounded-pill shadow-sm fw-bold py-3 fs-5">
+                                Register Account
+                            </button>
+                        </div>
+
+                        <div class="text-center text-muted">
+                            Already have an account?
+                            <a href="Account/Login" class="text-primary fw-bold text-decoration-none">
+                                Log in here
+                            </a>
+                        </div>
+
+                    </EditForm>
+
+                    <section class="mt-5">
+                        <div class="d-flex align-items-center mb-3">
+                            <hr class="flex-grow-1 border-secondary opacity-25">
+                            <span class="px-3 text-muted small text-uppercase">Or register with</span>
+                            <hr class="flex-grow-1 border-secondary opacity-25">
+                        </div>
+                        <div class="d-grid">
+                            <ExternalLoginPicker />
+                        </div>
+                    </section>
+
+                </div>
             </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+
+            <div class="text-center mt-4 text-muted small">
+                &copy; 2025 SIMS Portal. All rights reserved.
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="confirm-password">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
+
+        </div>
     </div>
 </div>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+    }
+
+    .h-2 {
+        height: 8px;
+    }
+
+    .bg-soft-success {
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+
+    .bg-soft-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+
+    .form-control.bg-light {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+
+    .form-control:focus {
+        background-color: #fff;
+        border-color: #86b7fe;
+        box-shadow: none;
+    }
+
+
+        .form-control:focus + .input-group-text,
+        .input-group:focus-within .input-group-text {
+            border-color: #86b7fe;
+            background-color: #fff;
+            color: #4e73df !important;
+        }
+
+    .input-group:focus-within .form-control {
+        border-color: #86b7fe;
+    }
+
+    .font-monospace {
+        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .btn-gradient-primary {
+        background: linear-gradient(45deg, #4e73df, #224abe);
+        border: none;
+        color: white;
+        transition: transform 0.2s;
+    }
+
+        .btn-gradient-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(78, 115, 223, 0.4);
+            color: white;
+        }
+</style>
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
@@ -135,10 +285,6 @@
     private sealed class InputModel
     {
         [Required]
-        [Display(Name = "Name")]
-        public string Name { get; set; } = "";
-
-        [Required]
         [EmailAddress]
         [Display(Name = "Email")]
         public string Email { get; set; } = "";
@@ -153,5 +299,15 @@
         [Display(Name = "Confirm password")]
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public string ConfirmPassword { get; set; } = "";
+
+        [Required]
+        [Display(Name = "Name")]
+        public string Name { get; set; } = "";
+
+        [Display(Name = "Address")]
+        public string Address { get; set; } = "";
+
+        [Display(Name = "StudentId")]
+        public string StudentId { get; set; } = "";
     }
 }

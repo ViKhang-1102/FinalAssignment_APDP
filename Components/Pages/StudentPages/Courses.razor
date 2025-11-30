@@ -1,0 +1,237 @@
+@page "/student/courses"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize(Roles = "Student")]
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>My Courses</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-0"><i class="bi bi-journal-text text-primary"></i> My Courses</h1>
+            <p class="text-muted">Enrolled courses</p>
+        </div>
+        <a href="/student/dashboard" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    @if (currentUser == null)
+    {
+        <div class="alert alert-info">Loading...</div>
+    }
+    else if (!enrollments.Any())
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> You haven't enrolled in any courses yet.
+        </div>
+    }
+    else
+    {
+        <!-- Filter by semester -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Select Semester:</label>
+                        <select class="form-select" @bind="selectedSemesterId" @bind:after="FilterCourses">
+                            <option value="0">-- All --</option>
+                            @foreach (var semester in semesters)
+                            {
+                                <option value="@semester.Id">@semester.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-8 d-flex align-items-end">
+                        <div class="alert alert-info mb-0 w-100">
+                            <strong>Total courses:</strong> @filteredEnrollments.Count courses
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course list cards -->
+        <div class="row g-4">
+            @foreach (var enrollment in filteredEnrollments)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card shadow-sm h-100 hover-card">
+                        <div class="card-header @GetRandomCardHeaderClass()">
+                            <h5 class="mb-0 text-white">
+                                <i class="bi bi-book"></i> @enrollment.Course?.Subject?.Code
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold">@enrollment.Course?.Subject?.Name</h6>
+                            <p class="card-text text-muted mb-2">
+                                <strong>Class:</strong> @enrollment.Course?.Name
+                            </p>
+                            <hr />
+                            <div class="mb-2">
+                                <i class="bi bi-person-fill text-primary"></i>
+                                <strong>Lecturer:</strong><br />
+                                <span class="ms-4">@enrollment.Course?.Lecture?.Name</span>
+                            </div>
+                            <div class="mb-2">
+                                <i class="bi bi-calendar3 text-info"></i>
+                                <strong>Semester:</strong><br />
+                                <span class="ms-4">@enrollment.Course?.Semester?.Name</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(enrollment.Course?.DayOfWeek))
+                            {
+                                <div class="mb-2">
+                                    <i class="bi bi-clock text-success"></i>
+                                    <strong>Schedule:</strong><br />
+                                    <span class="ms-4">@enrollment.Course.DayOfWeek - @enrollment.Course.TimeSlot</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(enrollment.Course?.Room))
+                            {
+                                <div class="mb-2">
+                                    <i class="bi bi-door-open text-warning"></i>
+                                    <strong>Room:</strong>
+                                    <span class="ms-2 badge bg-secondary">@enrollment.Course.Room</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer bg-light">
+                            <small class="text-muted">
+                                <i class="bi bi-check-circle-fill text-success"></i> Enrolled
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Detailed list table -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Detailed List</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Course Code</th>
+                                <th>Course Name</th>
+                                <th>Class</th>
+                                <th>Lecturer</th>
+                                <th>Semester</th>
+                                <th>Schedule</th>
+                                <th>Room</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{int index = 1;}
+                            @foreach (var enrollment in filteredEnrollments)
+                            {
+                                <tr>
+                                    <td>@index</td>
+                                    <td><span class="badge bg-info">@enrollment.Course?.Subject?.Code</span></td>
+                                    <td>@enrollment.Course?.Subject?.Name</td>
+                                    <td>@enrollment.Course?.Name</td>
+                                    <td>@enrollment.Course?.Lecture?.Name</td>
+                                    <td>@enrollment.Course?.Semester?.Name</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(enrollment.Course?.DayOfWeek))
+                                        {
+                                            <span>@enrollment.Course.DayOfWeek - @enrollment.Course.TimeSlot</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not scheduled</span>
+                                        }
+                                    </td>
+                                    <td>@(enrollment.Course?.Room ?? "TBA")</td>
+                                </tr>
+                                index++;
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .hover-card {
+        transition: all 0.3s ease;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2) !important;
+    }
+</style>
+
+@code {
+    private ApplicationUser? currentUser;
+    private List<Enrollment> enrollments = new();
+    private List<Enrollment> filteredEnrollments = new();
+    private List<Semester> semesters = new();
+    private int selectedSemesterId = 0;
+    private int cardColorIndex = 0;
+
+    private string[] cardHeaderColors = { "bg-primary", "bg-success", "bg-info", "bg-warning", "bg-danger", "bg-secondary" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+            
+            if (currentUser != null)
+            {
+                using var context = DbFactory.CreateDbContext();
+                
+                enrollments = await context.Enrollments
+                    .Include(e => e.Course)
+                        .ThenInclude(c => c.Subject)
+                    .Include(e => e.Course)
+                        .ThenInclude(c => c.Lecture)
+                    .Include(e => e.Course)
+                        .ThenInclude(c => c.Semester)
+                    .Where(e => e.StudentID == currentUser.Id)
+                    .ToListAsync();
+
+                filteredEnrollments = enrollments;
+                semesters = await context.Semesters.ToListAsync();
+            }
+        }
+    }
+
+    private void FilterCourses()
+    {
+        if (selectedSemesterId == 0)
+        {
+            filteredEnrollments = enrollments;
+        }
+        else
+        {
+            filteredEnrollments = enrollments
+                .Where(e => e.Course?.SemesterID == selectedSemesterId)
+                .ToList();
+        }
+        cardColorIndex = 0; // Reset color index
+    }
+
+    private string GetRandomCardHeaderClass()
+    {
+        var color = cardHeaderColors[cardColorIndex % cardHeaderColors.Length];
+        cardColorIndex++;
+        return color;
+    }
+}
