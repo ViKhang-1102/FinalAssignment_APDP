@@ -1,6 +1,7 @@
 ﻿@implements IDisposable
 
 @inject NavigationManager NavigationManager
+@using FinalAssignemnt_APDP.Constants
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -18,43 +19,43 @@
                 <AuthorizeView Roles="Admin,Lecturer" Context="adminContext">
                     <Authorized>
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                            <NavLink class="nav-link" href="@AppRoutes.Home" Match="NavLinkMatch.All">
                                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
                             </NavLink>
                         </div>
 
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="departments">
+                            <NavLink class="nav-link" href="@AppRoutes.Departments">
                                 <span class="bi bi-building" aria-hidden="true"></span> Department
                             </NavLink>
                         </div>
 
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="courses">
+                            <NavLink class="nav-link" href="@AppRoutes.Courses">
                                 <span class="bi bi-journal-text" aria-hidden="true"></span> Course
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="semesters">
+                            <NavLink class="nav-link" href="@AppRoutes.Semesters">
                                 <span class="bi bi-calendar3" aria-hidden="true"></span> Semester
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="majors">
+                            <NavLink class="nav-link" href="@AppRoutes.Majors">
                                 <span class="bi bi-mortarboard" aria-hidden="true"></span> Major
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="subjects">
+                            <NavLink class="nav-link" href="@AppRoutes.Subjects">
                                 <span class="bi bi-book" aria-hidden="true"></span> Subject
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="enrollments">
+                            <NavLink class="nav-link" href="@AppRoutes.Enrollments">
                                 <span class="bi bi-person-check" aria-hidden="true"></span> Enrollment
                             </NavLink>
                         </div>
@@ -65,7 +66,7 @@
                 <AuthorizeView Roles="Admin" Context="adminOnlyContext">
                     <Authorized>
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="users">
+                            <NavLink class="nav-link" href="@AppRoutes.Users">
                                 <span class="bi bi-people-fill" aria-hidden="true"></span> User Management
                             </NavLink>
                         </div>
@@ -76,31 +77,31 @@
                 <AuthorizeView Roles="Student" Context="studentContext">
                     <Authorized>
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="student/dashboard">
+                            <NavLink class="nav-link" href="@AppRoutes.StudentDashboard">
                                 <span class="bi bi-house-door-fill" aria-hidden="true"></span> Dashboard
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="student/schedule">
+                            <NavLink class="nav-link" href="@AppRoutes.StudentSchedule">
                                 <span class="bi bi-calendar3" aria-hidden="true"></span> Schedule
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="student/grades">
+                            <NavLink class="nav-link" href="@AppRoutes.StudentGrades">
                                 <span class="bi bi-clipboard-data" aria-hidden="true"></span> Grades
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="student/courses">
+                            <NavLink class="nav-link" href="@AppRoutes.StudentCourses">
                                 <span class="bi bi-journal-text" aria-hidden="true"></span> Courses
                             </NavLink>
                         </div>
                         
                         <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="student/profile">
+                            <NavLink class="nav-link" href="@AppRoutes.StudentProfile">
                                 <span class="bi bi-person-circle" aria-hidden="true"></span> Profile
                             </NavLink>
                         </div>
@@ -108,7 +109,7 @@
                 </AuthorizeView>
 
                 <div class="nav-item px-3">
-                    <form action="Account/Logout" method="post">
+                    <form action="@AppRoutes.Logout" method="post">
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
                         <button type="submit" class="nav-link">
@@ -119,12 +120,12 @@
             </Authorized>
             <NotAuthorized>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Register">
+                    <NavLink class="nav-link" href="@AppRoutes.Register">
                         <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Account/Login">
+                    <NavLink class="nav-link" href="@AppRoutes.Login">
                         <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
                     </NavLink>
                 </div>

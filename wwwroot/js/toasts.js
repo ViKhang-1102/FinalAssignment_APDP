@@ -35,7 +35,7 @@ function showToast(message, title = 'Notification', type = 'info') {
 }
 
 // Convenience helpers
-function showSuccess(message, title = 'Thành công') { showToast(message, title, 'success'); }
-function showError(message, title = 'L?i') { showToast(message, title, 'error'); }
-function showWarning(message, title = 'C?nh báo') { showToast(message, title, 'warning'); }
-function showInfo(message, title = 'Thông báo') { showToast(message, title, 'info'); }
+function showSuccess(message, title = 'Successfully') { showToast(message, title, 'success'); }
+function showError(message, title = 'Error') { showToast(message, title, 'error'); }
+function showWarning(message, title = 'Waring') { showToast(message, title, 'warning'); }
+function showInfo(message, title = 'Information') { showToast(message, title, 'info'); }

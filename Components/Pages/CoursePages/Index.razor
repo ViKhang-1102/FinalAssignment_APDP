@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @implements IAsyncDisposable
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
@@ -11,7 +12,7 @@
 <h1>Index</h1>
 
 <p>
-    <a href="courses/create">Create New</a>
+    <a href="@AppRoutes.CoursesCreate">Create New</a>
 </p>
 
 <QuickGrid Class="table" Items="context.Courses">
@@ -21,9 +22,9 @@
     <PropertyColumn Property="course => course.LectureID" />
 
     <TemplateColumn Context="course">
-        <a href="@($"courses/edit?id={course.Id}")">Edit</a> |
-        <a href="@($"courses/details?id={course.Id}")">Details</a> |
-        <a href="@($"courses/delete?id={course.Id}")">Delete</a>
+        <a href="@AppRoutes.CoursesEdit(course.Id)">Edit</a> |
+        <a href="@AppRoutes.CoursesDetails(course.Id)">Details</a> |
+        <a href="@AppRoutes.CoursesDelete(course.Id)">Delete</a>
     </TemplateColumn>
 </QuickGrid>
 

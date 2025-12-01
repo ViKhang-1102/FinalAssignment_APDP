@@ -12,8 +12,6 @@ namespace FinalAssignemnt_APDP.Data
         public DbSet<Major> Majors { get; set; } = null;
         public DbSet<Course> Courses { get; set; } = null;
         public DbSet<Enrollment> Enrollments { get; set; } = null;
-        public DbSet<Grade> Grades { get; set; } = null;
-        
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -27,17 +25,6 @@ namespace FinalAssignemnt_APDP.Data
                 .HasOne(sc => sc.Course)
                 .WithMany()
                 .HasForeignKey(sc => sc.CourseID)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<Grade>()
-                .HasOne(g => g.Student)
-                .WithMany()
-                .HasForeignKey(g => g.StudentID)
-                .OnDelete(DeleteBehavior.Restrict);
-            modelBuilder.Entity<Grade>()
-                .HasOne(g => g.Course)
-                .WithMany()
-                .HasForeignKey(g => g.CourseID)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
