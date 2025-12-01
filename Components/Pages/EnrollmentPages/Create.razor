@@ -4,34 +4,39 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Create</PageTitle>
+<PageTitle>Create Enrollment</PageTitle>
 
-<h1>Create</h1>
+<div class="@UiClasses.PageShell">
+    <div>
+        <p class="@UiClasses.SectionTag">Assignments</p>
+        <h1 class="@UiClasses.SectionTitle">Create Enrollment</h1>
+        <p class="@UiClasses.SectionSubtitle">Link a student with a course roster.</p>
+    </div>
 
-<h2>Enrollment</h2>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <EditForm method="post" Model="Enrollment" OnValidSubmit="AddEnrollment" FormName="create" Enhance>
+    <div class="@UiClasses.Card">
+        <EditForm method="post" Model="Enrollment" OnValidSubmit="AddEnrollment" FormName="create" Enhance class="space-y-5">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="mb-3">
-                <label for="studentid" class="form-label">StudentID:</label> 
-                <InputText id="studentid" @bind-Value="Enrollment.StudentID" class="form-control" /> 
-                <ValidationMessage For="() => Enrollment.StudentID" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="courseid" class="form-label">CourseID:</label> 
-                <InputNumber id="courseid" @bind-Value="Enrollment.CourseID" class="form-control" /> 
-                <ValidationMessage For="() => Enrollment.CourseID" class="text-danger" /> 
-            </div>        
-            <button type="submit" class="btn btn-primary">Create</button>
+            <ValidationSummary class="text-rose-500 text-sm" role="alert" />
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="@UiClasses.FieldStack">
+                    <label for="studentid" class="@UiClasses.Label">Student ID</label>
+                    <InputText id="studentid" @bind-Value="Enrollment.StudentID" class="@UiClasses.Input" />
+                    <ValidationMessage For="() => Enrollment.StudentID" class="text-rose-500 text-xs" />
+                </div>
+                <div class="@UiClasses.FieldStack">
+                    <label for="courseid" class="@UiClasses.Label">Course ID</label>
+                    <InputNumber id="courseid" @bind-Value="Enrollment.CourseID" class="@UiClasses.Input" />
+                    <ValidationMessage For="() => Enrollment.CourseID" class="text-rose-500 text-xs" />
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Enrollment</button>
+                <a class="@UiClasses.GhostButton" href="@AppRoutes.Enrollments"><i class="bi bi-arrow-left"></i> Cancel</a>
+            </div>
         </EditForm>
     </div>
-</div>
 
-<div>
-    <a href="/enrollments">Back to List</a>
+    <a class="@UiClasses.LinkButton" href="@AppRoutes.Enrollments"><i class="bi bi-arrow-left"></i> Back to enrollments</a>
 </div>
 
 @code {
@@ -44,6 +49,6 @@
         using var context = DbFactory.CreateDbContext();
         context.Enrollments.Add(Enrollment);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/enrollments");
+        NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 }

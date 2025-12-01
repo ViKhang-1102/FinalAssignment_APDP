@@ -4,42 +4,49 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Edit</PageTitle>
+<PageTitle>Edit Enrollment</PageTitle>
 
-<h1>Edit</h1>
+<div class="@UiClasses.PageShell">
+    <div>
+        <p class="@UiClasses.SectionTag">Assignments</p>
+        <h1 class="@UiClasses.SectionTitle">Edit Enrollment</h1>
+        <p class="@UiClasses.SectionSubtitle">Adjust which student is attached to which course.</p>
+    </div>
 
-<h2>Enrollment</h2>
-<hr />
-@if (Enrollment is null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <div class="row">
-        <div class="col-md-4">
-            <EditForm method="post" Model="Enrollment" OnValidSubmit="UpdateEnrollment" FormName="edit" Enhance>
+    @if (Enrollment is null)
+    {
+        <div class="@UiClasses.Card text-center text-slate-500">
+            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading enrollment...</span>
+        </div>
+    }
+    else
+    {
+        <div class="@UiClasses.Card">
+            <EditForm method="post" Model="Enrollment" OnValidSubmit="UpdateEnrollment" FormName="edit" Enhance class="space-y-5">
                 <DataAnnotationsValidator />
-                <ValidationSummary role="alert"/>
+                <ValidationSummary class="text-rose-500 text-sm" role="alert" />
                 <input type="hidden" name="Enrollment.Id" value="@Enrollment.Id" />
-                <div class="mb-3">
-                    <label for="studentid" class="form-label">StudentID:</label>
-                    <InputText id="studentid" @bind-Value="Enrollment.StudentID" class="form-control" />
-                    <ValidationMessage For="() => Enrollment.StudentID" class="text-danger" />
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="@UiClasses.FieldStack">
+                        <label for="studentid" class="@UiClasses.Label">Student ID</label>
+                        <InputText id="studentid" @bind-Value="Enrollment.StudentID" class="@UiClasses.Input" />
+                        <ValidationMessage For="() => Enrollment.StudentID" class="text-rose-500 text-xs" />
+                    </div>
+                    <div class="@UiClasses.FieldStack">
+                        <label for="courseid" class="@UiClasses.Label">Course ID</label>
+                        <InputNumber id="courseid" @bind-Value="Enrollment.CourseID" class="@UiClasses.Input" />
+                        <ValidationMessage For="() => Enrollment.CourseID" class="text-rose-500 text-xs" />
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="courseid" class="form-label">CourseID:</label>
-                    <InputNumber id="courseid" @bind-Value="Enrollment.CourseID" class="form-control" />
-                    <ValidationMessage For="() => Enrollment.CourseID" class="text-danger" />
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Changes</button>
+                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Enrollments"><i class="bi bi-arrow-left"></i> Cancel</a>
                 </div>
-                <button type="submit" class="btn btn-primary">Save</button>
             </EditForm>
         </div>
-    </div>
-}
+    }
 
-<div>
-    <a href="/enrollments">Back to List</a>
+    <a class="@UiClasses.LinkButton" href="@AppRoutes.Enrollments"><i class="bi bi-arrow-left"></i> Back to enrollments</a>
 </div>
 
 @code {
@@ -83,7 +90,7 @@ else
             }
         }
 
-        NavigationManager.NavigateTo("/enrollments");
+        NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 
     private bool EnrollmentExists(int id)

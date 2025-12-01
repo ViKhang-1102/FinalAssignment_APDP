@@ -4,31 +4,46 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Details</PageTitle>
+<PageTitle>Course Details</PageTitle>
 
-<h1>Details</h1>
+<div class="@UiClasses.PageShell">
+    <div>
+        <p class="@UiClasses.SectionTag">Courses</p>
+        <h1 class="@UiClasses.SectionTitle">Course Details</h1>
+        <p class="@UiClasses.SectionSubtitle">Review the metadata stored for this course.</p>
+    </div>
 
-<div>
-    <h2>Course</h2>
-    <hr />
     @if (course is null)
     {
-        <p><em>Loading...</em></p>
+        <div class="@UiClasses.Card text-center text-slate-500">
+            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading course...</span>
+        </div>
     }
-    else {
-        <dl class="row">
-            <dt class="col-sm-2">Name</dt>
-            <dd class="col-sm-10">@course.Name</dd>
-            <dt class="col-sm-2">SubjectID</dt>
-            <dd class="col-sm-10">@course.SubjectID</dd>
-            <dt class="col-sm-2">SemesterID</dt>
-            <dd class="col-sm-10">@course.SemesterID</dd>
-            <dt class="col-sm-2">LectureID</dt>
-            <dd class="col-sm-10">@course.LectureID</dd>
-        </dl>
-        <div>
-            <a href="@($"/courses/edit?id={course.Id}")">Edit</a> |
-            <a href="@($"/courses")">Back to List</a>
+    else
+    {
+        <div class="@UiClasses.Card">
+            <dl class="@UiClasses.DetailList">
+                <div>
+                    <dt class="@UiClasses.Label">Name</dt>
+                    <dd class="text-base text-slate-900">@course.Name</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Subject ID</dt>
+                    <dd class="text-base text-slate-900">@course.SubjectID</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Semester ID</dt>
+                    <dd class="text-base text-slate-900">@course.SemesterID</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Lecturer ID</dt>
+                    <dd class="text-base text-slate-900">@course.LectureID</dd>
+                </div>
+            </dl>
+            <div class="flex flex-wrap gap-3 pt-4">
+                <a class="@UiClasses.PrimaryButton" href="@AppRoutes.CoursesEdit(course.Id)"><i class="bi bi-pencil"></i> Edit</a>
+                <a class="@UiClasses.GhostButton" href="@AppRoutes.Courses"><i class="bi bi-arrow-left"></i> Back to list</a>
+            </div>
         </div>
     }
 </div>

@@ -5,30 +5,32 @@
 @inject NavigationManager NavigationManager
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 
-<PageTitle>Create</PageTitle>
+<PageTitle>Create Department</PageTitle>
 
-<h1>Create</h1>
+<div class="@UiClasses.PageShell">
+    <div>
+        <p class="@UiClasses.SectionTag">Structure</p>
+        <h1 class="@UiClasses.SectionTitle">Create Department</h1>
+        <p class="@UiClasses.SectionSubtitle">Register a new faculty or administrative unit.</p>
+    </div>
 
-<h2>Department</h2>
-<hr />
-
-<div class="row">
-    <div class="col-md-4">
-        <EditForm method="post" Model="Department" OnValidSubmit="AddDepartment" FormName="create" Enhance>
+    <div class="@UiClasses.Card">
+        <EditForm method="post" Model="Department" OnValidSubmit="AddDepartment" FormName="create" Enhance class="space-y-5">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="mb-3">
-                <label for="name" class="form-label">Name:</label> 
-                <InputText id="name" @bind-Value="Department.Name" class="form-control" /> 
-                <ValidationMessage For="() => Department.Name" class="text-danger" /> 
+            <ValidationSummary class="text-rose-500 text-sm" role="alert" />
+            <div class="@UiClasses.FieldStack">
+                <label for="name" class="@UiClasses.Label">Name</label>
+                <InputText id="name" @bind-Value="Department.Name" class="@UiClasses.Input" />
+                <ValidationMessage For="() => Department.Name" class="text-rose-500 text-xs" />
             </div>
-            <button type="submit" class="btn btn-primary">Create</button>
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Department</button>
+                <a class="@UiClasses.GhostButton" href="@AppRoutes.Departments"><i class="bi bi-arrow-left"></i> Cancel</a>
+            </div>
         </EditForm>
     </div>
-</div>
 
-<div>
-    <a href="/departments">Back to List</a>
+    <a class="@UiClasses.LinkButton" href="@AppRoutes.Departments"><i class="bi bi-arrow-left"></i> Back to departments</a>
 </div>
 
 @code {
@@ -41,6 +43,6 @@
         context.Departments.Add(Department);
         await context.SaveChangesAsync();
         Toasts.Enqueue("Thêm phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
-        NavigationManager.NavigateTo("/departments");
+        NavigationManager.NavigateTo(AppRoutes.Departments);
     }
 }
