@@ -4,39 +4,53 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Delete</PageTitle>
+<PageTitle>Delete Course</PageTitle>
 
-<h1>Delete</h1>
+<div class="@UiClasses.PageShell">
+    <div>
+        <p class="@UiClasses.SectionTag">Courses</p>
+        <h1 class="@UiClasses.SectionTitle">Delete Course</h1>
+        <p class="@UiClasses.SectionSubtitle">Confirm removal of this course record from the catalog.</p>
+    </div>
 
-<p>Are you sure you want to delete this?</p>
-<div>
-    <h2>Course</h2>
-    <hr />
     @if (course is null)
     {
-        <p><em>Loading...</em></p>
+        <div class="@UiClasses.Card text-center text-slate-500">
+            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading course...</span>
+        </div>
     }
-    else {
-        <dl class="row">
-            <dt class="col-sm-2">Name</dt>
-            <dd class="col-sm-10">@course.Name</dd>
-        </dl>
-        <dl class="row">
-            <dt class="col-sm-2">SubjectID</dt>
-            <dd class="col-sm-10">@course.SubjectID</dd>
-        </dl>
-        <dl class="row">
-            <dt class="col-sm-2">SemesterID</dt>
-            <dd class="col-sm-10">@course.SemesterID</dd>
-        </dl>
-        <dl class="row">
-            <dt class="col-sm-2">LectureID</dt>
-            <dd class="col-sm-10">@course.LectureID</dd>
-        </dl>
-        <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance>
-            <button type="submit" class="btn btn-danger" disabled="@(course is null)">Delete</button> |
-            <a href="/courses">Back to List</a>
-        </EditForm>
+    else
+    {
+        <div class="@UiClasses.Card space-y-5">
+            <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                <i class="bi bi-exclamation-triangle-fill text-amber-500 me-2"></i>
+                This action cannot be undone. Students assigned to this course will lose the linkage.
+            </div>
+            <dl class="@UiClasses.DetailList">
+                <div>
+                    <dt class="@UiClasses.Label">Name</dt>
+                    <dd class="text-base text-slate-900">@course.Name</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Subject ID</dt>
+                    <dd class="text-base text-slate-900">@course.SubjectID</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Semester ID</dt>
+                    <dd class="text-base text-slate-900">@course.SemesterID</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Lecturer ID</dt>
+                    <dd class="text-base text-slate-900">@course.LectureID</dd>
+                </div>
+            </dl>
+            <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance>
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="@UiClasses.DangerButton" disabled="@(course is null)"><i class="bi bi-trash"></i> Delete course</button>
+                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Courses"><i class="bi bi-arrow-left"></i> Back to list</a>
+                </div>
+            </EditForm>
+        </div>
     }
 </div>
 
@@ -62,6 +76,6 @@
         using var context = DbFactory.CreateDbContext();
         context.Courses.Remove(course!);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/courses");
+        NavigationManager.NavigateTo(AppRoutes.Courses);
     }
 }

@@ -4,34 +4,39 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Create</PageTitle>
+<PageTitle>Create Major</PageTitle>
 
-<h1>Create</h1>
+<div class="@UiClasses.PageShell">
+    <div>
+        <p class="@UiClasses.SectionTag">Programs</p>
+        <h1 class="@UiClasses.SectionTitle">Create Major</h1>
+        <p class="@UiClasses.SectionSubtitle">Link a new academic path to a department.</p>
+    </div>
 
-<h2>Major</h2>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <EditForm method="post" Model="Major" OnValidSubmit="AddMajor" FormName="create" Enhance>
+    <div class="@UiClasses.Card">
+        <EditForm method="post" Model="Major" OnValidSubmit="AddMajor" FormName="create" Enhance class="space-y-5">
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="mb-3">
-                <label for="name" class="form-label">Name:</label> 
-                <InputText id="name" @bind-Value="Major.Name" class="form-control" /> 
-                <ValidationMessage For="() => Major.Name" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="departmentid" class="form-label">DepartmentId:</label> 
-                <InputNumber id="departmentid" @bind-Value="Major.DepartmentId" class="form-control" /> 
-                <ValidationMessage For="() => Major.DepartmentId" class="text-danger" /> 
-            </div>        
-            <button type="submit" class="btn btn-primary">Create</button>
+            <ValidationSummary class="text-rose-500 text-sm" role="alert" />
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="@UiClasses.FieldStack">
+                    <label for="name" class="@UiClasses.Label">Name</label>
+                    <InputText id="name" @bind-Value="Major.Name" class="@UiClasses.Input" />
+                    <ValidationMessage For="() => Major.Name" class="text-rose-500 text-xs" />
+                </div>
+                <div class="@UiClasses.FieldStack">
+                    <label for="departmentid" class="@UiClasses.Label">Department ID</label>
+                    <InputNumber id="departmentid" @bind-Value="Major.DepartmentId" class="@UiClasses.Input" />
+                    <ValidationMessage For="() => Major.DepartmentId" class="text-rose-500 text-xs" />
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Major</button>
+                <a class="@UiClasses.GhostButton" href="@AppRoutes.Majors"><i class="bi bi-arrow-left"></i> Cancel</a>
+            </div>
         </EditForm>
     </div>
-</div>
 
-<div>
-    <a href="/majors">Back to List</a>
+    <a class="@UiClasses.LinkButton" href="@AppRoutes.Majors"><i class="bi bi-arrow-left"></i> Back to majors</a>
 </div>
 
 @code {
@@ -44,6 +49,6 @@
         using var context = DbFactory.CreateDbContext();
         context.Majors.Add(Major);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/majors");
+        NavigationManager.NavigateTo(AppRoutes.Majors);
     }
 }
