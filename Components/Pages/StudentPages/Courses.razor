@@ -1,0 +1,199 @@
+@page "/student/courses"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize(Roles = "Student")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@implements IAsyncDisposable
+
+<PageTitle>My Courses</PageTitle>
+
+<div class="@UiClasses.PageShell">
+    <div class="space-y-2 text-center">
+        <p class="@UiClasses.SectionTag">My Courses</p>
+        <h1 class="@UiClasses.SectionTitle">Keep track of every class you registered</h1>
+        <p class="@UiClasses.SectionSubtitle">See lecturers, subjects, meeting locations, and weekly schedule blocks at a glance.</p>
+    </div>
+
+    <AuthorizeView Roles="Student">
+        <Authorized>
+            @if (courseDetails.Count == 0)
+            {
+                <div class="@UiClasses.Card text-center text-slate-500">
+                    <p>You are not enrolled in any classes yet.</p>
+                    <p class="@UiClasses.HelperText">Contact the academic office to be added to your courses.</p>
+                </div>
+            }
+            else
+            {
+                <div class="space-y-4">
+                    @foreach (var course in courseDetails)
+                    {
+                        <article class="@UiClasses.Card space-y-4">
+                            <header class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">@course.SubjectCode · @course.SemesterName</p>
+                                    <h2 class="text-2xl font-bold text-slate-900">@course.CourseName</h2>
+                                    <p class="text-sm text-slate-500">@course.SubjectName</p>
+                                </div>
+                                <div class="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
+                                    @course.Room
+                                </div>
+                            </header>
+
+                            <dl class="grid gap-4 md:grid-cols-3 text-sm text-slate-600">
+                                <div>
+                                    <dt class="@UiClasses.Label">Lecturer</dt>
+                                    <dd>@course.LecturerName</dd>
+                                </div>
+                                <div>
+                                    <dt class="@UiClasses.Label">Max duration</dt>
+                                    <dd>@course.DurationText</dd>
+                                </div>
+                                <div>
+                                    <dt class="@UiClasses.Label">Subject code</dt>
+                                    <dd>@course.SubjectCode</dd>
+                                </div>
+                            </dl>
+
+                            <section class="space-y-3">
+                                <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Detailed schedule</h3>
+                                <div class="divide-y divide-slate-200">
+                                    @foreach (var slot in course.Schedule)
+                                    {
+                                        <div class="flex flex-wrap items-center justify-between gap-2 py-3">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-900">@slot.DayLabel</p>
+                                                <p class="text-xs text-slate-500">@slot.TimeLabel</p>
+                                            </div>
+                                            <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">@slot.RoomLabel</span>
+                                        </div>
+                                    }
+                                </div>
+                            </section>
+                        </article>
+                    }
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="@UiClasses.Card text-center space-y-3">
+                <p class="@UiClasses.SectionTag">Students</p>
+                    <h3 class="text-2xl font-bold text-slate-900">Please sign in</h3>
+                <p class="@UiClasses.SectionSubtitle">Log in to see the courses you are enrolled in.</p>
+                <a class="@UiClasses.PrimaryButton" href="@AppRoutes.Login"><i class="bi bi-box-arrow-in-right"></i> Sign in</a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private ApplicationDbContext? context;
+    private readonly List<CourseDetailView> courseDetails = new();
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        ApplicationUser? appUser = null;
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            appUser = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        var studentId = appUser?.StudentId ?? appUser?.UserName ?? user.Identity.Name;
+
+        if (string.IsNullOrWhiteSpace(studentId))
+        {
+            return;
+        }
+
+        await LoadCoursesAsync(studentId);
+    }
+
+    private async Task LoadCoursesAsync(string studentId)
+    {
+        var enrollments = await context!.Enrollments
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Subject)
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Semester)
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Lecture)
+            .Where(e => e.StudentID == studentId)
+            .Select(e => new CourseDetailView
+            {
+                CourseName = e.Course != null ? e.Course.Name : "Updating soon",
+                SubjectCode = e.Course != null && e.Course.Subject != null ? e.Course.Subject.Code : "SUB",
+                SubjectName = e.Course != null && e.Course.Subject != null ? e.Course.Subject.Name : "Subject name coming soon",
+                SemesterName = e.Course != null && e.Course.Semester != null ? e.Course.Semester.Name : "Semester",
+                LecturerName = e.Course != null
+                    ? (e.Course.Lecture != null
+                        ? (string.IsNullOrWhiteSpace(e.Course.Lecture.Name) ? (e.Course.Lecture.Email ?? "Lecturer") : e.Course.Lecture.Name)
+                        : (e.Course.LectureID ?? "Lecturer"))
+                    : "Lecturer",
+                Room = string.IsNullOrWhiteSpace(e.Room) ? "Room TBD" : e.Room,
+                DurationText = e.Course != null && e.Course.Semester != null ? $"{e.Course.Semester.Name} · 15 weeks" : "15 weeks",
+                Schedule = new List<CourseSlot>
+                {
+                    new CourseSlot
+                    {
+                        DayLabel = string.IsNullOrWhiteSpace(e.DayOfWeek) ? "Day updated soon" : e.DayOfWeek,
+                        TimeLabel = string.IsNullOrWhiteSpace(e.TimeSlot) ? "Time TBD" : e.TimeSlot,
+                        RoomLabel = string.IsNullOrWhiteSpace(e.Room) ? "Room TBD" : e.Room
+                    }
+                }
+            })
+            .ToListAsync();
+
+        courseDetails.Clear();
+        courseDetails.AddRange(enrollments);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (context is not null)
+        {
+            await context.DisposeAsync();
+        }
+    }
+
+    private sealed class CourseDetailView
+    {
+        public string CourseName { get; set; } = string.Empty;
+        public string SubjectCode { get; set; } = string.Empty;
+        public string SubjectName { get; set; } = string.Empty;
+        public string SemesterName { get; set; } = string.Empty;
+        public string LecturerName { get; set; } = string.Empty;
+        public string Room { get; set; } = string.Empty;
+        public string DurationText { get; set; } = string.Empty;
+        public List<CourseSlot> Schedule { get; set; } = new();
+    }
+
+    private sealed class CourseSlot
+    {
+        public string DayLabel { get; set; } = string.Empty;
+        public string TimeLabel { get; set; } = string.Empty;
+        public string RoomLabel { get; set; } = string.Empty;
+    }
+}
