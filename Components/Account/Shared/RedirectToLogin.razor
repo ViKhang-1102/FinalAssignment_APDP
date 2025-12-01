@@ -1,8 +1,11 @@
 ﻿@inject NavigationManager NavigationManager
+@using FinalAssignemnt_APDP.Constants
 
 @code {
     protected override void OnInitialized()
     {
-        NavigationManager.NavigateTo($"Account/Login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+        NavigationManager.NavigateTo(
+            AppRoutes.LoginWithReturnUrl(NavigationManager.Uri), 
+            forceLoad: true);
     }
 }

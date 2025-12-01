@@ -1,6 +1,7 @@
 ﻿@page "/auth"
 
 @using Microsoft.AspNetCore.Authorization
+@using FinalAssignemnt_APDP.Constants
 
 @attribute [Authorize]
 
@@ -9,5 +10,12 @@
 <h1>You are authenticated</h1>
 
 <AuthorizeView>
-    Hello @context.User.Identity?.Name!
+    <div class="alert alert-success">
+        <h4>Hello @context.User.Identity?.Name!</h4>
+        <p>You have been successfully authenticated.</p>
+        <hr />
+        <a href="@AppRoutes.Home" class="btn btn-primary">
+            <i class="bi bi-house-door"></i> Go to Home
+        </a>
+    </div>
 </AuthorizeView>

@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 @inject IJSRuntime JSRuntime
+@using FinalAssignemnt_APDP.Constants
 
 <div class="page">
     <div class="sidebar">
@@ -9,7 +10,7 @@
 
     <main>
         <div class="top-row px-4">
-            <NavLink class="nav-link" href="Account/Manage">
+            <NavLink class="nav-link" href="@AppRoutes.ManageAccount">
                 <span class="bi bi-person-circle" aria-hidden="true"></span> Profile
             </NavLink>
         </div>
