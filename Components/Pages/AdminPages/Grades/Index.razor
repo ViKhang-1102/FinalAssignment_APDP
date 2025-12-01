@@ -1,0 +1,225 @@
+@page "/admin/grades"
+@attribute [Authorize(Roles = "Admin,Lecturer")]
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using System.Linq
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Grade Workspace</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <p class="text-uppercase text-muted small mb-1">Scores</p>
+            <h1 class="fw-bold mb-0">Grade Management</h1>
+            <small class="text-muted">Import/export CSV or maintain individual student grades.</small>
+        </div>
+        <div class="btn-group">
+            <a class="btn btn-outline-secondary" href="@AppRoutes.AdminGradesImport"><i class="bi bi-upload"></i> Import CSV</a>
+            <a class="btn btn-outline-secondary" href="/api/grades/export"><i class="bi bi-download"></i> Export CSV</a>
+            <a class="btn btn-primary" href="@AppRoutes.AdminGradesCreate"><i class="bi bi-plus-circle"></i> New Grade</a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Student ID / Name</label>
+                    <input class="form-control" value="@studentSearch" @oninput="OnStudentSearchChanged" placeholder="e.g. STU001" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Course</label>
+                    <select class="form-select" value="@selectedCourseId" @onchange="OnCourseChanged">
+                        <option value="">All courses</option>
+                        @foreach (var course in courses)
+                        {
+                            <option value="@course.Id">@course.Name (@course.SubjectName)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Status</label>
+                    <select class="form-select" value="@statusFilter" @onchange="OnStatusChanged">
+                        <option value="">Any</option>
+                        <option value="Passed">Passed</option>
+                        <option value="Failed">Failed</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-outline-primary w-100" @onclick="ResetFilters"><i class="bi bi-eraser"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border" role="status"></div>
+            <p class="mt-3 text-muted">Loading grades...</p>
+        </div>
+    }
+    else if (!gradeRows.Any())
+    {
+        <div class="alert alert-info">No grade records match the current filter.</div>
+    }
+    else
+    {
+        <QuickGrid Items="gradeRows.AsQueryable()" TGridItem="GradeView" Class="table table-hover align-middle" RowsPerPage="10">
+            <PropertyColumn Title="Student" Property="g => g.Student" />
+            <PropertyColumn Title="Course" Property="g => g.Course" />
+            <PropertyColumn Title="Semester" Property="g => g.Semester" />
+            <PropertyColumn Title="Midterm" Property="g => g.Midterm" Format="{0:F1}" />
+            <PropertyColumn Title="Final" Property="g => g.Final" Format="{0:F1}" />
+            <PropertyColumn Title="Average" Property="g => g.Average" Format="{0:F1}" />
+            <TemplateColumn Title="Status" Context="row">
+                @if (row.IsPassed)
+                {
+                    <span class="badge bg-success-subtle text-success">Passed</span>
+                }
+                else
+                {
+                    <span class="badge bg-danger-subtle text-danger">Failed</span>
+                }
+            </TemplateColumn>
+            <PropertyColumn Title="Letter" Property="g => g.Letter" />
+            <TemplateColumn Title="Actions" Context="row">
+                <div class="btn-group btn-group-sm">
+                    <a class="btn btn-outline-primary" href="@AppRoutes.AdminGradesEdit(row.Id)"><i class="bi bi-pencil"></i></a>
+                    <a class="btn btn-outline-danger" href="@AppRoutes.AdminGradesDelete(row.Id)"><i class="bi bi-trash"></i></a>
+                </div>
+            </TemplateColumn>
+        </QuickGrid>
+    }
+</div>
+
+@code {
+    private readonly List<GradeView> gradeRows = new();
+    private readonly List<CourseOption> courses = new();
+    private string? selectedCourseId;
+    private string studentSearch = string.Empty;
+    private string statusFilter = string.Empty;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        gradeRows.Clear();
+        courses.Clear();
+
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        var courseList = await context.Courses
+            .Include(c => c.Subject)
+            .Include(c => c.Semester)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        courses.AddRange(courseList.Select(c => new CourseOption
+        {
+            Id = c.Id,
+            Name = c.Name,
+            SubjectName = c.Subject?.Name ?? "",
+            SemesterName = c.Semester?.Name ?? ""
+        }));
+
+        var query = context.Grades
+            .Include(g => g.Course).ThenInclude(c => c.Semester)
+            .Include(g => g.Course).ThenInclude(c => c.Subject)
+            .Include(g => g.Student)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(studentSearch))
+        {
+            query = query.Where(g => g.StudentID.Contains(studentSearch) || (g.Student != null && g.Student.Name!.Contains(studentSearch)));
+        }
+
+        if (int.TryParse(selectedCourseId, out var courseId))
+        {
+            query = query.Where(g => g.CourseID == courseId);
+        }
+
+        if (statusFilter == "Passed")
+        {
+            query = query.Where(g => g.IsPassed);
+        }
+        else if (statusFilter == "Failed")
+        {
+            query = query.Where(g => !g.IsPassed);
+        }
+
+        var data = await query.OrderByDescending(g => g.Id).ToListAsync();
+        foreach (var grade in data)
+        {
+            gradeRows.Add(new GradeView
+            {
+                Id = grade.Id,
+                Student = grade.Student?.Name ?? grade.StudentID,
+                Course = grade.Course?.Name ?? $"Course #{grade.CourseID}",
+                Semester = grade.Course?.Semester?.Name ?? "-",
+                Midterm = grade.MidtermScore,
+                Final = grade.FinalScore,
+                Average = grade.AverageScore,
+                Letter = grade.LetterGrade,
+                IsPassed = grade.IsPassed
+            });
+        }
+
+        isLoading = false;
+    }
+
+    private async Task ResetFilters()
+    {
+        studentSearch = string.Empty;
+        selectedCourseId = string.Empty;
+        statusFilter = string.Empty;
+        await LoadData();
+    }
+
+    private async Task OnStudentSearchChanged(ChangeEventArgs args)
+    {
+        studentSearch = args.Value?.ToString() ?? string.Empty;
+        await LoadData();
+    }
+
+    private async Task OnCourseChanged(ChangeEventArgs args)
+    {
+        selectedCourseId = args.Value?.ToString();
+        await LoadData();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs args)
+    {
+        statusFilter = args.Value?.ToString() ?? string.Empty;
+        await LoadData();
+    }
+
+    private sealed class GradeView
+    {
+        public int Id { get; set; }
+        public string Student { get; set; } = string.Empty;
+        public string Course { get; set; } = string.Empty;
+        public string Semester { get; set; } = string.Empty;
+        public double? Midterm { get; set; }
+        public double? Final { get; set; }
+        public double? Average { get; set; }
+        public string? Letter { get; set; }
+        public bool IsPassed { get; set; }
+    }
+
+    private sealed class CourseOption
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string SubjectName { get; set; } = string.Empty;
+        public string SemesterName { get; set; } = string.Empty;
+    }
+}

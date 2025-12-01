@@ -80,12 +80,27 @@ dotnet run --project FinalAssignemnt_APDP.csproj
   - Tạo/sửa/xóa người dùng
   - Gán vai trò (Sinh viên/ Giảng viên / Admin)
 
+- Không gian quản trị (Admin Control Center)
+  - Bảng điều khiển tổng hợp thống kê phòng ban, chuyên ngành, môn, khóa, kỳ học, ghi danh và điểm
+  - Đường tắt tới mọi trang CRUD hiện có (Department, Major, Subject, Course, Semester, Enrollment, Users)
+
+- Quản lý điểm nâng cao
+  - Trang quản lý `/admin/grades` với bộ lọc theo sinh viên, khóa học, trạng thái đạt
+  - Nhập/xuất điểm CSV (`StudentId,CourseId,Midterm,Final,Note`) với tự động cập nhật/insert
+  - Form tạo/sửa cho phép tính điểm trung bình và xếp loại ngay trong UI
+
+- Quản lý thời khóa biểu
+  - Service lưu slot học trong `App_Data/timetable.json` mà không cần thay đổi database hiện tại
+  - Danh sách tuần `/admin/timetable` cho phép chỉnh sửa/xóa nhanh từng slot
+  - Form tạo/sửa slot hỗ trợ liên kết khóa học, phòng, giảng viên, ghi chú
+
 - Giao diện
   - Blazor Server với layout responsive và sidebar điều hướng
   - Các trang chính: `Home`, `Counter`, `Weather`, trang bảo vệ `Auth`
 
 - Dịch vụ & API
   - `UserService` xử lý logic người dùng và vai trò
+  - `TimetableService` lưu/đọc slot học dưới dạng JSON dùng chung cho admin và giảng viên
   - Sử dụng Entity Framework Core cho tương tác database
 
 ## Cấu trúc dự án

@@ -5,6 +5,8 @@ using FinalAssignemnt_APDP.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,7 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ToastQueue>();
+builder.Services.AddSingleton<TimetableService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -81,5 +84,56 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+app.MapGet("/api/grades/export", async (IDbContextFactory<ApplicationDbContext> dbFactory) =>
+{
+    await using var context = await dbFactory.CreateDbContextAsync();
+    var grades = await context.Grades
+        .Include(g => g.Course)
+        .Include(g => g.Student)
+        .OrderBy(g => g.StudentID)
+        .ThenBy(g => g.CourseID)
+        .ToListAsync();
+
+    var sb = new StringBuilder();
+    sb.AppendLine("StudentId,CourseId,Midterm,Final,Average,Letter,Note");
+    foreach (var grade in grades)
+    {
+        sb.AppendLine(string.Join(',',
+            FormatCsv(grade.StudentID),
+            FormatCsv(grade.CourseID),
+            FormatCsv(grade.MidtermScore),
+            FormatCsv(grade.FinalScore),
+            FormatCsv(grade.AverageScore),
+            FormatCsv(grade.LetterGrade),
+            FormatCsv(grade.Note)));
+    }
+
+    static string FormatCsv(object? value)
+    {
+        if (value is null)
+        {
+            return string.Empty;
+        }
+
+        var formatted = value switch
+        {
+            double d => d.ToString("0.##", CultureInfo.InvariantCulture),
+            float f => f.ToString("0.##", CultureInfo.InvariantCulture),
+            decimal m => m.ToString("0.##", CultureInfo.InvariantCulture),
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.ToString() ?? string.Empty
+        };
+
+        if (formatted.IndexOfAny(new[] { ',', '\n', '"' }) >= 0)
+        {
+            formatted = "\"" + formatted.Replace("\"", "\"\"") + "\"";
+        }
+
+        return formatted;
+    }
+
+    return Results.File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", $"grades_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+});
 
 app.Run();
