@@ -1,3 +1,18 @@
+.navbar {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0.75rem 1rem;
+}
+
+.navbar-dark {
+    color: #fff;
+}
+
+.navbar-dark .navbar-brand {
+    color: inherit;
+}
+
 .navbar-toggler {
     appearance: none;
     cursor: pointer;
