@@ -1,3 +1,5 @@
+using System;
+
 namespace FinalAssignemnt_APDP.Constants
 {
     /// <summary>
@@ -28,6 +30,12 @@ namespace FinalAssignemnt_APDP.Constants
         public const string EnrollmentsCreate = "/enrollments/create";
         public const string Users = "/users";
         public const string UsersCreate = "/users/create";
+        public const string AdminDashboard = "/admin";
+        public const string AdminGrades = "/admin/grades";
+        public const string AdminGradesCreate = "/admin/grades/create";
+        public const string AdminGradesImport = "/admin/grades/import";
+        public const string AdminTimetable = "/admin/timetable";
+        public const string AdminTimetableNew = "/admin/timetable/edit";
 
         // Student Routes
         public const string StudentDashboard = "/student/dashboard";
@@ -72,6 +80,13 @@ namespace FinalAssignemnt_APDP.Constants
         public static string UsersEdit(string id) => $"/users/edit?id={id}";
         public static string UsersDetails(string id) => $"/users/details?id={id}";
         public static string UsersDelete(string id) => $"/users/delete?id={id}";
+
+        // Grade Routes
+        public static string AdminGradesEdit(int id) => $"/admin/grades/edit?id={id}";
+        public static string AdminGradesDelete(int id) => $"/admin/grades/delete?id={id}";
+
+        // Timetable Routes
+        public static string AdminTimetableEdit(Guid id) => $"/admin/timetable/edit?id={id}";
 
         // Login with return URL
         public static string LoginWithReturnUrl(string returnUrl) => 

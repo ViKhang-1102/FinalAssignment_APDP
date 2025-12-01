@@ -1,0 +1,91 @@
+@page "/admin/grades/delete"
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
+
+<PageTitle>Delete Grade</PageTitle>
+
+@if (isLoading)
+{
+    <div class="container py-5 text-center">
+        <div class="spinner-border" role="status"></div>
+        <p class="mt-3 text-muted">Loading grade...</p>
+    </div>
+}
+else if (grade == null)
+{
+    <div class="container py-5">
+        <div class="alert alert-danger">Grade not found.</div>
+        <a class="btn btn-primary" href="@AppRoutes.AdminGrades">Back</a>
+    </div>
+}
+else
+{
+    <div class="container py-4">
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">Are you sure?</h4>
+            <p>You are about to delete the grade for <strong>@grade.Student</strong> - <strong>@grade.Course</strong>.</p>
+            <p class="mb-3">This action cannot be undone.</p>
+            <form method="post" @onsubmit="DeleteAsync">
+                <button class="btn btn-danger" type="submit">Delete</button>
+                <a class="btn btn-outline-secondary ms-2" href="@AppRoutes.AdminGrades">Cancel</a>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    private int id { get; set; }
+
+    private GradeView? grade;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var entity = await context.Grades
+            .Include(g => g.Course)
+            .Include(g => g.Student)
+            .FirstOrDefaultAsync(g => g.Id == id);
+        if (entity != null)
+        {
+            grade = new GradeView
+            {
+                Id = entity.Id,
+                Student = entity.Student?.Name ?? entity.StudentID,
+                Course = entity.Course?.Name ?? $"Course #{entity.CourseID}"
+            };
+        }
+        isLoading = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var entity = await context.Grades.FindAsync(id);
+        if (entity != null)
+        {
+            context.Grades.Remove(entity);
+            await context.SaveChangesAsync();
+            Toasts.Enqueue("Grade deleted", FinalAssignemnt_APDP.Services.ToastType.Success);
+        }
+        NavigationManager.NavigateTo(AppRoutes.AdminGrades);
+    }
+
+    private sealed class GradeView
+    {
+        public int Id { get; set; }
+        public string Student { get; set; } = string.Empty;
+        public string Course { get; set; } = string.Empty;
+    }
+}

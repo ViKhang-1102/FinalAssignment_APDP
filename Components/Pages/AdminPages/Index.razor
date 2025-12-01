@@ -1,0 +1,223 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.EntityFrameworkCore
+@using System.Linq
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Services
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject TimetableService TimetableService
+
+<PageTitle>Admin Control Center</PageTitle>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-semibold tracking-widest text-slate-500 uppercase">Administration</p>
+            <h1 class="text-3xl font-bold text-slate-900">Control Center</h1>
+            <p class="text-base text-slate-500">Monitor data, jump to CRUD pages, manage grades, and publish timetables.</p>
+        </div>
+        <div class="text-sm text-slate-500 flex flex-col items-start gap-2 md:items-end">
+            <div>Last refresh: <span class="font-semibold text-slate-900">@lastRefreshed.ToLocalTime():g</span></div>
+            <button class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed" @onclick="LoadStats" disabled="@isLoading">
+                <span class="h-4 w-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" role="status" aria-hidden="true" hidden="@(!isLoading)"></span>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+            <div class="h-12 w-12 border-4 border-indigo-200 border-t-indigo-500 rounded-full animate-spin"></div>
+            <p class="mt-4 text-slate-500">Loading admin metrics...</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            @foreach (var card in summaryCards)
+            {
+                <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 flex flex-col gap-3 relative">
+                    <div class="text-xs font-semibold tracking-wide text-slate-500 uppercase">@card.Label</div>
+                    <div class="flex items-baseline justify-between">
+                        <span class="text-3xl font-bold text-slate-900">@card.Value</span>
+                        <span class="text-indigo-500 text-2xl"><i class="@card.Icon"></i></span>
+                    </div>
+                    <a href="@card.Route" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">Manage</a>
+                </div>
+            }
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-3">
+            <div class="lg:col-span-2 rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex items-center gap-2 border-b border-slate-100 px-6 py-4">
+                    <i class="bi bi-kanban text-indigo-500"></i>
+                    <h2 class="text-lg font-semibold text-slate-800">Academic Data Domains</h2>
+                </div>
+                <div class="px-6 py-6">
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        @foreach (var module in managementModules)
+                        {
+                            <a href="@module.Route" class="group rounded-2xl border border-slate-200 p-4 flex gap-4 items-start transition hover:border-indigo-200 hover:shadow-md">
+                                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 text-xl">
+                                    <i class="@module.Icon"></i>
+                                </div>
+                                <div>
+                                    <div class="text-base font-semibold text-slate-900">@module.Label</div>
+                                    <p class="text-sm text-slate-500">@module.Description</p>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <div class="flex items-center gap-2 text-lg font-semibold text-slate-800"><i class="bi bi-people text-emerald-500"></i>Assignments</div>
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">@summary.Enrollments total</span>
+                </div>
+                <div class="px-6 py-6 space-y-4">
+                    <p class="text-sm text-slate-500">Assign or move students between courses.</p>
+                    <div class="grid gap-3">
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-white font-semibold shadow hover:bg-emerald-600" href="@AppRoutes.Enrollments"><i class="bi bi-table"></i>View Enrollment Table</a>
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500 px-4 py-2 text-emerald-600 font-semibold hover:bg-emerald-50" href="@AppRoutes.EnrollmentsCreate"><i class="bi bi-person-plus"></i>Assign A Student</a>
+                    </div>
+                    <div class="border-t border-slate-100 pt-4 text-sm text-slate-500">
+                        Need to reconcile bulk enrollment data?
+                        <div>
+                            <a class="inline-flex items-center gap-1 font-semibold text-emerald-600 hover:text-emerald-500" href="@AppRoutes.Courses"><i class="bi bi-link-45deg"></i>Go to course list</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <div class="flex items-center gap-2 text-lg font-semibold text-slate-800"><i class="bi bi-clipboard2-check text-sky-500"></i>Score Management</div>
+                    <span class="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600">@summary.Grades records</span>
+                </div>
+                <div class="px-6 py-6 space-y-4">
+                    <p class="text-sm text-slate-500">Import/export or edit grade entries for any course without leaving the admin hub.</p>
+                    <div class="grid gap-3">
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-white font-semibold shadow hover:bg-sky-600" href="@AppRoutes.AdminGrades"><i class="bi bi-journal-arrow-up"></i>Open Grade Workspace</a>
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-500 px-4 py-2 text-sky-600 font-semibold hover:bg-sky-50" href="@AppRoutes.AdminGradesImport"><i class="bi bi-upload"></i>Import CSV</a>
+                    </div>
+                    <ul class="text-sm text-slate-500 space-y-1">
+                        <li>CSV template: <code>StudentId,CourseId,Midterm,Final,Note</code></li>
+                        <li>Existing rows are updated, missing ones inserted.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <div class="flex items-center gap-2 text-lg font-semibold text-slate-800"><i class="bi bi-calendar3 text-amber-500"></i>Timetable Management</div>
+                    <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600">Admin only</span>
+                </div>
+                <div class="px-6 py-6 space-y-4">
+                    <p class="text-sm text-slate-500">Draft weekly timetables, map rooms, and share snapshots with lecturers and students.</p>
+                    <div class="grid gap-3">
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-white font-semibold shadow hover:bg-amber-600" href="@AppRoutes.AdminTimetable"><i class="bi bi-calendar2-week"></i>Manage Timetable</a>
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500 px-4 py-2 text-amber-600 font-semibold hover:bg-amber-50" href="@AppRoutes.AdminTimetableNew"><i class="bi bi-plus-circle"></i>Create Timeslot</a>
+                    </div>
+                    <div>
+                        <span class="text-sm font-semibold text-slate-700">Current week focus:</span>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            @foreach (var day in summary.ActiveDays)
+                            {
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">@day</span>
+                            }
+                            @if (!summary.ActiveDays.Any())
+                            {
+                                <span class="text-sm text-slate-500">No slots yet</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private AdminSummary summary = new();
+    private bool isLoading = true;
+    private DateTime lastRefreshed = DateTime.UtcNow;
+
+    private IReadOnlyList<SummaryCard> summaryCards = Array.Empty<SummaryCard>();
+    private IReadOnlyList<ManagementModule> managementModules = Array.Empty<ManagementModule>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStats();
+    }
+
+    private async Task LoadStats()
+    {
+        isLoading = true;
+        using var context = await DbFactory.CreateDbContextAsync();
+        var days = await TimetableService.GetActiveDaysAsync();
+        summary = new AdminSummary
+        {
+            Departments = await context.Departments.CountAsync(),
+            Semesters = await context.Semesters.CountAsync(),
+            Majors = await context.Majors.CountAsync(),
+            Subjects = await context.Subjects.CountAsync(),
+            Courses = await context.Courses.CountAsync(),
+            Enrollments = await context.Enrollments.CountAsync(),
+            Users = await context.Users.CountAsync(),
+            Grades = await context.Grades.CountAsync(),
+            ActiveDays = days.Select(day => day.ToString()).ToList()
+        };
+        BuildCards();
+        lastRefreshed = DateTime.UtcNow;
+        isLoading = false;
+    }
+
+    private void BuildCards()
+    {
+        var cards = new List<SummaryCard>
+        {
+            new("Departments", summary.Departments, AppRoutes.Departments, "bi bi-building"),
+            new("Semesters", summary.Semesters, AppRoutes.Semesters, "bi bi-calendar3"),
+            new("Majors", summary.Majors, AppRoutes.Majors, "bi bi-mortarboard"),
+            new("Subjects", summary.Subjects, AppRoutes.Subjects, "bi bi-journal"),
+            new("Courses", summary.Courses, AppRoutes.Courses, "bi bi-journal-text"),
+            new("Enrollments", summary.Enrollments, AppRoutes.Enrollments, "bi bi-person-check"),
+            new("Users", summary.Users, AppRoutes.Users, "bi bi-people"),
+            new("Grades", summary.Grades, AppRoutes.AdminGrades, "bi bi-clipboard2-data")
+        };
+        var modules = new List<ManagementModule>
+        {
+            new("Department", "Maintain faculties and units", AppRoutes.Departments, "bi bi-building-fill"),
+            new("Major", "Configure degree paths", AppRoutes.Majors, "bi bi-mortarboard"),
+            new("Subject", "Define learning outcomes", AppRoutes.Subjects, "bi bi-collection"),
+            new("Course", "Schedule teaching groups", AppRoutes.Courses, "bi bi-journal-richtext"),
+            new("Semester", "Control academic calendar", AppRoutes.Semesters, "bi bi-calendar-week"),
+            new("Users", "Create and assign roles", AppRoutes.Users, "bi bi-people-fill"),
+            new("Enrollment", "Assign students to courses", AppRoutes.Enrollments, "bi bi-person-plus"),
+            new("Grades", "Monitor assessment records", AppRoutes.AdminGrades, "bi bi-clipboard2-check")
+        };
+        summaryCards = cards;
+        managementModules = modules;
+    }
+
+    private sealed class AdminSummary
+    {
+        public int Departments { get; set; }
+        public int Semesters { get; set; }
+        public int Majors { get; set; }
+        public int Subjects { get; set; }
+        public int Courses { get; set; }
+        public int Enrollments { get; set; }
+        public int Users { get; set; }
+        public int Grades { get; set; }
+        public IEnumerable<string> ActiveDays { get; set; } = Enumerable.Empty<string>();
+    }
+
+    private record SummaryCard(string Label, int Value, string Route, string Icon);
+
+    private record ManagementModule(string Label, string Description, string Route, string Icon);
+}

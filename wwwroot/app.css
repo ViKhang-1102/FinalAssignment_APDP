@@ -1,29 +1,47 @@
+:root {
+    --edu-night: #0f172a;
+    --edu-navy: #1d4ed8;
+    --edu-indigo: #4338ca;
+    --edu-sky: #0ea5e9;
+    --edu-emerald: #22c55e;
+    --edu-amber: #f59e0b;
+    --edu-rose: #f43f5e;
+}
+
 html, body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-    background-color: #f8fafc;
+    background: radial-gradient(circle at top, rgba(14, 165, 233, 0.15), transparent 45%),
+                linear-gradient(180deg, #eef2ff 0%, #f8fafc 55%, #f1f5f9 100%);
+    min-height: 100%;
+    color: #0f172a;
 }
 
 .page {
     position: relative;
     display: flex;
     flex-direction: column;
+    background: linear-gradient(135deg, rgba(67, 56, 202, 0.08), rgba(14, 165, 233, 0.08));
 }
 
 main {
     flex: 1;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(6px);
 }
 
 .sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    background-image: linear-gradient(190deg, var(--edu-night) 0%, var(--edu-navy) 55%, #4c1d95 100%);
+    box-shadow: 12px 0 35px rgba(15, 23, 42, 0.25);
 }
 
 .top-row {
-    background-color: rgba(0, 0, 0, 0.35);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(90deg, rgba(30, 64, 175, 0.95), rgba(79, 70, 229, 0.9));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     justify-content: flex-end;
     height: 3.5rem;
     display: flex;
     align-items: center;
+    color: #e0e7ff;
 }
 
 @media (min-width: 641px) {
@@ -294,7 +312,7 @@ main {
     padding: 0.5rem 1rem;
     border: none;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     text-decoration: none;
     line-height: 1.4;
 }
@@ -319,24 +337,27 @@ main {
 .btn-primary,
 .btn-gradient-primary {
     color: #fff;
-    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-    box-shadow: 0 15px 35px rgba(66, 96, 249, 0.35);
+    background: linear-gradient(130deg, #2563eb 0%, #4f46e5 100%);
+    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.35);
 }
 
 .btn-primary:hover,
 .btn-gradient-primary:hover {
-    filter: brightness(1.05);
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 20px 30px rgba(37, 99, 235, 0.35);
 }
 
 .btn-outline-primary {
-    background-color: #fff;
+    background-color: rgba(37, 99, 235, 0.08);
     color: #2563eb;
-    border: 1px solid #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.25);
 }
 
 .btn-outline-primary:hover {
     color: #fff;
     background-color: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 22px rgba(37, 99, 235, 0.28);
 }
 
 .btn-light {
@@ -346,28 +367,62 @@ main {
 }
 
 .btn-secondary {
-    background-color: #334155;
+    background: linear-gradient(135deg, #1f2937, #334155);
     color: #fff;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 20px 30px rgba(51, 65, 85, 0.35);
 }
 
 .btn-success {
-    background-color: #16a34a;
+    background: linear-gradient(135deg, var(--edu-emerald), #16a34a);
     color: #fff;
+    box-shadow: 0 10px 20px rgba(34, 197, 94, 0.3);
 }
 
-.btn-danger {
-    background-color: #dc2626;
-    color: #fff;
-}
-
-.btn-warning {
-    background-color: #f59e0b;
-    color: #1f2937;
+.btn-success:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 20px 30px rgba(34, 197, 94, 0.28);
 }
 
 .btn-info {
-    background-color: #0ea5e9;
+    background: linear-gradient(135deg, var(--edu-sky), #2563eb);
     color: #fff;
+    box-shadow: 0 10px 20px rgba(14, 165, 233, 0.35);
+}
+
+.btn-info:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 20px 30px rgba(14, 165, 233, 0.28);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #facc15, var(--edu-amber));
+    color: #1f2937;
+    box-shadow: 0 10px 20px rgba(250, 204, 21, 0.35);
+}
+
+.btn-warning:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 20px 30px rgba(245, 158, 11, 0.28);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--edu-rose), #dc2626);
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(220, 38, 38, 0.35);
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 20px 30px rgba(220, 38, 38, 0.28);
+}
+
+.btn-light:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
 }
 
 .progress {

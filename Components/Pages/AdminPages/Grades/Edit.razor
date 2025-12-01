@@ -1,0 +1,199 @@
+@page "/admin/grades/edit"
+@attribute [Authorize(Roles = "Admin,Lecturer")]
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
+
+<PageTitle>Edit Grade</PageTitle>
+
+@if (isLoading)
+{
+    <div class="container py-5 text-center">
+        <div class="spinner-border" role="status"></div>
+        <p class="mt-3 text-muted">Loading grade...</p>
+    </div>
+}
+else if (!isFound)
+{
+    <div class="container py-5">
+        <div class="alert alert-danger">Grade not found.</div>
+        <a class="btn btn-primary" href="@AppRoutes.AdminGrades">Back to list</a>
+    </div>
+}
+else
+{
+    <div class="container py-4">
+        <a class="btn btn-link px-0" href="@AppRoutes.AdminGrades"><i class="bi bi-arrow-left"></i> Back to grade list</a>
+        <h1 class="fw-bold mt-2">Edit Grade</h1>
+        <p class="text-muted">Update scores and recompute the final grade.</p>
+
+        <EditForm Model="grade" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+            <div class="card border-0 shadow-sm">
+                <div class="card-body row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Student</label>
+                        <InputSelect class="form-select" @bind-Value="grade.StudentId">
+                            @foreach (var student in students)
+                            {
+                                <option value="@student.Id">@student.Label</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Course</label>
+                        <InputSelect class="form-select" @bind-Value="grade.CourseId">
+                            @foreach (var course in courses)
+                            {
+                                <option value="@course.Id">@course.Label</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Midterm</label>
+                        <InputNumber class="form-control" @bind-Value="grade.Midterm" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Final</label>
+                        <InputNumber class="form-control" @bind-Value="grade.Final" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Notes</label>
+                        <InputText class="form-control" @bind-Value="grade.Note" />
+                    </div>
+                </div>
+                <div class="card-footer bg-white text-end">
+                    <button class="btn btn-outline-secondary me-2" type="button" @onclick="() => NavigationManager.NavigateTo(AppRoutes.AdminGrades)">Cancel</button>
+                    <button class="btn btn-primary" type="submit" disabled="@isSaving">
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" hidden="@(!isSaving)"></span>
+                        Save changes
+                    </button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    private int id { get; set; }
+
+    private readonly GradeInput grade = new();
+    private readonly List<SelectOption> students = new();
+    private readonly List<SelectOption> courses = new();
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isFound;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var entity = await context.Grades
+            .AsNoTracking()
+            .FirstOrDefaultAsync(g => g.Id == id);
+
+        if (entity == null)
+        {
+            isFound = false;
+            isLoading = false;
+            return;
+        }
+
+        isFound = true;
+        grade.Id = entity.Id;
+        grade.StudentId = entity.StudentID;
+        grade.CourseId = entity.CourseID.ToString();
+        grade.Midterm = entity.MidtermScore;
+        grade.Final = entity.FinalScore;
+        grade.Note = entity.Note;
+
+        var studentList = await context.Users
+            .OrderBy(u => u.Name)
+            .Select(u => new SelectOption { Id = u.Id, Label = string.IsNullOrWhiteSpace(u.Name) ? u.Email! : u.Name! })
+            .ToListAsync();
+        students.AddRange(studentList);
+
+        var courseList = await context.Courses
+            .Include(c => c.Subject)
+            .Include(c => c.Semester)
+            .OrderBy(c => c.Name)
+            .Select(c => new SelectOption
+            {
+                Id = c.Id.ToString(),
+                Label = c.Subject != null && c.Semester != null
+                    ? $"{c.Name} ({c.Subject.Name} - {c.Semester.Name})"
+                    : c.Subject != null
+                        ? $"{c.Name} ({c.Subject.Name})"
+                        : c.Semester != null
+                            ? $"{c.Name} ({c.Semester.Name})"
+                            : c.Name
+            }).ToListAsync();
+        courses.AddRange(courseList);
+
+        isLoading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (isSaving)
+        {
+            return;
+        }
+
+        isSaving = true;
+        using var context = await DbFactory.CreateDbContextAsync();
+        var entity = await context.Grades.FirstOrDefaultAsync(g => g.Id == grade.Id);
+        if (entity == null)
+        {
+            Toasts.Enqueue("Grade was removed", FinalAssignemnt_APDP.Services.ToastType.Warning);
+            NavigationManager.NavigateTo(AppRoutes.AdminGrades);
+            return;
+        }
+
+        entity.StudentID = grade.StudentId!;
+        entity.CourseID = int.Parse(grade.CourseId!);
+        entity.MidtermScore = grade.Midterm;
+        entity.FinalScore = grade.Final;
+        entity.Note = grade.Note;
+        entity.CalculateGrade();
+        await context.SaveChangesAsync();
+        Toasts.Enqueue("Grade updated", FinalAssignemnt_APDP.Services.ToastType.Success);
+        NavigationManager.NavigateTo(AppRoutes.AdminGrades);
+    }
+
+    private sealed class GradeInput
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public string? StudentId { get; set; }
+
+        [Required]
+        public string? CourseId { get; set; }
+
+        [Range(0, 100)]
+        public double? Midterm { get; set; }
+
+        [Range(0, 100)]
+        public double? Final { get; set; }
+
+        [StringLength(250)]
+        public string? Note { get; set; }
+    }
+
+    private sealed class SelectOption
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+    }
+}
