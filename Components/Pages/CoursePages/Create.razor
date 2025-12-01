@@ -25,18 +25,33 @@
                     <ValidationMessage For="() => Course.Name" class="text-rose-500 text-xs" />
                 </div>
                 <div class="@UiClasses.FieldStack">
-                    <label for="subjectid" class="@UiClasses.Label">Subject ID</label>
-                    <InputNumber id="subjectid" @bind-Value="Course.SubjectID" class="@UiClasses.Input" />
+                    <label for="subjectid" class="@UiClasses.Label">Subject</label>
+                    <InputSelect id="subjectid" @bind-Value="Course.SubjectID" class="@UiClasses.Input">
+                        @foreach (var subject in Subjects)
+                        {
+                            <option value="@subject.Id">@subject.Name</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Course.SubjectID" class="text-rose-500 text-xs" />
                 </div>
                 <div class="@UiClasses.FieldStack">
-                    <label for="semesterid" class="@UiClasses.Label">Semester ID</label>
-                    <InputNumber id="semesterid" @bind-Value="Course.SemesterID" class="@UiClasses.Input" />
+                    <label for="semesterid" class="@UiClasses.Label">Semester</label>
+                    <InputSelect id="semesterid" @bind-Value="Course.SemesterID" class="@UiClasses.Input">
+                        @foreach (var semester in Semesters)
+                        {
+                            <option value="@semester.Id">@semester.Name</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Course.SemesterID" class="text-rose-500 text-xs" />
                 </div>
                 <div class="@UiClasses.FieldStack">
-                    <label for="lectureid" class="@UiClasses.Label">Lecturer ID</label>
-                    <InputText id="lectureid" @bind-Value="Course.LectureID" class="@UiClasses.Input" />
+                    <label for="lectureid" class="@UiClasses.Label">Lecturer</label>
+                    <InputSelect id="lectureid" @bind-Value="Course.LectureID" class="@UiClasses.Input">
+                        @foreach (var lecturer in Lecturers)
+                        {
+                            <option value="@lecturer.Id">@GetUserLabel(lecturer)</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Course.LectureID" class="text-rose-500 text-xs" />
                 </div>
             </div>
@@ -54,6 +69,38 @@
 @code {
     [SupplyParameterFromForm]
     private Course Course { get; set; } = new();
+    private List<Subject> Subjects { get; set; } = new();
+    private List<Semester> Semesters { get; set; } = new();
+    private List<ApplicationUser> Lecturers { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Subjects = await context.Subjects
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+        Semesters = await context.Semesters
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+        Lecturers = await context.Users
+            .OrderBy(u => u.Name ?? u.Email ?? u.UserName)
+            .ToListAsync();
+
+        if (Course.SubjectID == 0 && Subjects.Count > 0)
+        {
+            Course.SubjectID = Subjects[0].Id;
+        }
+
+        if (Course.SemesterID == 0 && Semesters.Count > 0)
+        {
+            Course.SemesterID = Semesters[0].Id;
+        }
+
+        if (string.IsNullOrEmpty(Course.LectureID) && Lecturers.Count > 0)
+        {
+            Course.LectureID = Lecturers[0].Id;
+        }
+    }
 
     // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task AddCourse()
@@ -62,5 +109,12 @@
         context.Courses.Add(Course);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo(AppRoutes.Courses);
+    }
+
+    private static string GetUserLabel(ApplicationUser user)
+    {
+        var identity = user.Name;
+        var secondary = user.Email ?? user.UserName ?? user.Id;
+        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity} ({secondary})";
     }
 }

@@ -19,13 +19,23 @@
             <ValidationSummary class="text-rose-500 text-sm" role="alert" />
             <div class="grid gap-4 md:grid-cols-2">
                 <div class="@UiClasses.FieldStack">
-                    <label for="studentid" class="@UiClasses.Label">Student ID</label>
-                    <InputText id="studentid" @bind-Value="Enrollment.StudentID" class="@UiClasses.Input" />
+                    <label for="studentid" class="@UiClasses.Label">Student</label>
+                    <InputSelect id="studentid" @bind-Value="Enrollment.StudentID" class="@UiClasses.Input">
+                        @foreach (var student in Students)
+                        {
+                            <option value="@GetStudentValue(student)">@GetStudentLabel(student)</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Enrollment.StudentID" class="text-rose-500 text-xs" />
                 </div>
                 <div class="@UiClasses.FieldStack">
-                    <label for="courseid" class="@UiClasses.Label">Course ID</label>
-                    <InputNumber id="courseid" @bind-Value="Enrollment.CourseID" class="@UiClasses.Input" />
+                    <label for="courseid" class="@UiClasses.Label">Course</label>
+                    <InputSelect id="courseid" @bind-Value="Enrollment.CourseID" class="@UiClasses.Input">
+                        @foreach (var course in Courses)
+                        {
+                            <option value="@course.Id">@course.Name</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Enrollment.CourseID" class="text-rose-500 text-xs" />
                 </div>
             </div>
@@ -42,6 +52,29 @@
 @code {
     [SupplyParameterFromForm]
     private Enrollment Enrollment { get; set; } = new();
+    private List<ApplicationUser> Students { get; set; } = new();
+    private List<Course> Courses { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Students = await context.Users
+            .OrderBy(u => u.Name ?? u.Email ?? u.UserName)
+            .ToListAsync();
+        Courses = await context.Courses
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+
+        if (string.IsNullOrEmpty(Enrollment.StudentID) && Students.Count > 0)
+        {
+            Enrollment.StudentID = GetStudentValue(Students[0]);
+        }
+
+        if (Enrollment.CourseID == 0 && Courses.Count > 0)
+        {
+            Enrollment.CourseID = Courses[0].Id;
+        }
+    }
 
     // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task AddEnrollment()
@@ -51,4 +84,12 @@
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
+
+    private static string GetStudentLabel(ApplicationUser student)
+    {
+        var displayId = student.StudentId ?? student.Email ?? student.UserName ?? student.Id;
+        return string.IsNullOrWhiteSpace(student.Name) ? displayId : $"{student.Name} ({displayId})";
+    }
+
+    private static string GetStudentValue(ApplicationUser student) => student.StudentId ?? student.Email ?? student.UserName ?? student.Id;
 }

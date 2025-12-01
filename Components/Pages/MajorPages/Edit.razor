@@ -28,8 +28,13 @@ else
                     <ValidationMessage For="() => Major.Name" class="text-danger" />
                 </div>
                 <div class="mb-3">
-                    <label for="departmentid" class="form-label">DepartmentId:</label>
-                    <InputNumber id="departmentid" @bind-Value="Major.DepartmentId" class="form-control" />
+                    <label for="departmentid" class="form-label">Department:</label>
+                    <InputSelect id="departmentid" @bind-Value="Major.DepartmentId" class="form-select">
+                        @foreach (var department in Departments)
+                        {
+                            <option value="@department.Id">@department.Name</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Major.DepartmentId" class="text-danger" />
                 </div>
                 <button type="submit" class="btn btn-primary">Save</button>
@@ -49,10 +54,15 @@ else
     [SupplyParameterFromForm]
     private Major? Major { get; set; }
 
+    private List<Department> Departments { get; set; } = new();
+
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
         Major ??= await context.Majors.FirstOrDefaultAsync(m => m.Id == Id);
+        Departments = await context.Departments
+            .OrderBy(d => d.Name)
+            .ToListAsync();
 
         if (Major is null)
         {

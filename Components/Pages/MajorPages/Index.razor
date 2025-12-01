@@ -22,9 +22,11 @@
 
     <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div class="overflow-x-auto">
-            <QuickGrid Class="min-w-full divide-y divide-slate-200 text-sm text-slate-600" Items="context.Majors">
+            <QuickGrid Class="min-w-full divide-y divide-slate-200 text-sm text-slate-600" Items="majorsQuery">
                 <PropertyColumn Title="Name" Property="major => major.Name" />
-                <PropertyColumn Title="Department" Property="major => major.DepartmentId" />
+                <TemplateColumn Title="Department" Context="major">
+                    @(major.Department?.Name ?? "Unassigned")
+                </TemplateColumn>
 
                 <TemplateColumn Title="Actions" Context="major">
                     <div class="flex flex-wrap items-center justify-end gap-2">
@@ -40,11 +42,13 @@
 
 @code {
     private ApplicationDbContext context = default!;
+    private IQueryable<Major> majorsQuery = default!;
     private const string ActionBase = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
 
     protected override void OnInitialized()
     {
         context = DbFactory.CreateDbContext();
+        majorsQuery = context.Majors.Include(m => m.Department);
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

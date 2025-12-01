@@ -24,8 +24,13 @@
                     <ValidationMessage For="() => Major.Name" class="text-rose-500 text-xs" />
                 </div>
                 <div class="@UiClasses.FieldStack">
-                    <label for="departmentid" class="@UiClasses.Label">Department ID</label>
-                    <InputNumber id="departmentid" @bind-Value="Major.DepartmentId" class="@UiClasses.Input" />
+                    <label for="departmentid" class="@UiClasses.Label">Department</label>
+                    <InputSelect id="departmentid" @bind-Value="Major.DepartmentId" class="@UiClasses.Input">
+                        @foreach (var department in Departments)
+                        {
+                            <option value="@department.Id">@department.Name</option>
+                        }
+                    </InputSelect>
                     <ValidationMessage For="() => Major.DepartmentId" class="text-rose-500 text-xs" />
                 </div>
             </div>
@@ -42,6 +47,20 @@
 @code {
     [SupplyParameterFromForm]
     private Major Major { get; set; } = new();
+    private List<Department> Departments { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Departments = await context.Departments
+            .OrderBy(d => d.Name)
+            .ToListAsync();
+
+        if (Major.DepartmentId == 0 && Departments.Count > 0)
+        {
+            Major.DepartmentId = Departments[0].Id;
+        }
+    }
 
     // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task AddMajor()

@@ -28,16 +28,16 @@
                     <dd class="text-base text-slate-900">@course.Name</dd>
                 </div>
                 <div>
-                    <dt class="@UiClasses.Label">Subject ID</dt>
-                    <dd class="text-base text-slate-900">@course.SubjectID</dd>
+                    <dt class="@UiClasses.Label">Subject</dt>
+                    <dd class="text-base text-slate-900">@course.Subject?.Name ?? "Unassigned"</dd>
                 </div>
                 <div>
-                    <dt class="@UiClasses.Label">Semester ID</dt>
-                    <dd class="text-base text-slate-900">@course.SemesterID</dd>
+                    <dt class="@UiClasses.Label">Semester</dt>
+                    <dd class="text-base text-slate-900">@course.Semester?.Name ?? "Unassigned"</dd>
                 </div>
                 <div>
-                    <dt class="@UiClasses.Label">Lecturer ID</dt>
-                    <dd class="text-base text-slate-900">@course.LectureID</dd>
+                    <dt class="@UiClasses.Label">Lecturer</dt>
+                    <dd class="text-base text-slate-900">@GetLecturerLabel()</dd>
                 </div>
             </dl>
             <div class="flex flex-wrap gap-3 pt-4">
@@ -57,11 +57,27 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        course = await context.Courses.FirstOrDefaultAsync(m => m.Id == Id);
+        course = await context.Courses
+            .Include(c => c.Subject)
+            .Include(c => c.Semester)
+            .Include(c => c.Lecture)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (course is null)
         {
             NavigationManager.NavigateTo("notfound");
         }
+    }
+
+    private string GetLecturerLabel()
+    {
+        if (course?.Lecture is null)
+        {
+            return course?.LectureID ?? "Unassigned";
+        }
+
+        var identity = course.Lecture.Name;
+        var secondary = course.Lecture.Email ?? course.Lecture.UserName ?? course.Lecture.Id;
+        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity} ({secondary})";
     }
 }

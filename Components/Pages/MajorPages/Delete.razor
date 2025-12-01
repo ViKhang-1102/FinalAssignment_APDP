@@ -22,8 +22,8 @@
             <dd class="col-sm-10">@major.Name</dd>
         </dl>
         <dl class="row">
-            <dt class="col-sm-2">DepartmentId</dt>
-            <dd class="col-sm-10">@major.DepartmentId</dd>
+            <dt class="col-sm-2">Department</dt>
+            <dd class="col-sm-10">@GetDepartmentName()</dd>
         </dl>
         <EditForm method="post" Model="major" OnValidSubmit="DeleteMajor" FormName="delete" Enhance>
             <button type="submit" class="btn btn-danger" disabled="@(major is null)">Delete</button> |
@@ -41,7 +41,9 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        major = await context.Majors.FirstOrDefaultAsync(m => m.Id == Id);
+        major = await context.Majors
+            .Include(m => m.Department)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (major is null)
         {
@@ -56,4 +58,6 @@
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/majors");
     }
+
+    private string GetDepartmentName() => major?.Department?.Name ?? "Unassigned";
 }

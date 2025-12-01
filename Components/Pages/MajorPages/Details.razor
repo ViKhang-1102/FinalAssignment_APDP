@@ -19,8 +19,8 @@
         <dl class="row">
             <dt class="col-sm-2">Name</dt>
             <dd class="col-sm-10">@major.Name</dd>
-            <dt class="col-sm-2">DepartmentId</dt>
-            <dd class="col-sm-10">@major.DepartmentId</dd>
+            <dt class="col-sm-2">Department</dt>
+            <dd class="col-sm-10">@GetDepartmentName()</dd>
         </dl>
         <div>
             <a href="@($"/majors/edit?id={major.Id}")">Edit</a> |
@@ -38,11 +38,15 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        major = await context.Majors.FirstOrDefaultAsync(m => m.Id == Id);
+        major = await context.Majors
+            .Include(m => m.Department)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (major is null)
         {
             NavigationManager.NavigateTo("notfound");
         }
     }
+
+    private string GetDepartmentName() => major?.Department?.Name ?? "Unassigned";
 }

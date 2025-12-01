@@ -24,12 +24,12 @@
         <div class="@UiClasses.Card">
             <dl class="@UiClasses.DetailList">
                 <div>
-                    <dt class="@UiClasses.Label">Student ID</dt>
-                    <dd class="text-base text-slate-900">@enrollment.StudentID</dd>
+                    <dt class="@UiClasses.Label">Student</dt>
+                    <dd class="text-base text-slate-900">@GetStudentLabel()</dd>
                 </div>
                 <div>
-                    <dt class="@UiClasses.Label">Course ID</dt>
-                    <dd class="text-base text-slate-900">@enrollment.CourseID</dd>
+                    <dt class="@UiClasses.Label">Course</dt>
+                    <dd class="text-base text-slate-900">@enrollment.Course?.Name ?? "Unassigned"</dd>
                 </div>
             </dl>
             <div class="flex flex-wrap gap-3 pt-4">
@@ -49,11 +49,25 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        enrollment = await context.Enrollments.FirstOrDefaultAsync(m => m.Id == Id);
+        enrollment = await context.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.Course)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (enrollment is null)
         {
             NavigationManager.NavigateTo("notfound");
         }
+    }
+
+    private string GetStudentLabel()
+    {
+        if (enrollment?.Student is null)
+        {
+            return enrollment?.StudentID ?? "Unassigned";
+        }
+
+        var displayId = enrollment.Student.StudentId ?? enrollment.Student.Email ?? enrollment.Student.UserName ?? enrollment.Student.Id;
+        return string.IsNullOrWhiteSpace(enrollment.Student.Name) ? displayId : $"{enrollment.Student.Name} ({displayId})";
     }
 }

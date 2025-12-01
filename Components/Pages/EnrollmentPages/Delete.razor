@@ -28,12 +28,12 @@
             </div>
             <dl class="@UiClasses.DetailList">
                 <div>
-                    <dt class="@UiClasses.Label">Student ID</dt>
-                    <dd class="text-base text-slate-900">@enrollment.StudentID</dd>
+                    <dt class="@UiClasses.Label">Student</dt>
+                    <dd class="text-base text-slate-900">@GetStudentLabel()</dd>
                 </div>
                 <div>
-                    <dt class="@UiClasses.Label">Course ID</dt>
-                    <dd class="text-base text-slate-900">@enrollment.CourseID</dd>
+                    <dt class="@UiClasses.Label">Course</dt>
+                    <dd class="text-base text-slate-900">@enrollment.Course?.Name ?? "Unassigned"</dd>
                 </div>
             </dl>
             <EditForm method="post" Model="enrollment" OnValidSubmit="DeleteEnrollment" FormName="delete" Enhance>
@@ -55,7 +55,10 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        enrollment = await context.Enrollments.FirstOrDefaultAsync(m => m.Id == Id);
+        enrollment = await context.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.Course)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (enrollment is null)
         {
@@ -69,5 +72,16 @@
         context.Enrollments.Remove(enrollment!);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo(AppRoutes.Enrollments);
+    }
+
+    private string GetStudentLabel()
+    {
+        if (enrollment?.Student is null)
+        {
+            return enrollment?.StudentID ?? "Unassigned";
+        }
+
+        var displayId = enrollment.Student.StudentId ?? enrollment.Student.Email ?? enrollment.Student.UserName ?? enrollment.Student.Id;
+        return string.IsNullOrWhiteSpace(enrollment.Student.Name) ? displayId : $"{enrollment.Student.Name} ({displayId})";
     }
 }
