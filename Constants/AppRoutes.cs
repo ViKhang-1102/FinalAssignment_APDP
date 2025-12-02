@@ -16,6 +16,7 @@ namespace FinalAssignemnt_APDP.Constants
 
         // Admin & Lecturer Routes
         public const string Home = "/";
+        public const string LecturerWorkspace = "/lecturer";
         public const string Departments = "/departments";
         public const string DepartmentsCreate = "/departments/create";
         public const string Courses = "/courses";
