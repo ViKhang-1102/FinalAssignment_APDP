@@ -4,56 +4,210 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Create</PageTitle>
+<PageTitle>Create Course</PageTitle>
 
-<h1>Create</h1>
-
-<h2>Course</h2>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <EditForm method="post" Model="Course" OnValidSubmit="AddCourse" FormName="create" Enhance>
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="mb-3">
-                <label for="name" class="form-label">Name:</label> 
-                <InputText id="name" @bind-Value="Course.Name" class="form-control" /> 
-                <ValidationMessage For="() => Course.Name" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="subjectid" class="form-label">SubjectID:</label> 
-                <InputNumber id="subjectid" @bind-Value="Course.SubjectID" class="form-control" /> 
-                <ValidationMessage For="() => Course.SubjectID" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="semesterid" class="form-label">SemesterID:</label> 
-                <InputNumber id="semesterid" @bind-Value="Course.SemesterID" class="form-control" /> 
-                <ValidationMessage For="() => Course.SemesterID" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="lectureid" class="form-label">LectureID:</label> 
-                <InputText id="lectureid" @bind-Value="Course.LectureID" class="form-control" /> 
-                <ValidationMessage For="() => Course.LectureID" class="text-danger" /> 
-            </div>        
-            <button type="submit" class="btn btn-primary">Create</button>
-        </EditForm>
+<div class="max-w-4xl space-y-6">
+    <div>
+        <h1 class="text-2xl font-semibold text-slate-900">Create course</h1>
+        <p class="text-sm text-slate-500">Provide the course information below.</p>
     </div>
-</div>
 
-<div>
-    <a href="/courses">Back to List</a>
+    <div class="rounded-2xl bg-white p-6 shadow-sm">
+        @if (Subjects.Count == 0 || Semesters.Count == 0 || Lecturers.Count == 0)
+        {
+            <div class="space-y-3 text-sm text-slate-600">
+                <p class="font-medium text-slate-900">Missing related data</p>
+                @if (Subjects.Count == 0)
+                {
+                    <p>- No subjects available. Please create a subject first.</p>
+                }
+                @if (Semesters.Count == 0)
+                {
+                    <p>- No semesters available. Please create a semester first.</p>
+                }
+                @if (Lecturers.Count == 0)
+                {
+                    <p>- No lecturers available. Please create a user to teach this course.</p>
+                }
+            </div>
+        }
+        else
+        {
+            <EditForm method="post" Model="Course" OnValidSubmit="AddCourse" FormName="create" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <p class="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">@ErrorMessage</p>
+                }
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-1 md:col-span-2">
+                        <label for="name" class="text-sm font-medium text-slate-700">Name</label>
+                        <InputText id="name" @bind-Value="Course.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                        <ValidationMessage For="() => Course.Name" class="text-sm text-rose-600" />
+                    </div>
+                    <div class="space-y-1">
+                        <label for="subjectid" class="text-sm font-medium text-slate-700">Subject</label>
+                        <SearchableSelect TValue="int" TItem="Subject"
+                                          Items="Subjects"
+                                          @bind-Value="Course.SubjectID"
+                                          ValueSelector="subject => subject.Id"
+                                          LabelSelector="subject => subject.Name"
+                                          FilterPlaceholder="Search subject..."
+                                          PlaceholderOption="-- Select subject --"
+                                          PlaceholderValue="@(0)"
+                                          SelectId="subjectid" />
+                        <ValidationMessage For="() => Course.SubjectID" class="text-sm text-rose-600" />
+                    </div>
+                    <div class="space-y-1">
+                        <label for="semesterid" class="text-sm font-medium text-slate-700">Semester</label>
+                        <SearchableSelect TValue="int" TItem="Semester"
+                                          Items="Semesters"
+                                          @bind-Value="Course.SemesterID"
+                                          ValueSelector="semester => semester.Id"
+                                          LabelSelector="semester => semester.Name"
+                                          FilterPlaceholder="Search semester..."
+                                          PlaceholderOption="-- Select semester --"
+                                          PlaceholderValue="@(0)"
+                                          SelectId="semesterid" />
+                        <ValidationMessage For="() => Course.SemesterID" class="text-sm text-rose-600" />
+                    </div>
+                    <div class="space-y-1 md:col-span-2">
+                        <label for="lectureid" class="text-sm font-medium text-slate-700">Lecturer</label>
+                        <SearchableSelect TValue="string" TItem="ApplicationUser"
+                                          Items="Lecturers"
+                                          @bind-Value="Course.LectureID"
+                                          ValueSelector="lecturer => lecturer.Id"
+                                          LabelSelector="lecturer => GetLecturerDisplayName(lecturer)"
+                                          FilterPlaceholder="Search lecturer..."
+                                          PlaceholderOption="-- Select lecturer --"
+                                          PlaceholderValue="@string.Empty"
+                                          SelectId="lectureid" />
+                        <ValidationMessage For="() => Course.LectureID" class="text-sm text-rose-600" />
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Create</button>
+                    <a href="/courses" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
+                </div>
+            </EditForm>
+        }
+    </div>
 </div>
 
 @code {
     [SupplyParameterFromForm]
     private Course Course { get; set; } = new();
 
-    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
-    private async Task AddCourse()
+    private List<Subject> Subjects { get; set; } = new();
+    private List<Semester> Semesters { get; set; } = new();
+    private List<ApplicationUser> Lecturers { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
+        Subjects = await context.Subjects.OrderBy(s => s.Name).ToListAsync();
+        Semesters = await context.Semesters.OrderBy(s => s.Name).ToListAsync();
+        Lecturers = await LoadLecturerUsersAsync(context);
+    }
+
+    private async Task AddCourse()
+    {
+        ErrorMessage = null;
+
+        if (Course.SubjectID <= 0)
+        {
+            ErrorMessage = "Please select a subject.";
+            return;
+        }
+
+        if (Course.SemesterID <= 0)
+        {
+            ErrorMessage = "Please select a semester.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Course.LectureID))
+        {
+            ErrorMessage = "Please select a lecturer.";
+            return;
+        }
+
+        using var context = DbFactory.CreateDbContext();
+
+        var subjectExists = await context.Subjects.AnyAsync(s => s.Id == Course.SubjectID);
+        if (!subjectExists)
+        {
+            ErrorMessage = "Selected subject no longer exists.";
+            Subjects = await context.Subjects.OrderBy(s => s.Name).ToListAsync();
+            return;
+        }
+
+        var semesterExists = await context.Semesters.AnyAsync(s => s.Id == Course.SemesterID);
+        if (!semesterExists)
+        {
+            ErrorMessage = "Selected semester no longer exists.";
+            Semesters = await context.Semesters.OrderBy(s => s.Name).ToListAsync();
+            return;
+        }
+
+        Lecturers = await LoadLecturerUsersAsync(context);
+        var lecturerExists = Lecturers.Any(u => u.Id == Course.LectureID);
+        if (!lecturerExists)
+        {
+            ErrorMessage = "Selected lecturer no longer exists or is not a lecturer.";
+            return;
+        }
+
         context.Courses.Add(Course);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/courses");
+    }
+
+    private async Task<List<ApplicationUser>> LoadLecturerUsersAsync(ApplicationDbContext context)
+    {
+        var lecturerRoleId = await context.Roles
+            .Where(r => r.Name == "Lecture")
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync();
+
+        if (string.IsNullOrEmpty(lecturerRoleId))
+        {
+            return new();
+        }
+
+        return await context.UserRoles
+            .Where(ur => ur.RoleId == lecturerRoleId)
+            .Join(context.Users,
+                ur => ur.UserId,
+                user => user.Id,
+                (_, user) => user)
+            .OrderBy(u => u.Name)
+            .ThenBy(u => u.Email)
+            .ToListAsync();
+    }
+
+    private static string GetLecturerDisplayName(ApplicationUser lecturer)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(lecturer.Name))
+        {
+            parts.Add(lecturer.Name!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(lecturer.Email))
+        {
+            parts.Add(lecturer.Email!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(lecturer.StudentId))
+        {
+            parts.Add($"ID: {lecturer.StudentId}");
+        }
+
+        return parts.Count == 0 ? lecturer.Id : string.Join(" | ", parts);
     }
 }

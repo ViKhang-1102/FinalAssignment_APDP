@@ -1,36 +1,143 @@
 ﻿@page "/enrollments"
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Data
 @implements IAsyncDisposable
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Enrollments</PageTitle>
 
-<h1>Index</h1>
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-900">Enrollments</h1>
+    <a href="enrollments/create" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+        <span class="text-lg">+</span> New Enrollment
+    </a>
+</div>
 
-<p>
-    <a href="enrollments/create">Create New</a>
-</p>
-
-<QuickGrid Class="table" Items="context.Enrollments">
-    <PropertyColumn Property="enrollment => enrollment.StudentID" />
-    <PropertyColumn Property="enrollment => enrollment.CourseID" />
-
-    <TemplateColumn Context="enrollment">
-        <a href="@($"enrollments/edit?id={enrollment.Id}")">Edit</a> |
-        <a href="@($"enrollments/details?id={enrollment.Id}")">Details</a> |
-        <a href="@($"enrollments/delete?id={enrollment.Id}")">Delete</a>
-    </TemplateColumn>
-</QuickGrid>
+@if (enrollments.Count == 0)
+{
+    <div class="mt-6 rounded-md border border-dashed border-slate-200 bg-white/60 p-6 text-center text-slate-500">
+        No enrollments found.
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <th class="px-6 py-3">Student</th>
+                    <th class="px-6 py-3">Course</th>
+                    <th class="px-6 py-3">Schedule</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+                @foreach (var enrollment in enrollments)
+                {
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-slate-900">@GetStudentDisplayName(enrollment.Student, enrollment.StudentID)</p>
+                            @if (!string.IsNullOrWhiteSpace(enrollment.Student?.Email))
+                            {
+                                <p class="text-xs text-slate-500">@enrollment.Student!.Email</p>
+                            }
+                        </td>
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-slate-900">@enrollment.Course?.Name</p>
+                            <p class="text-xs text-slate-500">@GetCourseMeta(enrollment.Course)</p>
+                        </td>
+                        <td class="px-6 py-4 text-slate-700">
+                            @if (!string.IsNullOrWhiteSpace(enrollment.DayOfWeek) || !string.IsNullOrWhiteSpace(enrollment.TimeSlot) || !string.IsNullOrWhiteSpace(enrollment.Room))
+                            {
+                                <div class="space-y-0.5">
+                                    @if (!string.IsNullOrWhiteSpace(enrollment.DayOfWeek))
+                                    {
+                                        <p>@enrollment.DayOfWeek</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(enrollment.TimeSlot))
+                                    {
+                                        <p>@enrollment.TimeSlot</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(enrollment.Room))
+                                    {
+                                        <p>Room @enrollment.Room</p>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-slate-400">—</span>
+                            }
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="@($"enrollments/details?id={enrollment.Id}")" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
+                                <a href="@($"enrollments/edit?id={enrollment.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                                <a href="@($"enrollments/delete?id={enrollment.Id}")" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
 
 @code {
     private ApplicationDbContext context = default!;
+    private List<Enrollment> enrollments = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
+        enrollments = await context.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.Course)
+                .ThenInclude(c => c.Subject)
+            .Include(e => e.Course)
+                .ThenInclude(c => c.Semester)
+            .OrderBy(e => e.Student!.StudentId)
+            .ThenBy(e => e.Course!.Name)
+            .ThenBy(e => e.Id)
+            .ToListAsync();
+    }
+
+    private static string GetStudentDisplayName(ApplicationUser? student, string? fallbackId)
+    {
+        if (student is null)
+        {
+            return fallbackId ?? string.Empty;
+        }
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(student.StudentId))
+        {
+            parts.Add(student.StudentId!);
+        }
+        if (!string.IsNullOrWhiteSpace(student.Name))
+        {
+            parts.Add(student.Name!);
+        }
+        return parts.Count == 0 ? (fallbackId ?? string.Empty) : string.Join(" - ", parts);
+    }
+
+    private static string GetCourseMeta(Course? course)
+    {
+        if (course is null)
+        {
+            return string.Empty;
+        }
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(course.Subject?.Name))
+        {
+            parts.Add(course.Subject!.Name);
+        }
+        if (!string.IsNullOrWhiteSpace(course.Semester?.Name))
+        {
+            parts.Add(course.Semester!.Name);
+        }
+        return parts.Count == 0 ? $"Course #{course.Id}" : string.Join(" • ", parts);
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

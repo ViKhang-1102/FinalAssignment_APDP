@@ -5,34 +5,36 @@
 @inject NavigationManager NavigationManager
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 
-<PageTitle>Create</PageTitle>
+<PageTitle>Create Subject</PageTitle>
 
-<h1>Create</h1>
+<div class="max-w-2xl space-y-6">
+    <div>
+        <h1 class="text-2xl font-semibold text-slate-900">Create Subject</h1>
+        <p class="text-sm text-slate-500">Fill the form below to add a new subject.</p>
+    </div>
 
-<h2>Subject</h2>
-<hr />
-<div class="row">
-    <div class="col-md-4">
+    <div class="rounded-2xl bg-white p-6 shadow-sm">
         <EditForm method="post" Model="Subject" OnValidSubmit="AddSubject" FormName="create" Enhance>
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert"/>
-            <div class="mb-3">
-                <label for="code" class="form-label">Code:</label> 
-                <InputText id="code" @bind-Value="Subject.Code" class="form-control" /> 
-                <ValidationMessage For="() => Subject.Code" class="text-danger" /> 
-            </div>        
-            <div class="mb-3">
-                <label for="name" class="form-label">Name:</label> 
-                <InputText id="name" @bind-Value="Subject.Name" class="form-control" /> 
-                <ValidationMessage For="() => Subject.Name" class="text-danger" /> 
-            </div>        
-            <button type="submit" class="btn btn-primary">Create</button>
+            <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-1">
+                    <label for="code" class="text-sm font-medium text-slate-700">Code</label>
+                    <InputText id="code" @bind-Value="Subject.Code" class="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                    <ValidationMessage For="() => Subject.Code" class="text-sm text-rose-600" />
+                </div>
+                <div class="space-y-1">
+                    <label for="name" class="text-sm font-medium text-slate-700">Name</label>
+                    <InputText id="name" @bind-Value="Subject.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                    <ValidationMessage For="() => Subject.Name" class="text-sm text-rose-600" />
+                </div>
+            </div>
+            <div class="mt-6 flex items-center gap-3">
+                <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Create</button>
+                <a href="/subjects" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
+            </div>
         </EditForm>
     </div>
-</div>
-
-<div>
-    <a href="/subjects">Back to List</a>
 </div>
 
 @code {

@@ -6,29 +6,35 @@
 
 <PageTitle>Delete User</PageTitle>
 
-<div class="container-fluid p-4">
- <div class="d-flex align-items-center mb-4">
- <a href="/users" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
- <h1 class="mb-0"><i class="bi bi-trash text-primary"></i> Delete User</h1>
- </div>
+@if (User is null)
+{
+	<p class="text-slate-500">Loading…</p>
+}
+else
+{
+	<div class="max-w-2xl space-y-6">
+		<div class="flex items-center gap-4">
+			<a href="/users" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Back</a>
+			<div>
+				<h1 class="text-2xl font-semibold text-slate-900">Delete user</h1>
+				<p class="text-sm text-slate-500">This action cannot be undone.</p>
+			</div>
+		</div>
 
- @if (User is null)
- {
- <div class="card shadow-sm"><div class="card-body">Loading...</div></div>
- }
- else
- {
- <div class="card shadow-sm"><div class="card-body">
- <div class="alert alert-danger">Are you sure you want to delete user <strong>@User.Email</strong>?</div>
- <EditForm OnValidSubmit="DeleteUser" Model="User" FormName="delete-user">
- <div class="d-flex gap-2">
- <button class="btn btn-danger" type="submit">Delete</button>
- <a class="btn btn-outline-secondary" href="/users">Cancel</a>
- </div>
- </EditForm>
- </div></div>
- }
-</div>
+		<div class="rounded-2xl bg-white p-6 shadow-sm">
+			<div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+				Are you sure you want to delete <strong class="font-semibold">@User.Email</strong>?
+			</div>
+
+			<EditForm OnValidSubmit="DeleteUser" Model="User" FormName="delete-user">
+				<div class="mt-6 flex items-center gap-3">
+					<button class="inline-flex items-center rounded-full bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500" type="submit">Delete</button>
+					<a class="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/users">Cancel</a>
+				</div>
+			</EditForm>
+		</div>
+	</div>
+}
 
 @code {
  [SupplyParameterFromQuery]

@@ -1,37 +1,67 @@
 ﻿@page "/subjects"
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Constants
 @implements IAsyncDisposable
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Subjects</PageTitle>
 
-<h1>Index</h1>
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-900">Subjects</h1>
+    <a href="@AppRoutes.SubjectsCreate" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+        <span class="text-lg">+</span> New Subject
+    </a>
+</div>
 
-<p>
-    <a href="@AppRoutes.SubjectsCreate">Create New</a>
-</p>
-
-<QuickGrid Class="table" Items="context.Subjects">
-    <PropertyColumn Property="subject => subject.Code" />
-    <PropertyColumn Property="subject => subject.Name" />
-
-    <TemplateColumn Context="subject">
-        <a href="@AppRoutes.SubjectsEdit(subject.Id)">Edit</a> |
-        <a href="@AppRoutes.SubjectsDetails(subject.Id)">Details</a> |
-        <a href="@AppRoutes.SubjectsDelete(subject.Id)">Delete</a>
-    </TemplateColumn>
-</QuickGrid>
+@if (subjects.Count == 0)
+{
+    <div class="mt-6 rounded-md border border-dashed border-slate-200 bg-white/60 p-6 text-center text-slate-500">
+        No subjects found.
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <th class="px-6 py-3">Code</th>
+                    <th class="px-6 py-3">Name</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+                @foreach (var subject in subjects)
+                {
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 font-mono text-sm text-slate-700">@subject.Code</td>
+                        <td class="px-6 py-4 font-medium text-slate-900">@subject.Name</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="@AppRoutes.SubjectsDetails(subject.Id)" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
+                                <a href="@AppRoutes.SubjectsEdit(subject.Id)" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                                <a href="@AppRoutes.SubjectsDelete(subject.Id)" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
 
 @code {
     private ApplicationDbContext context = default!;
+    private List<Subject> subjects = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
+        subjects = await context.Subjects
+            .OrderBy(s => s.Code)
+            .ThenBy(s => s.Name)
+            .ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

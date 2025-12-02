@@ -7,29 +7,43 @@
 
 <PageTitle>User Details</PageTitle>
 
-<div class="container-fluid p-4">
- <div class="d-flex align-items-center mb-4">
- <a href="/users" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
- <h1 class="mb-0"><i class="bi bi-info-circle text-primary"></i> User Details</h1>
- </div>
+@if (User is null)
+{
+	<p class="text-slate-500">Loading…</p>
+}
+else
+{
+	<div class="max-w-2xl space-y-6">
+		<div class="flex items-center gap-4">
+			<a href="/users" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Back</a>
+			<div>
+				<h1 class="text-2xl font-semibold text-slate-900">User details</h1>
+				<p class="text-sm text-slate-500">Review the profile information.</p>
+			</div>
+		</div>
 
- @if (User is null)
- {
- <div class="card shadow-sm"><div class="card-body">Loading...</div></div>
- }
- else
- {
- <div class="card shadow-sm"><div class="card-body">
- <dl class="row">
- <dt class="col-sm-3">Email</dt><dd class="col-sm-9">@User.Email</dd>
- <dt class="col-sm-3">Name</dt><dd class="col-sm-9">@User.Name</dd>
- <dt class="col-sm-3">Student ID</dt><dd class="col-sm-9">@User.StudentId</dd>
- <dt class="col-sm-3">Roles</dt><dd class="col-sm-9">@RolesStr</dd>
- </dl>
- <a class="btn btn-outline-secondary" href="/users">Back to List</a>
- </div></div>
- }
-</div>
+		<div class="rounded-2xl bg-white p-6 shadow-sm">
+			<dl class="divide-y divide-slate-100 text-sm">
+				<div class="grid grid-cols-3 gap-4 py-3">
+					<dt class="font-medium text-slate-500">Email</dt>
+					<dd class="col-span-2 font-mono text-slate-900">@User.Email</dd>
+				</div>
+				<div class="grid grid-cols-3 gap-4 py-3">
+					<dt class="font-medium text-slate-500">Name</dt>
+					<dd class="col-span-2 text-slate-900">@User.Name</dd>
+				</div>
+				<div class="grid grid-cols-3 gap-4 py-3">
+					<dt class="font-medium text-slate-500">Student ID</dt>
+					<dd class="col-span-2 font-mono text-slate-900">@User.StudentId</dd>
+				</div>
+				<div class="grid grid-cols-3 gap-4 py-3">
+					<dt class="font-medium text-slate-500">Roles</dt>
+					<dd class="col-span-2 text-slate-900">@RolesStr</dd>
+				</div>
+			</dl>
+		</div>
+	</div>
+}
 
 @code {
  [SupplyParameterFromQuery]

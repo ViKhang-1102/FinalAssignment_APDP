@@ -1,35 +1,63 @@
 ﻿@page "/semesters"
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.AspNetCore.Components.QuickGrid
-@using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Data
 @implements IAsyncDisposable
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Semesters</PageTitle>
 
-<h1>Index</h1>
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-900">Semesters</h1>
+    <a href="semesters/create" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+        <span class="text-lg">+</span> New Semester
+    </a>
+</div>
 
-<p>
-    <a href="semesters/create">Create New</a>
-</p>
-
-<QuickGrid Class="table" Items="context.Semesters">
-    <PropertyColumn Property="semester => semester.Name" />
-
-    <TemplateColumn Context="semester">
-        <a href="@($"semesters/edit?id={semester.Id}")">Edit</a> |
-        <a href="@($"semesters/details?id={semester.Id}")">Details</a> |
-        <a href="@($"semesters/delete?id={semester.Id}")">Delete</a>
-    </TemplateColumn>
-</QuickGrid>
+@if (semesters.Count == 0)
+{
+    <div class="mt-6 rounded-md border border-dashed border-slate-200 bg-white/60 p-6 text-center text-slate-500">
+        No semesters found.
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <th class="px-6 py-3">Name</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+                @foreach (var semester in semesters)
+                {
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium text-slate-900">@semester.Name</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="@($"semesters/details?id={semester.Id}")" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
+                                <a href="@($"semesters/edit?id={semester.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                                <a href="@($"semesters/delete?id={semester.Id}")" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
 
 @code {
     private ApplicationDbContext context = default!;
+    private List<Semester> semesters = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
+        semesters = await context.Semesters
+            .OrderBy(s => s.Name)
+            .ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();

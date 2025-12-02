@@ -4,43 +4,67 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Edit</PageTitle>
+<PageTitle>Edit Enrollment</PageTitle>
 
-<h1>Edit</h1>
-
-<h2>Enrollment</h2>
-<hr />
 @if (Enrollment is null)
 {
-    <p><em>Loading...</em></p>
+    <p class="text-slate-500">Loading…</p>
 }
 else
 {
-    <div class="row">
-        <div class="col-md-4">
+    <div class="max-w-3xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Edit enrollment</h1>
+            <p class="text-sm text-slate-500">Update the assignment and save the changes.</p>
+        </div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
             <EditForm method="post" Model="Enrollment" OnValidSubmit="UpdateEnrollment" FormName="edit" Enhance>
                 <DataAnnotationsValidator />
-                <ValidationSummary role="alert"/>
+                <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
                 <input type="hidden" name="Enrollment.Id" value="@Enrollment.Id" />
-                <div class="mb-3">
-                    <label for="studentid" class="form-label">StudentID:</label>
-                    <InputText id="studentid" @bind-Value="Enrollment.StudentID" class="form-control" />
-                    <ValidationMessage For="() => Enrollment.StudentID" class="text-danger" />
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <p class="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">@ErrorMessage</p>
+                }
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-1">
+                        <label for="studentid" class="text-sm font-medium text-slate-700">Student</label>
+                        <SearchableSelect TValue="string" TItem="ApplicationUser"
+                                          Items="Students"
+                                          @bind-Value="Enrollment.StudentID"
+                                          ValueSelector="student => student.Id"
+                                          LabelSelector="student => GetStudentDisplayName(student)"
+                                          FilterPlaceholder="Search student..."
+                                          PlaceholderOption="-- Select student --"
+                                          PlaceholderValue="@string.Empty"
+                                          SelectId="studentid" />
+                        <ValidationMessage For="() => Enrollment.StudentID" class="text-sm text-rose-600" />
+                    </div>
+                    <div class="space-y-1">
+                        <label for="courseid" class="text-sm font-medium text-slate-700">Course</label>
+                        <SearchableSelect TValue="int" TItem="Course"
+                                          Items="Courses"
+                                          @bind-Value="Enrollment.CourseID"
+                                          ValueSelector="course => course.Id"
+                                          LabelSelector="course => GetCourseDisplayName(course)"
+                                          FilterPlaceholder="Search course..."
+                                          PlaceholderOption="-- Select course --"
+                                          PlaceholderValue="@(0)"
+                                          SelectId="courseid" />
+                        <ValidationMessage For="() => Enrollment.CourseID" class="text-sm text-rose-600" />
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="courseid" class="form-label">CourseID:</label>
-                    <InputNumber id="courseid" @bind-Value="Enrollment.CourseID" class="form-control" />
-                    <ValidationMessage For="() => Enrollment.CourseID" class="text-danger" />
+
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Save changes</button>
+                    <a href="/enrollments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
-                <button type="submit" class="btn btn-primary">Save</button>
             </EditForm>
         </div>
     </div>
 }
-
-<div>
-    <a href="/enrollments">Back to List</a>
-</div>
 
 @code {
     [SupplyParameterFromQuery]
@@ -49,22 +73,66 @@ else
     [SupplyParameterFromForm]
     private Enrollment? Enrollment { get; set; }
 
+    private List<ApplicationUser> Students { get; set; } = new();
+    private List<Course> Courses { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
+        Students = await LoadStudentUsersAsync(context);
+
+        Courses = await context.Courses
+            .Include(c => c.Subject)
+            .Include(c => c.Semester)
+            .OrderBy(c => c.Name)
+            .ThenBy(c => c.Id)
+            .ToListAsync();
+
         Enrollment ??= await context.Enrollments.FirstOrDefaultAsync(m => m.Id == Id);
 
         if (Enrollment is null)
         {
             NavigationManager.NavigateTo("notfound");
+            return;
         }
     }
 
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task UpdateEnrollment()
     {
+        ErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(Enrollment!.StudentID))
+        {
+            ErrorMessage = "Please select a student.";
+            return;
+        }
+
+        if (Enrollment.CourseID <= 0)
+        {
+            ErrorMessage = "Please select a course.";
+            return;
+        }
+
         using var context = DbFactory.CreateDbContext();
+
+        var studentExists = await context.Users.AnyAsync(u => u.Id == Enrollment!.StudentID);
+        if (!studentExists)
+        {
+            ErrorMessage = "Selected student no longer exists.";
+            Students = await LoadStudentUsersAsync(context);
+            Courses = await context.Courses.Include(c => c.Subject).Include(c => c.Semester).OrderBy(c => c.Name).ThenBy(c => c.Id).ToListAsync();
+            return;
+        }
+
+        var courseExists = await context.Courses.AnyAsync(c => c.Id == Enrollment!.CourseID);
+        if (!courseExists)
+        {
+            ErrorMessage = "Invalid course ID.";
+            Courses = await context.Courses.Include(c => c.Subject).Include(c => c.Semester).OrderBy(c => c.Name).ThenBy(c => c.Id).ToListAsync();
+            return;
+        }
+
         context.Attach(Enrollment!).State = EntityState.Modified;
 
         try
@@ -90,5 +158,66 @@ else
     {
         using var context = DbFactory.CreateDbContext();
         return context.Enrollments.Any(e => e.Id == id);
+    }
+
+    private async Task<List<ApplicationUser>> LoadStudentUsersAsync(ApplicationDbContext context)
+    {
+        var studentRoleId = await context.Roles
+            .Where(r => r.Name == "Student")
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync();
+
+        if (string.IsNullOrEmpty(studentRoleId))
+        {
+            return new();
+        }
+
+        return await context.Users
+            .Where(u => context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == studentRoleId))
+            .OrderBy(u => u.StudentId)
+            .ThenBy(u => u.Name)
+            .ThenBy(u => u.Email)
+            .ToListAsync();
+    }
+
+    private static string GetStudentDisplayName(ApplicationUser student)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(student.StudentId))
+        {
+            parts.Add(student.StudentId!);
+        }
+        if (!string.IsNullOrWhiteSpace(student.Name))
+        {
+            parts.Add(student.Name!);
+        }
+        if (!string.IsNullOrWhiteSpace(student.Email))
+        {
+            parts.Add(student.Email!);
+        }
+
+        return string.Join(" - ", parts);
+    }
+
+    private static string GetCourseDisplayName(Course course)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(course.Name))
+        {
+            parts.Add(course.Name!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(course.Subject?.Name))
+        {
+            parts.Add(course.Subject!.Name);
+        }
+
+        if (!string.IsNullOrWhiteSpace(course.Semester?.Name))
+        {
+            parts.Add(course.Semester!.Name);
+        }
+
+        parts.Add($"#{course.Id}");
+        return string.Join(" | ", parts);
     }
 }

@@ -4,34 +4,47 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Details</PageTitle>
+<PageTitle>Course Details</PageTitle>
 
-<h1>Details</h1>
-
-<div>
-    <h2>Course</h2>
-    <hr />
-    @if (course is null)
-    {
-        <p><em>Loading...</em></p>
-    }
-    else {
-        <dl class="row">
-            <dt class="col-sm-2">Name</dt>
-            <dd class="col-sm-10">@course.Name</dd>
-            <dt class="col-sm-2">SubjectID</dt>
-            <dd class="col-sm-10">@course.SubjectID</dd>
-            <dt class="col-sm-2">SemesterID</dt>
-            <dd class="col-sm-10">@course.SemesterID</dd>
-            <dt class="col-sm-2">LectureID</dt>
-            <dd class="col-sm-10">@course.LectureID</dd>
-        </dl>
+@if (course is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-3xl space-y-6">
         <div>
-            <a href="@($"/courses/edit?id={course.Id}")">Edit</a> |
-            <a href="@($"/courses")">Back to List</a>
+            <h1 class="text-2xl font-semibold text-slate-900">Course details</h1>
+            <p class="text-sm text-slate-500">Review the information below.</p>
         </div>
-    }
-</div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <dl class="divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Name</dt>
+                    <dd class="col-span-2 text-slate-900">@course.Name</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Subject</dt>
+                    <dd class="col-span-2 text-slate-900">@course.Subject?.Name</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Semester</dt>
+                    <dd class="col-span-2 text-slate-900">@course.Semester?.Name</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Lecturer</dt>
+                    <dd class="col-span-2 text-slate-900">@GetLecturerDisplayName(course.Lecture, course.LectureID)</dd>
+                </div>
+            </dl>
+
+            <div class="mt-6 flex items-center gap-3">
+                <a href="@($"/courses/edit?id={course.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                <a href="/courses" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Back to list</a>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private Course? course;
@@ -42,11 +55,41 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        course = await context.Courses.FirstOrDefaultAsync(m => m.Id == Id);
+        course = await context.Courses
+            .Include(c => c.Subject)
+            .Include(c => c.Semester)
+            .Include(c => c.Lecture)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (course is null)
         {
             NavigationManager.NavigateTo("notfound");
         }
+    }
+
+    private static string GetLecturerDisplayName(ApplicationUser? lecturer, string? fallbackId)
+    {
+        if (lecturer is null)
+        {
+            return fallbackId ?? string.Empty;
+        }
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(lecturer.Name))
+        {
+            parts.Add(lecturer.Name!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(lecturer.Email))
+        {
+            parts.Add(lecturer.Email!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(lecturer.StudentId))
+        {
+            parts.Add($"ID: {lecturer.StudentId}");
+        }
+
+        return parts.Count == 0 ? fallbackId ?? string.Empty : string.Join(" | ", parts);
     }
 }
