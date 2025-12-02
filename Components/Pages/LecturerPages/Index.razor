@@ -1,0 +1,487 @@
+@page "/lecturer"
+@attribute [Authorize(Roles = "Lecture,Lecturer")]
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Lecturer Workspace</PageTitle>
+
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mb-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-500">Teaching Hub</p>
+            <h1 class="text-3xl font-bold text-slate-900">Welcome back, @displayName</h1>
+            <p class="text-sm text-slate-500">Monitor courses, classes, teaching schedule, and student scores in one place.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a href="@AppRoutes.AdminGrades" class="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50">
+                <span class="bi bi-clipboard-data"></span> Grade Workspace
+            </a>
+            <a href="@AppRoutes.Courses" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+                <span class="bi bi-journal-text"></span> Manage Courses
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            @errorMessage
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/80 py-16 text-slate-500">
+            <div class="flex items-center gap-3"><span class="spinner-border spinner-border-sm"></span> Loading teaching data...</div>
+        </div>
+    }
+    else if (myCourses.Count == 0)
+    {
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white/80 px-6 py-10 text-center">
+            <p class="text-lg font-semibold text-slate-800">No courses assigned</p>
+            <p class="mt-2 text-sm text-slate-500">Once an administrator assigns you as a lecturer, your teaching toolkit will appear here.</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Courses</p>
+                <p class="mt-2 text-3xl font-bold text-slate-900">@myCourses.Count</p>
+                <p class="text-xs text-slate-500">Courses you are teaching</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Students</p>
+                <p class="mt-2 text-3xl font-bold text-slate-900">@distinctStudentCount</p>
+                <p class="text-xs text-slate-500">Unique students across classes</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Schedule Slots</p>
+                <p class="mt-2 text-3xl font-bold text-slate-900">@scheduleSlots.Count</p>
+                <p class="text-xs text-slate-500">Distinct teaching sessions</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-widest text-slate-400">Graded</p>
+                <p class="mt-2 text-3xl font-bold text-slate-900">@gradeRows.Count</p>
+                <p class="text-xs text-slate-500">Students with recorded scores</p>
+            </div>
+        </div>
+
+        <div class="mt-10 grid gap-8 lg:grid-cols-2">
+            <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-widest text-slate-400">Courses</p>
+                        <h2 class="text-xl font-semibold text-slate-900">Teaching overview</h2>
+                    </div>
+                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">@myCourses.Count active</span>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    @foreach (var course in myCourses)
+                    {
+                        <div class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-base font-semibold text-slate-900">@course.Name</p>
+                                <p class="text-sm text-slate-500">@course.Subject · @course.Semester</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                                    <span class="bi bi-people"></span> @course.StudentCount students
+                                </span>
+                                <a href="@AppRoutes.CoursesDetails(course.Id)" class="text-sm font-semibold text-emerald-600 hover:text-emerald-500">Details →</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-widest text-slate-400">Classes</p>
+                        <h2 class="text-xl font-semibold text-slate-900">Rosters</h2>
+                    </div>
+                    <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600">@classRosters.Count groups</span>
+                </div>
+                <div class="space-y-4">
+                    @foreach (var roster in classRosters)
+                    {
+                        <details class="overflow-hidden rounded-xl border border-slate-100">
+                            <summary class="flex cursor-pointer items-center justify-between bg-slate-50/60 px-4 py-3 text-sm font-semibold text-slate-800">
+                                <div>
+                                    <p>@roster.CourseName</p>
+                                    <p class="text-xs font-normal text-slate-500">@roster.SubjectName · @roster.SemesterName</p>
+                                </div>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                                    <span class="bi bi-people"></span> @roster.Students.Count
+                                </span>
+                            </summary>
+                            <div class="divide-y divide-slate-100 bg-white">
+                                @if (roster.Students.Count == 0)
+                                {
+                                    <p class="px-4 py-3 text-sm text-slate-500">No enrolments yet.</p>
+                                }
+                                else
+                                {
+                                    @foreach (var student in roster.Students)
+                                    {
+                                        <div class="flex items-center justify-between px-4 py-2">
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-900">@student.Name</p>
+                                                <p class="text-xs text-slate-500">@student.Code · @student.Email</p>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        </details>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <section class="mt-10 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Schedule</p>
+                    <h2 class="text-xl font-semibold text-slate-900">Teaching sessions</h2>
+                </div>
+                <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">@scheduleSlots.Count slots</span>
+            </div>
+            @if (scheduleSlots.Count == 0)
+            {
+                <div class="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
+                    Schedule information will appear once enrollment records include day, time, and room data.
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3">Course</th>
+                                <th class="px-4 py-3">Day</th>
+                                <th class="px-4 py-3">Time</th>
+                                <th class="px-4 py-3">Room</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach (var slot in scheduleSlots)
+                            {
+                                <tr class="hover:bg-slate-50/60">
+                                    <td class="px-4 py-3">
+                                        <p class="font-semibold text-slate-900">@slot.CourseName</p>
+                                        <p class="text-xs text-slate-500">@slot.SubjectName</p>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-700">@slot.DayOfWeek</td>
+                                    <td class="px-4 py-3 text-slate-700">@slot.TimeSlot</td>
+                                    <td class="px-4 py-3 text-slate-700">@slot.Room</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="mt-10 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Scores</p>
+                    <h2 class="text-xl font-semibold text-slate-900">Student performance</h2>
+                </div>
+                <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600">@gradeRows.Count records</span>
+            </div>
+            @if (gradeRows.Count == 0)
+            {
+                <div class="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
+                    No grades recorded for your courses yet.
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3">Student</th>
+                                <th class="px-4 py-3">Course</th>
+                                <th class="px-4 py-3">Midterm</th>
+                                <th class="px-4 py-3">Final</th>
+                                <th class="px-4 py-3">Average</th>
+                                <th class="px-4 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach (var grade in gradeRows)
+                            {
+                                <tr class="hover:bg-slate-50/60">
+                                    <td class="px-4 py-3">
+                                        <p class="font-semibold text-slate-900">@grade.StudentName</p>
+                                        <p class="text-xs text-slate-500">@grade.StudentCode</p>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <p class="font-semibold text-slate-900">@grade.CourseName</p>
+                                        <p class="text-xs text-slate-500">@grade.SemesterName</p>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-700">@FormatScore(grade.MidtermScore)</td>
+                                    <td class="px-4 py-3 text-slate-700">@FormatScore(grade.FinalScore)</td>
+                                    <td class="px-4 py-3 text-slate-700">@FormatScore(grade.AverageScore)</td>
+                                    <td class="px-4 py-3">
+                                        @if (grade.IsPassed)
+                                        {
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                                <span class="bi bi-check-circle"></span> Passed
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600">
+                                                <span class="bi bi-x-circle"></span> Failed
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    private readonly List<CourseOverview> myCourses = new();
+    private readonly List<ClassRoster> classRosters = new();
+    private readonly List<ScheduleSlot> scheduleSlots = new();
+    private readonly List<GradeRow> gradeRows = new();
+
+    private bool isLoading = true;
+    private int distinctStudentCount;
+    private string? errorMessage;
+    private string displayName = "Lecturer";
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await authenticationStateTask;
+            var user = authState.User;
+
+            if (user?.Identity?.IsAuthenticated != true)
+            {
+                errorMessage = "You must be signed in to view this page.";
+                return;
+            }
+
+            displayName = string.IsNullOrWhiteSpace(user.Identity?.Name) ? "Lecturer" : user.Identity!.Name!;
+            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                errorMessage = "Unable to resolve your account identifier.";
+                return;
+            }
+
+            using var context = await DbFactory.CreateDbContextAsync();
+
+            var courses = await context.Courses
+                .AsNoTracking()
+                .Include(c => c.Subject)
+                .Include(c => c.Semester)
+                .Where(c => c.LectureID == userId)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            if (courses.Count == 0)
+            {
+                return;
+            }
+
+            var courseLookup = courses.ToDictionary(c => c.Id);
+            var courseIds = courseLookup.Keys.ToList();
+
+            var enrollments = await context.Enrollments
+                .AsNoTracking()
+                .Include(e => e.Student)
+                .Where(e => courseIds.Contains(e.CourseID))
+                .ToListAsync();
+
+            var grades = await context.Grades
+                .AsNoTracking()
+                .Include(g => g.Student)
+                .Where(g => courseIds.Contains(g.CourseID))
+                .ToListAsync();
+
+            foreach (var course in courses)
+            {
+                var courseEnrollments = enrollments.Where(e => e.CourseID == course.Id).ToList();
+                var studentRows = courseEnrollments
+                    .Select(e => new StudentRow
+                    {
+                        Name = ResolveStudentName(e.Student) ?? e.StudentID,
+                        Code = e.Student?.StudentId ?? e.StudentID,
+                        Email = e.Student?.Email ?? "Unknown"
+                    })
+                    .OrderBy(s => s.Name)
+                    .ToList();
+
+                myCourses.Add(new CourseOverview
+                {
+                    Id = course.Id,
+                    Name = course.Name,
+                    Subject = course.Subject?.Name ?? "-",
+                    Semester = course.Semester?.Name ?? "-",
+                    StudentCount = studentRows.Count
+                });
+
+                classRosters.Add(new ClassRoster
+                {
+                    CourseName = course.Name,
+                    SubjectName = course.Subject?.Name ?? "-",
+                    SemesterName = course.Semester?.Name ?? "-",
+                    Students = studentRows
+                });
+            }
+
+            var distinctStudents = enrollments
+                .Select(e => e.Student?.Id ?? e.StudentID)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .Count();
+
+            distinctStudentCount = distinctStudents;
+
+            var scheduleKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var enrollment in enrollments)
+            {
+                if (!courseLookup.TryGetValue(enrollment.CourseID, out var course))
+                {
+                    continue;
+                }
+
+                var key = string.Join('|', enrollment.CourseID, enrollment.DayOfWeek ?? string.Empty, enrollment.TimeSlot ?? string.Empty, enrollment.Room ?? string.Empty);
+                if (!scheduleKeys.Add(key))
+                {
+                    continue;
+                }
+
+                scheduleSlots.Add(new ScheduleSlot
+                {
+                    CourseName = course.Name,
+                    SubjectName = course.Subject?.Name ?? "-",
+                    DayOfWeek = string.IsNullOrWhiteSpace(enrollment.DayOfWeek) ? "TBD" : enrollment.DayOfWeek!,
+                    TimeSlot = string.IsNullOrWhiteSpace(enrollment.TimeSlot) ? "TBD" : enrollment.TimeSlot!,
+                    Room = string.IsNullOrWhiteSpace(enrollment.Room) ? "TBD" : enrollment.Room!
+                });
+            }
+
+            scheduleSlots.Sort((a, b) => string.Compare(a.DayOfWeek, b.DayOfWeek, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var grade in grades)
+            {
+                if (!courseLookup.TryGetValue(grade.CourseID, out var course))
+                {
+                    continue;
+                }
+
+                gradeRows.Add(new GradeRow
+                {
+                    StudentName = ResolveStudentName(grade.Student) ?? grade.StudentID,
+                    StudentCode = grade.Student?.StudentId ?? grade.StudentID,
+                    CourseName = course.Name,
+                    SemesterName = course.Semester?.Name ?? "-",
+                    MidtermScore = grade.MidtermScore,
+                    FinalScore = grade.FinalScore,
+                    AverageScore = grade.AverageScore,
+                    IsPassed = grade.IsPassed
+                });
+            }
+
+            gradeRows.Sort((a, b) => string.Compare(a.StudentName, b.StudentName, StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to load lecturer data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string? ResolveStudentName(ApplicationUser? student)
+    {
+        if (student is null)
+        {
+            return null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(student.Name))
+        {
+            return student.Name;
+        }
+
+        if (!string.IsNullOrWhiteSpace(student.Email))
+        {
+            return student.Email;
+        }
+
+        return null;
+    }
+
+    private static string FormatScore(double? score) => score.HasValue ? score.Value.ToString("F1") : "-";
+
+    private sealed class CourseOverview
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+        public string Semester { get; set; } = string.Empty;
+        public int StudentCount { get; set; }
+    }
+
+    private sealed class ClassRoster
+    {
+        public string CourseName { get; set; } = string.Empty;
+        public string SubjectName { get; set; } = string.Empty;
+        public string SemesterName { get; set; } = string.Empty;
+        public List<StudentRow> Students { get; set; } = new();
+    }
+
+    private sealed class StudentRow
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+    }
+
+    private sealed class ScheduleSlot
+    {
+        public string CourseName { get; set; } = string.Empty;
+        public string SubjectName { get; set; } = string.Empty;
+        public string DayOfWeek { get; set; } = string.Empty;
+        public string TimeSlot { get; set; } = string.Empty;
+        public string Room { get; set; } = string.Empty;
+    }
+
+    private sealed class GradeRow
+    {
+        public string StudentName { get; set; } = string.Empty;
+        public string StudentCode { get; set; } = string.Empty;
+        public string CourseName { get; set; } = string.Empty;
+        public string SemesterName { get; set; } = string.Empty;
+        public double? MidtermScore { get; set; }
+        public double? FinalScore { get; set; }
+        public double? AverageScore { get; set; }
+        public bool IsPassed { get; set; }
+    }
+}

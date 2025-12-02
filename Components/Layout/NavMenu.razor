@@ -16,13 +16,23 @@
         <AuthorizeView>
             <Authorized>
                 <!-- Admin Menu -->
-                <AuthorizeView Roles="Admin,Lecturer" Context="adminContext">
+                <AuthorizeView Roles="Admin,Lecture,Lecturer" Context="adminContext">
                     <Authorized>
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="@AppRoutes.Home" Match="NavLinkMatch.All">
                                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
                             </NavLink>
                         </div>
+
+                        <AuthorizeView Roles="Lecture,Lecturer" Context="lecturerContext">
+                            <Authorized>
+                                <div class="nav-item px-3">
+                                    <NavLink class="nav-link" href="@AppRoutes.LecturerWorkspace">
+                                        <span class="bi bi-easel2" aria-hidden="true"></span> Lecturer Hub
+                                    </NavLink>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
 
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="@AppRoutes.AdminDashboard">
