@@ -60,6 +60,6 @@ else
         context.Departments.Remove(department!);
         await context.SaveChangesAsync();
         Toasts.Enqueue("Xóa phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
-        NavigationManager.NavigateTo("/departments");
+        NavigationManager.NavigateTo(AppRoutes.Departments);
     }
 }

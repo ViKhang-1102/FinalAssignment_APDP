@@ -89,7 +89,7 @@ else
         using var context = DbFactory.CreateDbContext();
         context.Enrollments.Remove(enrollment!);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/enrollments");
+        NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 
     private static string GetStudentDisplayName(ApplicationUser? student, string? fallbackId)

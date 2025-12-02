@@ -82,8 +82,7 @@ else
                 </div>
             </EditForm>
         </div>
-    </div>
-}
+    }
 
 @code {
     [SupplyParameterFromQuery]
@@ -185,7 +184,7 @@ else
             }
         }
 
-        NavigationManager.NavigateTo("/courses");
+        NavigationManager.NavigateTo(AppRoutes.Courses);
     }
 
     private bool CourseExists(int id)

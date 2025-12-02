@@ -132,7 +132,7 @@
 
         context.Enrollments.Add(Enrollment);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/enrollments");
+        NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 
     private async Task<List<ApplicationUser>> LoadStudentUsersAsync(ApplicationDbContext context)

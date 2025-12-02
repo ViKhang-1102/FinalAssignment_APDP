@@ -1,0 +1,388 @@
+@page "/student/dashboard"
+@using System.Security.Claims
+@using System.Linq
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@implements IAsyncDisposable
+
+<PageTitle>Student Portal</PageTitle>
+
+<div class="@UiClasses.PageShell">
+    <div class="text-center space-y-2">
+        <p class="@UiClasses.SectionTag">Student Portal</p>
+        <h1 class="@UiClasses.SectionTitle">Everything you need this semester</h1>
+        <p class="@UiClasses.SectionSubtitle">Register, sign in, and keep track of your classes, weekly timetable, and grade progress.</p>
+    </div>
+
+    <AuthorizeView>
+        <Authorized>
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="@UiClasses.Card">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Welcome</p>
+                    <p class="text-lg font-semibold text-slate-900">@displayName</p>
+                    <p class="text-sm text-slate-500">Student ID: @studentIdDisplay</p>
+                    <div class="flex flex-wrap gap-3 pt-4">
+                        <a class="@UiClasses.PrimaryButton" href="@AppRoutes.ManageAccount"><i class="bi bi-person-gear"></i> Manage account</a>
+                        <a class="@UiClasses.GhostButton" href="@AppRoutes.StudentProfile"><i class="bi bi-person-circle"></i> My profile</a>
+                    </div>
+                </div>
+                <div class="@UiClasses.Card">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Current classes</p>
+                    <p class="text-4xl font-bold text-slate-900">@currentClasses.Count</p>
+                    <p class="text-sm text-slate-500">Active enrollments</p>
+                </div>
+                <div class="@UiClasses.Card">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Sessions this week</p>
+                    <p class="text-4xl font-bold text-slate-900">@timetableSlots.Count</p>
+                    <p class="text-sm text-slate-500">Based on your enrollment schedule</p>
+                </div>
+                <div class="@UiClasses.Card">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Avg grade</p>
+                    <p class="text-4xl font-bold text-slate-900">@averageGradeDisplay</p>
+                    <p class="text-sm text-slate-500">Across graded courses</p>
+                </div>
+            </div>
+
+            <section class="space-y-4">
+                <div>
+                    <p class="@UiClasses.SectionTag">Classes</p>
+                    <h2 class="text-2xl font-bold text-slate-900">Your current classes</h2>
+                    <p class="@UiClasses.SectionSubtitle">Stay on top of who is teaching you, where to meet, and when.</p>
+                </div>
+
+                @if (currentClasses.Count == 0)
+                {
+                    <div class="@UiClasses.Card text-center text-slate-500">
+                        <p>No enrollments found.</p>
+                        <p class="@UiClasses.HelperText">Once you are enrolled by the admin team, your class list will appear here.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="grid gap-4 lg:grid-cols-2">
+                        @foreach (var course in currentClasses)
+                        {
+                            <article class="@UiClasses.Card space-y-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <h3 class="text-xl font-semibold text-slate-900">@course.Title</h3>
+                                        <p class="text-sm text-slate-500">@course.SubjectCode · @course.SemesterName</p>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">@course.RoomLabel</span>
+                                </div>
+                                <dl class="grid grid-cols-2 gap-4 text-sm text-slate-600">
+                                    <div>
+                                        <dt class="@UiClasses.Label">Lecturer</dt>
+                                        <dd>@course.Lecturer</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="@UiClasses.Label">Schedule</dt>
+                                        <dd>@course.ScheduleLabel</dd>
+                                    </div>
+                                </dl>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="space-y-4">
+                <div class="flex flex-col gap-1">
+                    <p class="@UiClasses.SectionTag">Timetable</p>
+                    <h2 class="text-2xl font-bold text-slate-900">This week's timetable</h2>
+                    <p class="@UiClasses.SectionSubtitle">Automatically generated from enrollment day/time information.</p>
+                </div>
+
+                @if (!timetableSlots.Any())
+                {
+                    <div class="@UiClasses.Card text-center text-slate-500">
+                        <p>Timetable becomes available once your classes include day and time details.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="grid gap-4 md:grid-cols-2">
+                        @foreach (var day in timetableByDay)
+                        {
+                            <div class="@UiClasses.Card space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="text-lg font-semibold text-slate-900">@day.Key</h3>
+                                    <span class="text-xs font-semibold text-slate-400">@day.Count() session(s)</span>
+                                </div>
+                                <ul class="divide-y divide-slate-100">
+                                    @foreach (var slot in day)
+                                    {
+                                        <li class="py-3 flex flex-col gap-1">
+                                            <p class="text-sm font-semibold text-slate-900">@slot.Course</p>
+                                            <p class="text-xs text-slate-500">@slot.Time · @slot.Room</p>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="space-y-4">
+                <div>
+                    <p class="@UiClasses.SectionTag">Grades</p>
+                    <h2 class="text-2xl font-bold text-slate-900">Your grades</h2>
+                    <p class="@UiClasses.SectionSubtitle">Monitor progress and notes left by lecturers.</p>
+                </div>
+
+                <div class="@UiClasses.Card overflow-x-auto">
+                    @if (gradeSummaries.Count == 0)
+                    {
+                        <p class="text-sm text-slate-500">No grades posted yet.</p>
+                    }
+                    else
+                    {
+                        <table class="min-w-full divide-y divide-slate-200 text-sm text-slate-600">
+                            <thead>
+                                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                    <th class="py-3">Course</th>
+                                    <th class="py-3">Average</th>
+                                    <th class="py-3">Letter</th>
+                                    <th class="py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach (var grade in gradeSummaries)
+                                {
+                                    <tr>
+                                        <td class="py-3 font-medium text-slate-900">@grade.Course</td>
+                                        <td class="py-3">@grade.AverageDisplay</td>
+                                        <td class="py-3">@grade.Letter</td>
+                                        <td class="py-3">
+                                            <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold @grade.StatusClass">
+                                                <i class="bi @grade.StatusIcon"></i> @grade.StatusText
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </section>
+        </Authorized>
+        <NotAuthorized>
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="@UiClasses.Card space-y-3 text-left">
+                    <p class="@UiClasses.SectionTag">New student</p>
+                    <h3 class="text-2xl font-bold text-slate-900">Register your account</h3>
+                    <p class="@UiClasses.SectionSubtitle">Create a student profile in less than a minute to unlock personalized schedules.</p>
+                    <a class="@UiClasses.PrimaryButton" href="@AppRoutes.Register"><i class="bi bi-person-plus"></i> Register</a>
+                </div>
+                <div class="@UiClasses.Card space-y-3 text-left">
+                    <p class="@UiClasses.SectionTag">Returning student</p>
+                    <h3 class="text-2xl font-bold text-slate-900">Sign in to continue</h3>
+                    <p class="@UiClasses.SectionSubtitle">Use your institutional email to access your courses, timetable, and grades.</p>
+                    <a class="@UiClasses.PrimaryButton" href="@AppRoutes.Login"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private ApplicationDbContext? context;
+    private readonly List<ClassCard> currentClasses = new();
+    private readonly List<TimetableSlot> timetableSlots = new();
+    private readonly List<GradeSummary> gradeSummaries = new();
+    private string? displayName;
+    private string? studentId;
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private string studentIdDisplay => string.IsNullOrWhiteSpace(studentId) ? "Pending" : studentId;
+    private string averageGradeDisplay
+    {
+        get
+        {
+            var graded = gradeSummaries.Where(g => g.Average.HasValue).ToList();
+            return graded.Count == 0 ? "--" : graded.Average(g => g.Average!.Value).ToString("0.0");
+        }
+    }
+    private IEnumerable<IGrouping<string, TimetableSlot>> timetableByDay => timetableSlots
+        .OrderBy(slot => slot.DayOrder)
+        .ThenBy(slot => slot.Time)
+        .GroupBy(slot => slot.Day);
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        displayName = user.Identity.Name;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        ApplicationUser? appUser = null;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            appUser = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        studentId = appUser?.StudentId ?? appUser?.UserName ?? user.Identity.Name;
+
+        if (string.IsNullOrWhiteSpace(studentId))
+        {
+            return;
+        }
+
+        await LoadClassesAsync(studentId);
+        await LoadGradesAsync(studentId);
+        BuildTimetable();
+    }
+
+    private async Task LoadClassesAsync(string targetStudentId)
+    {
+        var classes = await context!.Enrollments
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Subject)
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Semester)
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Lecture)
+            .Where(e => e.StudentID == targetStudentId)
+            .Select(e => new ClassCard
+            {
+                Title = e.Course != null ? e.Course.Name : "Course TBD",
+                SubjectCode = e.Course != null && e.Course.Subject != null ? e.Course.Subject.Code : "N/A",
+                SemesterName = e.Course != null && e.Course.Semester != null ? e.Course.Semester.Name : "Semester",
+                Lecturer = e.Course != null
+                    ? (e.Course.Lecture != null
+                        ? e.Course.Lecture.Name
+                        : (e.Course.LectureID ?? "Unassigned"))
+                    : "Unassigned",
+                RoomLabel = string.IsNullOrWhiteSpace(e.Room) ? "Room TBC" : e.Room,
+                Day = e.DayOfWeek ?? string.Empty,
+                Time = e.TimeSlot ?? string.Empty,
+                ScheduleLabel = string.IsNullOrWhiteSpace(e.DayOfWeek)
+                    ? "Schedule soon"
+                    : $"{e.DayOfWeek} · {e.TimeSlot ?? "TBA"}"
+            })
+            .ToListAsync();
+
+        currentClasses.Clear();
+        currentClasses.AddRange(classes);
+    }
+
+    private async Task LoadGradesAsync(string targetStudentId)
+    {
+        var grades = await context!.Grades
+            .Include(g => g.Course)!
+                .ThenInclude(c => c.Subject)
+            .Where(g => g.StudentID == targetStudentId)
+            .Select(g => new GradeSummary
+            {
+                Course = g.Course != null
+                    ? $"{(g.Course.Subject != null ? g.Course.Subject.Code : "SUB")} · {g.Course.Name}"
+                    : $"Course #{g.CourseID}",
+                Average = g.AverageScore ?? ((g.MidtermScore.HasValue && g.FinalScore.HasValue)
+                    ? (g.MidtermScore.Value * 0.4 + g.FinalScore.Value * 0.6)
+                    : null),
+                Letter = g.LetterGrade ?? "--",
+                Passed = g.IsPassed
+            })
+            .ToListAsync();
+
+        gradeSummaries.Clear();
+        gradeSummaries.AddRange(grades);
+    }
+
+    private void BuildTimetable()
+    {
+        timetableSlots.Clear();
+
+        foreach (var course in currentClasses)
+        {
+            if (string.IsNullOrWhiteSpace(course.Day))
+            {
+                continue;
+            }
+
+            timetableSlots.Add(new TimetableSlot
+            {
+                Day = course.Day,
+                Time = string.IsNullOrWhiteSpace(course.Time) ? "--" : course.Time,
+                Room = course.RoomLabel,
+                Course = course.Title,
+                DayOrder = GetDayOrder(course.Day)
+            });
+        }
+    }
+
+    private static int GetDayOrder(string day) => day.ToLowerInvariant() switch
+    {
+        "monday" => 1,
+        "tuesday" => 2,
+        "wednesday" => 3,
+        "thursday" => 4,
+        "friday" => 5,
+        "saturday" => 6,
+        "sunday" => 7,
+        _ => 8
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (context is not null)
+        {
+            await context.DisposeAsync();
+        }
+    }
+
+    private sealed class ClassCard
+    {
+        public string Title { get; set; } = string.Empty;
+        public string SubjectCode { get; set; } = string.Empty;
+        public string SemesterName { get; set; } = string.Empty;
+        public string Lecturer { get; set; } = string.Empty;
+        public string RoomLabel { get; set; } = string.Empty;
+        public string ScheduleLabel { get; set; } = string.Empty;
+        public string Day { get; set; } = string.Empty;
+        public string Time { get; set; } = string.Empty;
+    }
+
+    private sealed class TimetableSlot
+    {
+        public string Day { get; set; } = string.Empty;
+        public string Time { get; set; } = string.Empty;
+        public string Room { get; set; } = string.Empty;
+        public string Course { get; set; } = string.Empty;
+        public int DayOrder { get; set; }
+    }
+
+    private sealed class GradeSummary
+    {
+        public string Course { get; set; } = string.Empty;
+        public double? Average { get; set; }
+        public string Letter { get; set; } = "--";
+        public bool Passed { get; set; }
+
+        public string AverageDisplay => Average.HasValue ? Average.Value.ToString("0.0") : "--";
+        public string StatusText => Passed ? "Passed" : "In Progress";
+        public string StatusIcon => Passed ? "bi-check-circle" : "bi-hourglass-split";
+        public string StatusClass => Passed
+            ? "bg-emerald-50 text-emerald-700"
+            : "bg-amber-50 text-amber-700";
+    }
+}

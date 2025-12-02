@@ -36,8 +36,7 @@ else
                 </div>
             </EditForm>
         </div>
-    </div>
-}
+    }
 
 @code {
     [SupplyParameterFromQuery]
@@ -79,7 +78,7 @@ else
         }
 
         Toasts.Enqueue("Cập nhật phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
-        NavigationManager.NavigateTo("/departments");
+        NavigationManager.NavigateTo(AppRoutes.Departments);
     }
 
     private bool DepartmentExists(int id)

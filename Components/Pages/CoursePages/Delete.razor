@@ -47,6 +47,53 @@ else
         </div>
     </div>
 }
+<div class="@UiClasses.PageShell">
+    <div>
+        <p class="@UiClasses.SectionTag">Courses</p>
+        <h1 class="@UiClasses.SectionTitle">Delete Course</h1>
+        <p class="@UiClasses.SectionSubtitle">Confirm removal of this course record from the catalog.</p>
+    </div>
+
+    @if (course is null)
+    {
+        <div class="@UiClasses.Card text-center text-slate-500">
+            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading course...</span>
+        </div>
+    }
+    else
+    {
+        <div class="@UiClasses.Card space-y-5">
+            <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                <i class="bi bi-exclamation-triangle-fill text-amber-500 me-2"></i>
+                This action cannot be undone. Students assigned to this course will lose the linkage.
+            </div>
+            <dl class="@UiClasses.DetailList">
+                <div>
+                    <dt class="@UiClasses.Label">Name</dt>
+                    <dd class="text-base text-slate-900">@course.Name</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Subject ID</dt>
+                    <dd class="text-base text-slate-900">@course.SubjectID</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Semester ID</dt>
+                    <dd class="text-base text-slate-900">@course.SemesterID</dd>
+                </div>
+                <div>
+                    <dt class="@UiClasses.Label">Lecturer ID</dt>
+                    <dd class="text-base text-slate-900">@course.LectureID</dd>
+                </div>
+            </dl>
+            <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance>
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="@UiClasses.DangerButton" disabled="@(course is null)"><i class="bi bi-trash"></i> Delete course</button>
+                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Courses"><i class="bi bi-arrow-left"></i> Back to list</a>
+                </div>
+            </EditForm>
+        </div>
+    }
+</div>
 
 @code {
     private Course? course;
@@ -81,7 +128,7 @@ else
 
         context.Courses.Remove(entity);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/courses");
+        NavigationManager.NavigateTo(AppRoutes.Courses);
     }
 
     private static string GetLecturerDisplayName(ApplicationUser? lecturer, string? fallbackId)
