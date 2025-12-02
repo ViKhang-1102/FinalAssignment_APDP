@@ -6,45 +6,60 @@
 
 <PageTitle>Delete Enrollment</PageTitle>
 
-<div class="@UiClasses.PageShell">
-    <div>
-        <p class="@UiClasses.SectionTag">Assignments</p>
-        <h1 class="@UiClasses.SectionTitle">Delete Enrollment</h1>
-        <p class="@UiClasses.SectionSubtitle">Confirm removing this student-course mapping.</p>
-    </div>
-
-    @if (enrollment is null)
-    {
-        <div class="@UiClasses.Card text-center text-slate-500">
-            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading enrollment...</span>
+@if (enrollment is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-3xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Delete enrollment</h1>
+            <p class="text-sm text-slate-500">This action cannot be undone.</p>
         </div>
-    }
-    else
-    {
-        <div class="@UiClasses.Card space-y-5">
-            <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                <i class="bi bi-exclamation-triangle-fill text-amber-500 me-2"></i>
-                Removing this enrollment will release the seat for other students.
-            </div>
-            <dl class="@UiClasses.DetailList">
-                <div>
-                    <dt class="@UiClasses.Label">Student ID</dt>
-                    <dd class="text-base text-slate-900">@enrollment.StudentID</dd>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <dl class="divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Student</dt>
+                    <dd class="col-span-2 text-slate-900">@GetStudentDisplayName(enrollment.Student, enrollment.StudentID)</dd>
                 </div>
-                <div>
-                    <dt class="@UiClasses.Label">Course ID</dt>
-                    <dd class="text-base text-slate-900">@enrollment.CourseID</dd>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Course</dt>
+                    <dd class="col-span-2 text-slate-900">@GetCourseDisplayName(enrollment.Course, enrollment.CourseID)</dd>
                 </div>
+                @if (!string.IsNullOrWhiteSpace(enrollment.DayOfWeek))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Day</dt>
+                        <dd class="col-span-2 text-slate-900">@enrollment.DayOfWeek</dd>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(enrollment.TimeSlot))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Time</dt>
+                        <dd class="col-span-2 text-slate-900">@enrollment.TimeSlot</dd>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(enrollment.Room))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Room</dt>
+                        <dd class="col-span-2 text-slate-900">@enrollment.Room</dd>
+                    </div>
+                }
             </dl>
+
             <EditForm method="post" Model="enrollment" OnValidSubmit="DeleteEnrollment" FormName="delete" Enhance>
-                <div class="flex flex-wrap gap-3">
-                    <button type="submit" class="@UiClasses.DangerButton" disabled="@(enrollment is null)"><i class="bi bi-trash"></i> Delete enrollment</button>
-                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Enrollments"><i class="bi bi-arrow-left"></i> Back to list</a>
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500">Delete</button>
+                    <a href="/enrollments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
             </EditForm>
         </div>
-    }
-</div>
+    </div>
+}
 
 @code {
     private Enrollment? enrollment;
@@ -55,7 +70,13 @@
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
-        enrollment = await context.Enrollments.FirstOrDefaultAsync(m => m.Id == Id);
+        enrollment = await context.Enrollments
+            .Include(e => e.Student)
+            .Include(e => e.Course)
+                .ThenInclude(c => c.Subject)
+            .Include(e => e.Course)
+                .ThenInclude(c => c.Semester)
+            .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (enrollment is null)
         {
@@ -69,5 +90,58 @@
         context.Enrollments.Remove(enrollment!);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo(AppRoutes.Enrollments);
+    }
+
+    private static string GetStudentDisplayName(ApplicationUser? student, string? fallbackId)
+    {
+        if (student is null)
+        {
+            return fallbackId ?? string.Empty;
+        }
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(student.StudentId))
+        {
+            parts.Add(student.StudentId!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(student.Name))
+        {
+            parts.Add(student.Name!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(student.Email))
+        {
+            parts.Add(student.Email!);
+        }
+
+        return parts.Count == 0 ? fallbackId ?? string.Empty : string.Join(" - ", parts);
+    }
+
+    private static string GetCourseDisplayName(Course? course, int fallbackId)
+    {
+        if (course is null)
+        {
+            return $"Course #{fallbackId}";
+        }
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(course.Name))
+        {
+            parts.Add(course.Name!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(course.Subject?.Name))
+        {
+            parts.Add(course.Subject!.Name);
+        }
+
+        if (!string.IsNullOrWhiteSpace(course.Semester?.Name))
+        {
+            parts.Add(course.Semester!.Name);
+        }
+
+        parts.Add($"#{course.Id}");
+        return string.Join(" | ", parts);
     }
 }

@@ -6,47 +6,93 @@
 
 <PageTitle>Create Major</PageTitle>
 
-<div class="@UiClasses.PageShell">
+<div class="max-w-3xl space-y-6">
     <div>
-        <p class="@UiClasses.SectionTag">Programs</p>
-        <h1 class="@UiClasses.SectionTitle">Create Major</h1>
-        <p class="@UiClasses.SectionSubtitle">Link a new academic path to a department.</p>
+        <h1 class="text-2xl font-semibold text-slate-900">Create major</h1>
+        <p class="text-sm text-slate-500">Fill in the information below to add a new major.</p>
     </div>
 
-    <div class="@UiClasses.Card">
-        <EditForm method="post" Model="Major" OnValidSubmit="AddMajor" FormName="create" Enhance class="space-y-5">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-rose-500 text-sm" role="alert" />
-            <div class="grid gap-4 md:grid-cols-2">
-                <div class="@UiClasses.FieldStack">
-                    <label for="name" class="@UiClasses.Label">Name</label>
-                    <InputText id="name" @bind-Value="Major.Name" class="@UiClasses.Input" />
-                    <ValidationMessage For="() => Major.Name" class="text-rose-500 text-xs" />
-                </div>
-                <div class="@UiClasses.FieldStack">
-                    <label for="departmentid" class="@UiClasses.Label">Department ID</label>
-                    <InputNumber id="departmentid" @bind-Value="Major.DepartmentId" class="@UiClasses.Input" />
-                    <ValidationMessage For="() => Major.DepartmentId" class="text-rose-500 text-xs" />
-                </div>
-            </div>
-            <div class="flex flex-wrap gap-3">
-                <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Major</button>
-                <a class="@UiClasses.GhostButton" href="@AppRoutes.Majors"><i class="bi bi-arrow-left"></i> Cancel</a>
-            </div>
-        </EditForm>
-    </div>
+    <div class="rounded-2xl bg-white p-6 shadow-sm">
+        @if (Departments.Count == 0)
+        {
+            <p class="text-sm text-rose-600">No departments available. Please create a department first.</p>
+        }
+        else
+        {
+            <EditForm method="post" Model="Major" OnValidSubmit="AddMajor" FormName="create" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
+                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                {
+                    <p class="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">@ErrorMessage</p>
+                }
 
-    <a class="@UiClasses.LinkButton" href="@AppRoutes.Majors"><i class="bi bi-arrow-left"></i> Back to majors</a>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-1">
+                        <label for="name" class="text-sm font-medium text-slate-700">Name</label>
+                        <InputText id="name" @bind-Value="Major.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                        <ValidationMessage For="() => Major.Name" class="text-sm text-rose-600" />
+                    </div>
+                    <div class="space-y-1">
+                        <label for="department" class="text-sm font-medium text-slate-700">Department</label>
+                        <InputSelect id="department" @bind-Value="Major.DepartmentId" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                            <option value="0">-- Select department --</option>
+                            @foreach (var department in Departments)
+                            {
+                                <option value="@department.Id">@department.Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => Major.DepartmentId" class="text-sm text-rose-600" />
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Create</button>
+                    <a href="/majors" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
+                </div>
+            </EditForm>
+        }
+    </div>
 </div>
 
 @code {
     [SupplyParameterFromForm]
     private Major Major { get; set; } = new();
 
-    // To protect from overposting attacks, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
-    private async Task AddMajor()
+    private List<Department> Departments { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
+        Departments = await context.Departments
+            .OrderBy(d => d.Name)
+            .ThenBy(d => d.Id)
+            .ToListAsync();
+    }
+
+    private async Task AddMajor()
+    {
+        ErrorMessage = null;
+
+        if (Major.DepartmentId <= 0)
+        {
+            ErrorMessage = "Please select a department.";
+            return;
+        }
+
+        using var context = DbFactory.CreateDbContext();
+        var departmentExists = await context.Departments.AnyAsync(d => d.Id == Major.DepartmentId);
+        if (!departmentExists)
+        {
+            ErrorMessage = "Selected department no longer exists.";
+            Departments = await context.Departments
+                .OrderBy(d => d.Name)
+                .ThenBy(d => d.Id)
+                .ToListAsync();
+            return;
+        }
+
         context.Majors.Add(Major);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo(AppRoutes.Majors);

@@ -9,53 +9,56 @@
 
 <PageTitle>Create User</PageTitle>
 
-<div class="container-fluid p-4">
-    <div class="d-flex align-items-center mb-4">
-        <a href="/users" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
-        <h1 class="mb-0"><i class="bi bi-person-plus text-primary"></i> Create New User</h1>
+<div class="max-w-3xl space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/users" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Back</a>
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Create user</h1>
+            <p class="text-sm text-slate-500">Provide the credentials and assign a role.</p>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <EditForm Model="Input" OnValidSubmit="CreateUser" FormName="create-user" method="post">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary class="text-danger" />
-                        <div class="form-floating mb-3">
-                            <InputText @bind-Value="Input.Email" class="form-control" placeholder="name@example.com" />
-                            <label>Email</label>
-                            <ValidationMessage For="() => Input.Email" />
-                        </div>
-                        <div class="form-floating mb-3">
-                            <InputText type="password" @bind-Value="Input.Password" class="form-control" placeholder="Password" />
-                            <label>Password</label>
-                            <ValidationMessage For="() => Input.Password" />
-                        </div>
-                        <div class="form-floating mb-3">
-                            <InputText @bind-Value="Input.Name" class="form-control" placeholder="Full name" />
-                            <label>Name</label>
-                        </div>
-                        <div class="form-floating mb-3">
-                            <InputText @bind-Value="Input.StudentId" class="form-control" placeholder="Student Id" />
-                            <label>Student ID</label>
-                        </div>
-                        <div class="mb-3">
-                            <label>Role</label>
-                            <InputSelect @bind-Value="Input.Role" class="form-select">
-                                <option value="">-- Select role --</option>
-                                @foreach (var r in Roles)
-                                {<option value="@r">@r</option>}
-                            </InputSelect>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary" type="submit">Create</button>
-                            <a class="btn btn-outline-secondary" href="/users">Cancel</a>
-                        </div>
-                    </EditForm>
+    <div class="rounded-2xl bg-white p-6 shadow-sm">
+        <EditForm Model="Input" OnValidSubmit="CreateUser" FormName="create-user" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="mb-4 text-sm text-rose-600" />
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-1 md:col-span-2">
+                    <label class="text-sm font-medium text-slate-700">Email</label>
+                    <InputText @bind-Value="Input.Email" class="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" placeholder="name@example.com" />
+                    <ValidationMessage For="() => Input.Email" class="text-sm text-rose-600" />
+                </div>
+                <div class="space-y-1 md:col-span-2">
+                    <label class="text-sm font-medium text-slate-700">Password</label>
+                    <InputText type="password" @bind-Value="Input.Password" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" placeholder="Password" />
+                    <ValidationMessage For="() => Input.Password" class="text-sm text-rose-600" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-slate-700">Full name</label>
+                    <InputText @bind-Value="Input.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-medium text-slate-700">Student ID</label>
+                    <InputText @bind-Value="Input.StudentId" class="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                </div>
+                <div class="space-y-1 md:col-span-2">
+                    <label class="text-sm font-medium text-slate-700">Role</label>
+                    <InputSelect @bind-Value="Input.Role" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                        <option value="">-- Select role --</option>
+                        @foreach (var r in Roles)
+                        {
+                            <option value="@r">@r</option>
+                        }
+                    </InputSelect>
                 </div>
             </div>
-        </div>
+
+            <div class="mt-6 flex items-center gap-3">
+                <button class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500" type="submit">Create</button>
+                <a class="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/users">Cancel</a>
+            </div>
+        </EditForm>
     </div>
 </div>
 

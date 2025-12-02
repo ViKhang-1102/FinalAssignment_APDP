@@ -8,41 +8,35 @@
 
 <PageTitle>Edit Department</PageTitle>
 
-<div class="@UiClasses.PageShell">
-    <div>
-        <p class="@UiClasses.SectionTag">Structure</p>
-        <h1 class="@UiClasses.SectionTitle">Edit Department</h1>
-        <p class="@UiClasses.SectionSubtitle">Update the name shown across student and admin surfaces.</p>
-    </div>
-
-    @if (Department is null)
-    {
-        <div class="@UiClasses.Card text-center text-slate-500">
-            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading department...</span>
+@if (Department is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-2xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Edit Department</h1>
+            <p class="text-sm text-slate-500">Update the information and save your changes.</p>
         </div>
-    }
-    else
-    {
-        <div class="@UiClasses.Card">
-            <EditForm method="post" Model="Department" OnValidSubmit="UpdateDepartment" FormName="edit" Enhance class="space-y-5">
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <EditForm method="post" Model="Department" OnValidSubmit="UpdateDepartment" FormName="edit" Enhance>
                 <DataAnnotationsValidator />
-                <ValidationSummary class="text-rose-500 text-sm" role="alert" />
+                <ValidationSummary role="alert" class="mb-4 text-sm text-rose-600" />
                 <input type="hidden" name="Department.Id" value="@Department.Id" />
-                <div class="@UiClasses.FieldStack">
-                    <label for="name" class="@UiClasses.Label">Name</label>
-                    <InputText id="name" @bind-Value="Department.Name" class="@UiClasses.Input" />
-                    <ValidationMessage For="() => Department.Name" class="text-rose-500 text-xs" />
+                <div class="space-y-1">
+                    <label for="name" class="text-sm font-medium text-slate-700">Name</label>
+                    <InputText id="name" @bind-Value="Department.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                    <ValidationMessage For="() => Department.Name" class="text-sm text-rose-600" />
                 </div>
-                <div class="flex flex-wrap gap-3">
-                    <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Changes</button>
-                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Departments"><i class="bi bi-arrow-left"></i> Cancel</a>
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Save</button>
+                    <a href="/departments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
             </EditForm>
         </div>
     }
-
-    <a class="@UiClasses.LinkButton" href="@AppRoutes.Departments"><i class="bi bi-arrow-left"></i> Back to departments</a>
-</div>
 
 @code {
     [SupplyParameterFromQuery]
