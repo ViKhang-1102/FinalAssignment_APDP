@@ -1,0 +1,203 @@
+@page "/lecturer/course-classes"
+@attribute [Authorize(Roles = "Lecture,Lecturer")]
+@using System.Linq
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Class Roster</PageTitle>
+
+@if (isLoading)
+{
+    <div class="rounded-xl border border-dashed border-slate-200 bg-white/80 px-6 py-10 text-center text-slate-500">
+        Loading class roster…
+    </div>
+}
+else if (course is null)
+{
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center text-rose-700">
+        Course not found or you do not have access.
+        <div class="mt-4">
+            <a class="text-sm font-semibold text-rose-800 hover:underline" href="@AppRoutes.LecturerWorkspace">Back to lecturer workspace</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="mx-auto max-w-5xl space-y-8">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-emerald-500">Class roster</p>
+                <h1 class="text-3xl font-bold text-slate-900">@course.Name</h1>
+                <p class="text-sm text-slate-500">@course.Subject?.Name · @course.Semester?.Name</p>
+            </div>
+            <a class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300" href="@AppRoutes.LecturerWorkspace">
+                <span class="bi bi-arrow-left"></span> Back to workspace
+            </a>
+        </div>
+
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Students enrolled</p>
+                    <p class="text-3xl font-semibold text-slate-900">@studentCount</p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Average midterm</p>
+                    <p class="text-2xl font-semibold text-slate-900">@FormatScore(midtermAverage)</p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Average final</p>
+                    <p class="text-2xl font-semibold text-slate-900">@FormatScore(finalAverage)</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-slate-900">Grade details</h2>
+                <span class="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">@studentCount students</span>
+            </div>
+
+            @if (roster.Count == 0)
+            {
+                <div class="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
+                    No enrollments found for this course.
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3">Student</th>
+                                <th class="px-4 py-3">Email</th>
+                                <th class="px-4 py-3">Midterm</th>
+                                <th class="px-4 py-3">Final</th>
+                                <th class="px-4 py-3">Average</th>
+                                <th class="px-4 py-3">Letter</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach (var student in roster)
+                            {
+                                <tr class="hover:bg-slate-50/70">
+                                    <td class="px-4 py-3">
+                                        <p class="font-semibold text-slate-900">@student.Name</p>
+                                        <p class="text-xs text-slate-500">@student.StudentId</p>
+                                    </td>
+                                    <td class="px-4 py-3 text-slate-700">@student.Email</td>
+                                    <td class="px-4 py-3 text-slate-700">@FormatScore(student.MidtermScore)</td>
+                                    <td class="px-4 py-3 text-slate-700">@FormatScore(student.FinalScore)</td>
+                                    <td class="px-4 py-3 text-slate-700">@FormatScore(student.AverageScore)</td>
+                                    <td class="px-4 py-3 text-slate-700">@student.LetterGrade</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private Course? course;
+    private List<RosterRow> roster = new();
+    private bool isLoading = true;
+    private int studentCount;
+    private double? midtermAverage;
+    private double? finalAverage;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+
+        course = await context.Courses
+            .Include(c => c.Subject)
+            .Include(c => c.Semester)
+            .FirstOrDefaultAsync(c => c.Id == Id);
+
+        if (course is null)
+        {
+            isLoading = false;
+            NavigationManager.NavigateTo(AppRoutes.LecturerWorkspace);
+            return;
+        }
+
+        var enrollments = await context.Enrollments
+            .AsNoTracking()
+            .Include(e => e.Student)
+            .Where(e => e.CourseID == Id)
+            .ToListAsync();
+
+        var grades = await context.Grades
+            .AsNoTracking()
+            .Where(g => g.CourseID == Id && !string.IsNullOrWhiteSpace(g.StudentID))
+            .ToDictionaryAsync(g => NormalizeKey(g.StudentID!), g => g, StringComparer.OrdinalIgnoreCase);
+
+        var grouped = enrollments
+            .Where(e => !string.IsNullOrWhiteSpace(e.StudentID))
+            .GroupBy(e => NormalizeKey(e.StudentID!), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in grouped)
+        {
+            var enrollment = group.First();
+            var student = enrollment.Student;
+
+            grades.TryGetValue(group.Key, out var grade);
+
+            roster.Add(new RosterRow
+            {
+                StudentId = group.Key,
+                Name = string.IsNullOrWhiteSpace(student?.Name) ? (student?.Email ?? group.Key) : student!.Name!,
+                Email = student?.Email ?? "-",
+                MidtermScore = grade?.MidtermScore,
+                FinalScore = grade?.FinalScore,
+                AverageScore = grade?.AverageScore,
+                LetterGrade = grade?.LetterGrade ?? "-"
+            });
+        }
+
+        roster = roster
+            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        studentCount = roster.Count;
+        midtermAverage = CalculateAverage(roster.Select(r => r.MidtermScore));
+        finalAverage = CalculateAverage(roster.Select(r => r.FinalScore));
+        isLoading = false;
+    }
+
+    private static string NormalizeKey(string value) => value.Trim();
+
+    private static double? CalculateAverage(IEnumerable<double?> scores)
+    {
+        var realized = scores.Where(s => s.HasValue).Select(s => s!.Value).ToList();
+        return realized.Count == 0 ? null : realized.Average();
+    }
+
+    private static string FormatScore(double? score) => score.HasValue ? score.Value.ToString("0.0") : "-";
+
+    private sealed class RosterRow
+    {
+        public string StudentId { get; init; } = string.Empty;
+        public string Name { get; init; } = string.Empty;
+        public string Email { get; init; } = string.Empty;
+        public double? MidtermScore { get; init; }
+        public double? FinalScore { get; init; }
+        public double? AverageScore { get; init; }
+        public string LetterGrade { get; init; } = "-";
+    }
+}

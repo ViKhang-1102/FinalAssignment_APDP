@@ -18,6 +18,8 @@ namespace FinalAssignemnt_APDP.Constants
         public const string Home = "/";
         public const string LecturerWorkspace = "/lecturer";
         public const string LecturerClasses = "/lecturer/classes";
+        public const string LecturerCourseRosterPage = "/lecturer/course-classes";
+        public const string LecturerCourseInfoPage = "/lecturer/course-info";
         public const string LecturerTimetable = "/lecturer/timetable";
         public const string LecturerStudents = "/lecturer/students";
         public const string Departments = "/departments";
@@ -86,6 +88,10 @@ namespace FinalAssignemnt_APDP.Constants
         // Grade Routes
         public static string AdminGradesEdit(int id) => $"/admin/grades/edit?id={id}";
         public static string AdminGradesDelete(int id) => $"/admin/grades/delete?id={id}";
+
+        // Lecturer course detail routes
+        public static string LecturerCourseClasses(int courseId) => $"{LecturerCourseRosterPage}?id={courseId}";
+        public static string LecturerCourseInfo(int courseId) => $"{LecturerCourseInfoPage}?id={courseId}";
 
         // Login with return URL
         public static string LoginWithReturnUrl(string returnUrl) => 
