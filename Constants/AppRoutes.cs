@@ -34,6 +34,7 @@ namespace FinalAssignemnt_APDP.Constants
         public const string SubjectsCreate = "/subjects/create";
         public const string Enrollments = "/enrollments";
         public const string EnrollmentsCreate = "/enrollments/create";
+        public const string EnrollmentsAssignStudents = "/enrollments/assign-students";
         public const string Users = "/users";
         public const string UsersCreate = "/users/create";
         public const string AdminDashboard = "/admin";

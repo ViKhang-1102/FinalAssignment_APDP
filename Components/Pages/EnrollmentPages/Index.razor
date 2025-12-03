@@ -12,9 +12,14 @@
     <h1 class="text-2xl font-semibold text-slate-900">Enrollments</h1>
     <AuthorizeView Roles="Admin">
         <Authorized>
-            <a href="enrollments/create" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
-                <span class="text-lg">+</span> New Enrollment
-            </a>
+            <div class="flex gap-2">
+                <a href="enrollments/assign-students" class="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
+                    <span class="bi bi-people-fill"></span> Assign Students
+                </a>
+                <a href="enrollments/create" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+                    <span class="text-lg">+</span> New Enrollment
+                </a>
+            </div>
         </Authorized>
     </AuthorizeView>
 </div>
@@ -79,7 +84,7 @@
     </section>
 }
 
-@if (enrollments.Count == 0)
+@if (courseEnrollments.Count == 0)
 {
     <div class="mt-6 rounded-md border border-dashed border-slate-200 bg-white/60 p-6 text-center text-slate-500">
         No enrollments found.
@@ -91,7 +96,6 @@ else
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             <thead class="bg-slate-50">
                 <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                    <th class="px-6 py-3">Student</th>
                     <th class="px-6 py-3">Course</th>
                     <th class="px-6 py-3">Semester</th>
                     <th class="px-6 py-3">Lecturer</th>
@@ -101,45 +105,46 @@ else
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 bg-white">
-                @foreach (var enrollment in enrollments)
+                @foreach (var courseGroup in courseEnrollments)
                 {
+                    var firstEnrollment = courseGroup.Enrollments.First();
+                    var course = firstEnrollment.Course;
+                    
                     <tr class="hover:bg-slate-50">
                         <td class="px-6 py-4">
-                            <p class="font-medium text-slate-900">@GetStudentDisplayName(enrollment.Student, enrollment.StudentID)</p>
-                            @if (!string.IsNullOrWhiteSpace(enrollment.Student?.Email))
-                            {
-                                <p class="text-xs text-slate-500">@enrollment.Student!.Email</p>
-                            }
+                            <p class="font-medium text-slate-900">@course?.Name</p>
+                            <p class="text-xs text-slate-500">@GetCourseMeta(course)</p>
+                            <div class="mt-2 flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                                    <span class="bi bi-people-fill"></span> @courseGroup.StudentCount student@(courseGroup.StudentCount != 1 ? "s" : "")
+                                </span>
+                            </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <p class="font-medium text-slate-900">@enrollment.Course?.Name</p>
-                            <p class="text-xs text-slate-500">@GetCourseMeta(enrollment.Course)</p>
-                        </td>
-                        <td class="px-6 py-4 text-slate-700">@GetSemesterName(enrollment.Course?.Semester)</td>
-                        <td class="px-6 py-4 text-slate-700">@GetLecturerDisplayName(enrollment.Course?.Lecture, enrollment.Course?.LectureID)</td>
+                        <td class="px-6 py-4 text-slate-700">@GetSemesterName(course?.Semester)</td>
+                        <td class="px-6 py-4 text-slate-700">@GetLecturerDisplayName(course?.Lecture, course?.LectureID)</td>
                         <td class="px-6 py-4 text-slate-700">
-                            @if (HasScheduleDetails(enrollment))
+                            @if (HasScheduleDetails(firstEnrollment))
                             {
                                 <div class="space-y-2">
-                                    @if (!string.IsNullOrWhiteSpace(enrollment.DayOfWeek))
+                                    @if (!string.IsNullOrWhiteSpace(firstEnrollment.DayOfWeek))
                                     {
                                         <div>
                                             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Days</p>
-                                            <p>@FormatDayPattern(enrollment.DayOfWeek)</p>
+                                            <p>@FormatDayPattern(firstEnrollment.DayOfWeek)</p>
                                         </div>
                                     }
-                                    @if (!string.IsNullOrWhiteSpace(enrollment.TimeSlot))
+                                    @if (!string.IsNullOrWhiteSpace(firstEnrollment.TimeSlot))
                                     {
                                         <div>
                                             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Time</p>
-                                            <p>@enrollment.TimeSlot</p>
+                                            <p>@firstEnrollment.TimeSlot</p>
                                         </div>
                                     }
-                                    @if (!string.IsNullOrWhiteSpace(enrollment.Room))
+                                    @if (!string.IsNullOrWhiteSpace(firstEnrollment.Room))
                                     {
                                         <div>
                                             <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Room</p>
-                                            <p>Room @enrollment.Room</p>
+                                            <p>Room @firstEnrollment.Room</p>
                                         </div>
                                     }
                                 </div>
@@ -150,24 +155,45 @@ else
                             }
                         </td>
                         <td class="px-6 py-4 text-slate-700">
-                            @if (enrollment.TotalSlots is null)
+                            @if (courseGroup.TotalSlots is null)
                             {
                                 <span class="text-slate-400">—</span>
                             }
                             else
                             {
                                 <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                    <span class="bi bi-hourglass-split"></span> @enrollment.TotalSlots
+                                    <span class="bi bi-hourglass-split"></span> @courseGroup.TotalSlots
                                 </span>
                             }
                         </td>
                         <td class="px-6 py-4">
-                            <div class="flex items-center justify-end gap-2">
-                                <a href="@($"enrollments/details?id={enrollment.Id}")" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="@($"enrollments/details?id={firstEnrollment.Id}")" 
+                                   class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+                                   title="View details">
+                                    <span class="bi bi-eye"></span>
+                                    <span class="hidden sm:inline">Details</span>
+                                </a>
                                 <AuthorizeView Roles="Admin">
                                     <Authorized>
-                                        <a href="@($"enrollments/edit?id={enrollment.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
-                                        <a href="@($"enrollments/delete?id={enrollment.Id}")" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                                        <a href="@($"enrollments/edit?id={firstEnrollment.Id}")" 
+                                           class="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-500"
+                                           title="Edit enrollment">
+                                            <span class="bi bi-pencil-fill"></span>
+                                            <span class="hidden sm:inline">Edit</span>
+                                        </a>
+                                        <a href="@($"enrollments/delete?id={firstEnrollment.Id}")" 
+                                           class="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-rose-500"
+                                           title="Delete enrollment">
+                                            <span class="bi bi-trash-fill"></span>
+                                            <span class="hidden sm:inline">Delete</span>
+                                        </a>
+                                        <a href="@AppRoutes.CoursesDetails(courseGroup.CourseId)" 
+                                           class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-300"
+                                           title="View course">
+                                            <span class="bi bi-box-arrow-up-right"></span>
+                                            <span class="hidden sm:inline">Course</span>
+                                        </a>
                                     </Authorized>
                                 </AuthorizeView>
                             </div>
@@ -180,28 +206,64 @@ else
 }
 
 @code {
-    private ApplicationDbContext context = default!;
-    private List<Enrollment> enrollments = new();
-    private readonly List<ClassScheduleCard> classSchedule = new();
+private ApplicationDbContext context = default!;
+private List<Enrollment> enrollments = new();
+private readonly List<ClassScheduleCard> classSchedule = new();
+private List<CourseEnrollmentGroup> courseEnrollments = new();
 
-    protected override async Task OnInitializedAsync()
+protected override async Task OnInitializedAsync()
+{
+    context = DbFactory.CreateDbContext();
+    enrollments = await context.Enrollments
+        .Include(e => e.Course)
+            .ThenInclude(c => c.Subject)
+        .Include(e => e.Course)
+            .ThenInclude(c => c.Semester)
+        .Include(e => e.Course)
+            .ThenInclude(c => c.Lecture)
+        .OrderBy(e => e.StudentID)
+        .ThenBy(e => e.Course!.Name)
+        .ThenBy(e => e.Id)
+        .ToListAsync();
+
+    // Hydrate Student info without relying on FK join
+    var studentIds = enrollments
+        .Select(e => e.StudentID)
+        .Where(id => !string.IsNullOrWhiteSpace(id))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var students = await context.Users
+        .Where(u => studentIds.Contains(u.Id))
+        .ToDictionaryAsync(u => u.Id, u => u);
+
+    foreach (var e in enrollments)
     {
-        context = DbFactory.CreateDbContext();
-        enrollments = await context.Enrollments
-            .Include(e => e.Student)
-            .Include(e => e.Course)
-                .ThenInclude(c => c.Subject)
-            .Include(e => e.Course)
-                .ThenInclude(c => c.Semester)
-            .Include(e => e.Course)
-                .ThenInclude(c => c.Lecture)
-            .OrderBy(e => e.Student!.StudentId)
-            .ThenBy(e => e.Course!.Name)
-            .ThenBy(e => e.Id)
-            .ToListAsync();
-
-        BuildClassSchedule();
+        if (!string.IsNullOrWhiteSpace(e.StudentID) && students.TryGetValue(e.StudentID!, out var s))
+        {
+            e.Student = s;
+        }
     }
+
+    BuildClassSchedule();
+    BuildCourseEnrollments();
+}
+
+private void BuildCourseEnrollments()
+{
+    courseEnrollments = enrollments
+        .Where(e => e.Course != null)
+        .GroupBy(e => e.CourseID)
+        .Select(g => new CourseEnrollmentGroup
+        {
+            CourseId = g.Key,
+            Enrollments = g.ToList(),
+            StudentCount = g.Select(e => e.StudentID).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+            TotalSlots = g.Max(e => e.TotalSlots)
+        })
+        .OrderBy(g => g.Enrollments.First().Course?.Name)
+        .ToList();
+}
 
     private void BuildClassSchedule()
     {
@@ -375,5 +437,13 @@ else
         public string Time { get; set; } = "Time TBD";
         public string Room { get; set; } = "TBD";
         public int SortKey { get; set; } = 7;
+    }
+
+    private sealed class CourseEnrollmentGroup
+    {
+        public int CourseId { get; set; }
+        public List<Enrollment> Enrollments { get; set; } = new();
+        public int StudentCount { get; set; }
+        public int? TotalSlots { get; set; }
     }
 }

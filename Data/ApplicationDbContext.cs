@@ -21,7 +21,8 @@ namespace FinalAssignemnt_APDP.Data
                 .HasOne(sc => sc.Student)
                 .WithMany()
                 .HasForeignKey(sc => sc.StudentID)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false); // Allow null StudentID
             modelBuilder.Entity<Enrollment>()
                 .HasOne(sc => sc.Course)
                 .WithMany()
