@@ -10,5 +10,6 @@
         public string? DayOfWeek { get; set; }
         public string? Room { get; set; }
         public string? TimeSlot { get; set; }
+        public int? TotalSlots { get; set; }
     }
 }

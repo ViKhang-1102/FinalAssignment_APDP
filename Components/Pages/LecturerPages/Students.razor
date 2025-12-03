@@ -1,0 +1,110 @@
+@page "/lecturer/students"
+@attribute [Authorize(Roles = "Lecture,Lecturer")]
+@using System
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Services
+@using FinalAssignemnt_APDP.Components.Pages.LecturerPages
+@inherits LecturerTeachingPageBase
+
+<PageTitle>My Students</PageTitle>
+
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-violet-500">Learner roster</p>
+            <h1 class="text-3xl font-bold text-slate-900">Classroom rosters</h1>
+            <p class="text-sm text-slate-500">Review every student enrolled in your classes along with the latest score snapshot. Editing remains restricted to administrators.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300" href="@AppRoutes.LecturerWorkspace">
+                <span class="bi bi-arrow-left"></span> Back to workspace
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            @ErrorMessage
+        </div>
+    }
+    else if (IsLoading)
+    {
+        <div class="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/80 py-16 text-slate-500">
+            <div class="flex items-center gap-3"><span class="spinner-border spinner-border-sm"></span> Loading rosters...</div>
+        </div>
+    }
+    else if (!Workspace.HasCourses)
+    {
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white/80 px-6 py-10 text-center">
+            <p class="text-lg font-semibold text-slate-800">No students to display</p>
+            <p class="mt-2 text-sm text-slate-500">Assign courses to this lecturer to unlock roster insights.</p>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-6">
+            @foreach (var course in Workspace.Courses)
+            {
+                var roster = Workspace.CourseRosters.TryGetValue(course.Id, out var students)
+                    ? students
+                    : Array.Empty<LecturerRosterRow>();
+                <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">@course.Semester</p>
+                            <h2 class="text-2xl font-semibold text-slate-900">@course.Name</h2>
+                            <p class="text-sm text-slate-500">@course.Subject · @course.ScheduleSummary</p>
+                        </div>
+                        <span class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
+                            <span class="bi bi-people"></span> @roster.Count learners
+                        </span>
+                    </div>
+
+                    @if (roster.Count == 0)
+                    {
+                        <div class="mt-6 rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
+                            No enrollments recorded for this course yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mt-6 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    <tr>
+                                        <th class="px-4 py-3">Student</th>
+                                        <th class="px-4 py-3">Midterm</th>
+                                        <th class="px-4 py-3">Final</th>
+                                        <th class="px-4 py-3">Average</th>
+                                        <th class="px-4 py-3">Letter</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @foreach (var student in roster)
+                                    {
+                                        <tr class="hover:bg-slate-50/70">
+                                            <td class="px-4 py-3">
+                                                <p class="font-semibold text-slate-900">@student.Name</p>
+                                                <p class="text-xs text-slate-500">@student.StudentId · @student.Email</p>
+                                            </td>
+                                            <td class="px-4 py-3 text-slate-700">@FormatScore(student.MidtermScore)</td>
+                                            <td class="px-4 py-3 text-slate-700">@FormatScore(student.FinalScore)</td>
+                                            <td class="px-4 py-3 text-slate-700">@FormatScore(student.AverageScore)</td>
+                                            <td class="px-4 py-3 text-slate-700">@student.LetterGrade</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private static string FormatScore(double? score)
+        => score.HasValue ? score.Value.ToString("0.0") : "-";
+}
