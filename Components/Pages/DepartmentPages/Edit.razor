@@ -1,5 +1,6 @@
 ﻿@rendermode InteractiveServer
 @page "/departments/edit"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory

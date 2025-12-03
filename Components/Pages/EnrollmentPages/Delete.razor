@@ -1,6 +1,9 @@
 ﻿@page "/enrollments/delete"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Components.Enrollments
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
@@ -22,17 +25,17 @@ else
             <dl class="divide-y divide-slate-100 text-sm">
                 <div class="grid grid-cols-3 gap-4 py-3">
                     <dt class="font-medium text-slate-500">Student</dt>
-                    <dd class="col-span-2 text-slate-900">@GetStudentDisplayName(enrollment.Student, enrollment.StudentID)</dd>
+                    <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatStudent(enrollment.Student, enrollment.StudentID)</dd>
                 </div>
                 <div class="grid grid-cols-3 gap-4 py-3">
                     <dt class="font-medium text-slate-500">Course</dt>
-                    <dd class="col-span-2 text-slate-900">@GetCourseDisplayName(enrollment.Course, enrollment.CourseID)</dd>
+                    <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatCourse(enrollment.Course, enrollment.CourseID)</dd>
                 </div>
                 @if (!string.IsNullOrWhiteSpace(enrollment.DayOfWeek))
                 {
                     <div class="grid grid-cols-3 gap-4 py-3">
-                        <dt class="font-medium text-slate-500">Day</dt>
-                        <dd class="col-span-2 text-slate-900">@enrollment.DayOfWeek</dd>
+                        <dt class="font-medium text-slate-500">Days</dt>
+                        <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatDayPattern(enrollment.DayOfWeek)</dd>
                     </div>
                 }
                 @if (!string.IsNullOrWhiteSpace(enrollment.TimeSlot))
@@ -47,6 +50,13 @@ else
                     <div class="grid grid-cols-3 gap-4 py-3">
                         <dt class="font-medium text-slate-500">Room</dt>
                         <dd class="col-span-2 text-slate-900">@enrollment.Room</dd>
+                    </div>
+                }
+                @if (enrollment.TotalSlots is not null)
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Total slots</dt>
+                        <dd class="col-span-2 text-slate-900">@enrollment.TotalSlots</dd>
                     </div>
                 }
             </dl>
@@ -92,56 +102,4 @@ else
         NavigationManager.NavigateTo("/enrollments");
     }
 
-    private static string GetStudentDisplayName(ApplicationUser? student, string? fallbackId)
-    {
-        if (student is null)
-        {
-            return fallbackId ?? string.Empty;
-        }
-
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(student.StudentId))
-        {
-            parts.Add(student.StudentId!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(student.Name))
-        {
-            parts.Add(student.Name!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(student.Email))
-        {
-            parts.Add(student.Email!);
-        }
-
-        return parts.Count == 0 ? fallbackId ?? string.Empty : string.Join(" - ", parts);
-    }
-
-    private static string GetCourseDisplayName(Course? course, int fallbackId)
-    {
-        if (course is null)
-        {
-            return $"Course #{fallbackId}";
-        }
-
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(course.Name))
-        {
-            parts.Add(course.Name!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(course.Subject?.Name))
-        {
-            parts.Add(course.Subject!.Name);
-        }
-
-        if (!string.IsNullOrWhiteSpace(course.Semester?.Name))
-        {
-            parts.Add(course.Semester!.Name);
-        }
-
-        parts.Add($"#{course.Id}");
-        return string.Join(" | ", parts);
-    }
 }

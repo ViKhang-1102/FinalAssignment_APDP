@@ -1,0 +1,108 @@
+@page "/lecturer/timetable"
+@attribute [Authorize(Roles = "Lecture,Lecturer")]
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Services
+@using FinalAssignemnt_APDP.Components.Pages.LecturerPages
+@inherits LecturerTeachingPageBase
+
+<PageTitle>My Timetable</PageTitle>
+
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-sky-500">Teaching schedule</p>
+            <h1 class="text-3xl font-bold text-slate-900">Weekly meetings</h1>
+            <p class="text-sm text-slate-500">This view reflects the day/time/room information captured on course enrollments—no separate timetable to maintain.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300" href="@AppRoutes.LecturerWorkspace">
+                <span class="bi bi-arrow-left"></span> Back to workspace
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            @ErrorMessage
+        </div>
+    }
+    else if (IsLoading)
+    {
+        <div class="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/80 py-16 text-slate-500">
+            <div class="flex items-center gap-3"><span class="spinner-border spinner-border-sm"></span> Loading timetable...</div>
+        </div>
+    }
+    else if (Workspace.UpcomingSessions.Count == 0)
+    {
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white/80 px-6 py-10 text-center">
+            <p class="text-lg font-semibold text-slate-800">No schedule captured</p>
+            <p class="mt-2 text-sm text-slate-500">Ask an administrator to add day/time/room info to the enrollments for your courses.</p>
+        </div>
+    }
+    else
+    {
+        <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <label class="flex flex-col text-sm text-slate-600">
+                Filter by course
+                <select class="mt-1 rounded-xl border border-slate-200 px-3 py-2 text-slate-700 focus:border-slate-400 focus:outline-none" @onchange="OnCourseFilterChanged">
+                    <option value="">All courses</option>
+                    @foreach (var course in Workspace.Courses)
+                    {
+                        <option value="@course.Id" selected="@(selectedCourseFilterId == course.Id)">@course.Name</option>
+                    }
+                </select>
+            </label>
+            <div class="text-sm text-slate-500">
+                Showing @FilteredSessions.Count() session(s)
+            </div>
+        </div>
+
+        <ol class="space-y-4">
+            @foreach (var session in FilteredSessions)
+            {
+                <li class="flex gap-4">
+                    <div class="flex w-28 flex-col items-center rounded-lg border border-slate-100 bg-slate-50 px-2 py-2 text-center">
+                        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">@session.DayOfWeek</span>
+                        <span class="text-sm font-bold text-slate-900">@session.TimeLabel</span>
+                    </div>
+                    <div class="flex-1 rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+                        <div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-900">@session.CourseName</p>
+                                <p class="text-xs uppercase tracking-wide text-slate-500">Captured from enrollments</p>
+                            </div>
+                            <div class="text-sm text-slate-600">
+                                <span class="bi bi-door-open"></span> Room @(string.IsNullOrWhiteSpace(session.Room) ? "TBD" : session.Room)
+                            </div>
+                        </div>
+                    </div>
+                </li>
+            }
+        </ol>
+    }
+</div>
+
+@code {
+    private int? selectedCourseFilterId;
+
+    private IEnumerable<LecturerSessionSnapshot> FilteredSessions =>
+        selectedCourseFilterId.HasValue
+            ? Workspace.UpcomingSessions.Where(s => s.CourseId == selectedCourseFilterId)
+            : Workspace.UpcomingSessions;
+
+    private void OnCourseFilterChanged(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var parsed))
+        {
+            selectedCourseFilterId = parsed;
+        }
+        else
+        {
+            selectedCourseFilterId = null;
+        }
+    }
+}

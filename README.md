@@ -89,10 +89,10 @@ dotnet run --project FinalAssignemnt_APDP.csproj
   - Nhập/xuất điểm CSV (`StudentId,CourseId,Midterm,Final,Note`) với tự động cập nhật/insert
   - Form tạo/sửa cho phép tính điểm trung bình và xếp loại ngay trong UI
 
-- Quản lý thời khóa biểu
-  - Service lưu slot học trong `App_Data/timetable.json` mà không cần thay đổi database hiện tại
-  - Danh sách tuần `/admin/timetable` cho phép chỉnh sửa/xóa nhanh từng slot
-  - Form tạo/sửa slot hỗ trợ liên kết khóa học, phòng, giảng viên, ghi chú
+- Thời khóa biểu dựa trên ghi danh
+  - Thông tin ngày, giờ, phòng được nhập trực tiếp trong bảng Enrollment và tự động kết hợp thành lịch học
+  - Lịch lớp trên trang Enrollment giúp admin xem nhanh tất cả các lớp đang mở
+  - Lecturer Workspace sử dụng dữ liệu Enrollment để hiển thị timetable cho giảng viên
 
 - Giao diện
   - Blazor Server với layout responsive và sidebar điều hướng
@@ -100,7 +100,7 @@ dotnet run --project FinalAssignemnt_APDP.csproj
 
 - Dịch vụ & API
   - `UserService` xử lý logic người dùng và vai trò
-  - `TimetableService` lưu/đọc slot học dưới dạng JSON dùng chung cho admin và giảng viên
+  - `LecturerWorkspaceService` tổng hợp Enrollment & Grade để cung cấp dashboard và timetable cho giảng viên
   - Sử dụng Entity Framework Core cho tương tác database
 
 ## Cấu trúc dự án

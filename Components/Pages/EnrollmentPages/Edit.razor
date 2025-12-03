@@ -1,12 +1,15 @@
 ﻿@page "/enrollments/edit"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Components.Enrollments
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
 <PageTitle>Edit Enrollment</PageTitle>
 
-@if (Enrollment is null)
+@if (Enrollment is null || ScheduleState is null)
 {
     <p class="text-slate-500">Loading…</p>
 }
@@ -35,7 +38,7 @@ else
                                           Items="Students"
                                           @bind-Value="Enrollment.StudentID"
                                           ValueSelector="student => student.Id"
-                                          LabelSelector="student => GetStudentDisplayName(student)"
+                                          LabelSelector="student => EnrollmentDisplayHelper.FormatStudentOption(student)"
                                           FilterPlaceholder="Search student..."
                                           PlaceholderOption="-- Select student --"
                                           PlaceholderValue="@string.Empty"
@@ -48,12 +51,63 @@ else
                                           Items="Courses"
                                           @bind-Value="Enrollment.CourseID"
                                           ValueSelector="course => course.Id"
-                                          LabelSelector="course => GetCourseDisplayName(course)"
+                                          LabelSelector="course => EnrollmentDisplayHelper.FormatCourseOption(course)"
                                           FilterPlaceholder="Search course..."
                                           PlaceholderOption="-- Select course --"
                                           PlaceholderValue="@(0)"
                                           SelectId="courseid" />
                         <ValidationMessage For="() => Enrollment.CourseID" class="text-sm text-rose-600" />
+                    </div>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                    <p class="text-sm font-semibold text-slate-800">Schedule details</p>
+                    <p class="text-xs text-slate-500">Keep this aligned with the real class meetings (days, time, room, total slots).</p>
+
+                    <div class="mt-4 space-y-4">
+                        <div class="space-y-1">
+                            <label for="day-input" class="text-sm font-medium text-slate-700">Days of the week</label>
+                            <InputText id="day-input"
+                                       name="Enrollment.DayOfWeek"
+                                       placeholder="e.g. 1,3,5"
+                                       @bind-Value="DayInput"
+                                       @bind-Value:event="oninput"
+                                       class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                            <p class="text-xs text-slate-500">Enter comma-separated numbers (1 = Monday … 7 = Sunday).</p>
+                        </div>
+
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="space-y-1">
+                                <label for="time-slot" class="text-sm font-medium text-slate-700">Time slot</label>
+                                <InputSelect id="time-slot"
+                                             name="Enrollment.TimeSlot"
+                                             @bind-Value="SelectedTimeBlockLabel"
+                                             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                                    <option value="">-- Select 4-hour block --</option>
+                                    @foreach (var block in TimeBlockCatalog.All)
+                                    {
+                                        <option value="@block.Label">@block.Label</option>
+                                    }
+                                </InputSelect>
+                                <p class="text-xs text-slate-500">Each option covers four hours.</p>
+                            </div>
+                            <div class="space-y-1">
+                                <label for="totalslots" class="text-sm font-medium text-slate-700">Total slots</label>
+                                <InputNumber TValue="int?"
+                                             id="totalslots"
+                                             @bind-Value="Enrollment.TotalSlots"
+                                             min="0"
+                                             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label for="room" class="text-sm font-medium text-slate-700">Room</label>
+                            <InputText id="room"
+                                       placeholder="e.g. Lab 3"
+                                       class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                                       @bind-Value="Enrollment.Room" />
+                        </div>
                     </div>
                 </div>
 
@@ -76,6 +130,44 @@ else
     private List<ApplicationUser> Students { get; set; } = new();
     private List<Course> Courses { get; set; } = new();
     private string? ErrorMessage { get; set; }
+    private EnrollmentScheduleState? ScheduleState { get; set; }
+    private string _dayInput = string.Empty;
+    private string SelectedTimeBlockLabel
+    {
+        get => Enrollment?.TimeSlot ?? string.Empty;
+        set
+        {
+            if (Enrollment is null)
+            {
+                return;
+            }
+
+            Enrollment.TimeSlot = string.IsNullOrWhiteSpace(value) ? null : value;
+
+            if (ScheduleState is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                ScheduleState.StartTime = null;
+                ScheduleState.EndTime = null;
+                return;
+            }
+
+            if (TimeBlockCatalog.TryGetByLabel(value, out var block) && block is not null)
+            {
+                ScheduleState.StartTime = block.Start;
+                ScheduleState.EndTime = block.End;
+            }
+        }
+    }
+    private string DayInput
+    {
+        get => _dayInput;
+        set => ApplyDayInput(value);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,13 +188,24 @@ else
             NavigationManager.NavigateTo("notfound");
             return;
         }
+
+        ScheduleState = new EnrollmentScheduleState(Enrollment);
+        SyncDayInputFromState();
     }
 
     private async Task UpdateEnrollment()
     {
         ErrorMessage = null;
 
-        if (string.IsNullOrWhiteSpace(Enrollment!.StudentID))
+        if (Enrollment is null)
+        {
+            ErrorMessage = "Enrollment could not be loaded.";
+            return;
+        }
+
+        ScheduleState?.Persist();
+
+        if (string.IsNullOrWhiteSpace(Enrollment.StudentID))
         {
             ErrorMessage = "Please select a student.";
             return;
@@ -114,9 +217,15 @@ else
             return;
         }
 
+        if (Enrollment.TotalSlots is < 0)
+        {
+            ErrorMessage = "Total slots cannot be negative.";
+            return;
+        }
+
         using var context = DbFactory.CreateDbContext();
 
-        var studentExists = await context.Users.AnyAsync(u => u.Id == Enrollment!.StudentID);
+        var studentExists = await context.Users.AnyAsync(u => u.Id == Enrollment.StudentID);
         if (!studentExists)
         {
             ErrorMessage = "Selected student no longer exists.";
@@ -125,7 +234,7 @@ else
             return;
         }
 
-        var courseExists = await context.Courses.AnyAsync(c => c.Id == Enrollment!.CourseID);
+        var courseExists = await context.Courses.AnyAsync(c => c.Id == Enrollment.CourseID);
         if (!courseExists)
         {
             ErrorMessage = "Invalid course ID.";
@@ -133,7 +242,7 @@ else
             return;
         }
 
-        context.Attach(Enrollment!).State = EntityState.Modified;
+        context.Attach(Enrollment).State = EntityState.Modified;
 
         try
         {
@@ -141,7 +250,7 @@ else
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!EnrollmentExists(Enrollment!.Id))
+            if (!EnrollmentExists(Enrollment.Id))
             {
                 NavigationManager.NavigateTo("notfound");
             }
@@ -154,11 +263,50 @@ else
         NavigationManager.NavigateTo("/enrollments");
     }
 
+    private void ApplyDayInput(string? value)
+    {
+        _dayInput = value ?? string.Empty;
+
+        if (ScheduleState is null)
+        {
+            return;
+        }
+
+        ScheduleState.SelectedDays.Clear();
+
+        var tokens = _dayInput
+            .Split(new[] { ',', ';', '\n', '\r', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        foreach (var token in tokens)
+        {
+            if (WeekdayCatalog.TryResolveDay(token, out var day))
+            {
+                ScheduleState.SelectedDays.Add(day);
+            }
+        }
+
+        ScheduleState.Persist();
+    }
+
+    private void SyncDayInputFromState()
+    {
+        if (ScheduleState is null)
+        {
+            _dayInput = string.Empty;
+            return;
+        }
+
+        _dayInput = ScheduleState.SelectedDays.Count == 0
+            ? string.Empty
+            : WeekdayCatalog.Serialize(ScheduleState.SelectedDays);
+    }
+
     private bool EnrollmentExists(int id)
     {
         using var context = DbFactory.CreateDbContext();
         return context.Enrollments.Any(e => e.Id == id);
     }
+
 
     private async Task<List<ApplicationUser>> LoadStudentUsersAsync(ApplicationDbContext context)
     {
@@ -180,44 +328,4 @@ else
             .ToListAsync();
     }
 
-    private static string GetStudentDisplayName(ApplicationUser student)
-    {
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(student.StudentId))
-        {
-            parts.Add(student.StudentId!);
-        }
-        if (!string.IsNullOrWhiteSpace(student.Name))
-        {
-            parts.Add(student.Name!);
-        }
-        if (!string.IsNullOrWhiteSpace(student.Email))
-        {
-            parts.Add(student.Email!);
-        }
-
-        return string.Join(" - ", parts);
-    }
-
-    private static string GetCourseDisplayName(Course course)
-    {
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(course.Name))
-        {
-            parts.Add(course.Name!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(course.Subject?.Name))
-        {
-            parts.Add(course.Subject!.Name);
-        }
-
-        if (!string.IsNullOrWhiteSpace(course.Semester?.Name))
-        {
-            parts.Add(course.Semester!.Name);
-        }
-
-        parts.Add($"#{course.Id}");
-        return string.Join(" | ", parts);
-    }
 }

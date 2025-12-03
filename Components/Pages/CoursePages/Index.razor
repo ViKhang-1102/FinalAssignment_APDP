@@ -1,4 +1,5 @@
 ﻿@page "/courses"
+@attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Constants
@@ -10,9 +11,13 @@
 <h1>Index</h1>
 
 <div class="mt-4 flex justify-end">
-    <a href="@AppRoutes.CoursesCreate" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
-        <span class="text-lg">+</span> Create Course
-    </a>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <a href="@AppRoutes.CoursesCreate" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+                <span class="text-lg">+</span> Create Course
+            </a>
+        </Authorized>
+    </AuthorizeView>
 </div>
 
 @if (courses.Count == 0)
@@ -45,8 +50,12 @@ else
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-end gap-2">
                                 <a href="@AppRoutes.CoursesDetails(course.Id)" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
-                                <a href="@AppRoutes.CoursesEdit(course.Id)" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
-                                <a href="@AppRoutes.CoursesDelete(course.Id)" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <a href="@AppRoutes.CoursesEdit(course.Id)" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                                        <a href="@AppRoutes.CoursesDelete(course.Id)" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                                    </Authorized>
+                                </AuthorizeView>
                             </div>
                         </td>
                     </tr>

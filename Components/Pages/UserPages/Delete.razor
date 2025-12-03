@@ -1,4 +1,5 @@
 @page "/users/delete"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.AspNetCore.Identity
 @using FinalAssignemnt_APDP.Data
 @inject UserManager<ApplicationUser> UserManager
