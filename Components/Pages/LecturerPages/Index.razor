@@ -79,7 +79,7 @@
                     @foreach (var course in Workspace.Courses)
                     {
                         var isSelected = course.Id == selectedCourseId;
-                        <article class="flex flex-col gap-3 py-4">
+                        <article class="flex flex-col gap-3 py-4" style="cursor: pointer;" @onclick="() => SelectCourse(course.Id)">
                             <div class="flex items-start justify-between gap-4">
                                 <div>
                                     <p class="text-base font-semibold text-slate-900">@course.Name</p>
@@ -94,13 +94,25 @@
                                 <span class="ms-2">@course.ScheduleSummary</span>
                             </p>
                             <div class="flex flex-wrap gap-3">
-                                <button class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition @(isSelected ? "bg-emerald-600 text-white" : "border border-slate-200 bg-white text-slate-700 hover:border-slate-300")"
-                                        @onclick="() => SelectCourse(course.Id)" disabled="@isSelected">
-                                    <span class="bi @(isSelected ? "bi-eye" : "bi-eye-fill")"></span>
-                                    @(isSelected ? "Viewing class" : "View details")
-                                </button>
-                                <a href="@AppRoutes.CoursesDetails(course.Id)" class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900">
-                                    <span class="bi bi-box-arrow-up-right"></span> Course info
+                                <a href="@AppRoutes.LecturerCourseClasses(course.Id)"
+                                   class="inline-flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-100"
+                                   @onclick:stopPropagation="true">
+                                    <span class="bi bi-people"></span>
+                                    <span class="flex flex-col text-left leading-tight">
+                                        <span class="text-xs font-semibold uppercase tracking-wide">View classes</span>
+                                        <span>@FormatStudentSummary(course.StudentCount)</span>
+                                        <span class="text-xs text-emerald-800">Grade details & roster</span>
+                                    </span>
+                                </a>
+                                <a href="@AppRoutes.LecturerCourseInfo(course.Id)"
+                                   class="inline-flex items-start gap-3 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                                   @onclick:stopPropagation="true">
+                                    <span class="bi bi-box-arrow-up-right"></span>
+                                    <span class="flex flex-col text-left leading-tight">
+                                        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Course info</span>
+                                        <span>@course.Name</span>
+                                        <span class="text-xs text-slate-500">@course.Subject · @course.Semester · @FormatSlotSummary(course.TotalSlots)</span>
+                                    </span>
                                 </a>
                             </div>
                         </article>
@@ -279,4 +291,10 @@
 
     private static string FormatScore(double? score)
         => score.HasValue ? score.Value.ToString("0.0") : "-";
+
+    private static string FormatStudentSummary(int count)
+        => count == 1 ? "1 student" : FormattableString.Invariant($"{count} students");
+
+    private static string FormatSlotSummary(int? slots)
+        => slots.HasValue ? FormattableString.Invariant($"Total slots: {slots.Value}") : "Total slots: TBD";
 }

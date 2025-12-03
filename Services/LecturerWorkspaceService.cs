@@ -74,6 +74,11 @@ namespace FinalAssignemnt_APDP.Services
 
                 var roster = BuildRoster(course.Id, courseEnrollments, gradeLookup, distinctStudents);
                 courseRosters[course.Id] = roster;
+                var totalSlots = courseEnrollments
+                    .Select(e => e.TotalSlots)
+                    .Where(slot => slot.HasValue)
+                    .DefaultIfEmpty()
+                    .Max();
 
                 courseOverview.Add(new LecturerCourseOverview
                 {
@@ -82,6 +87,7 @@ namespace FinalAssignemnt_APDP.Services
                     Subject = course.Subject?.Name ?? "-",
                     Semester = course.Semester?.Name ?? "-",
                     StudentCount = roster.Count,
+                    TotalSlots = totalSlots,
                     ScheduleSummary = BuildScheduleSummary(courseEnrollments)
                 });
             }
@@ -297,6 +303,7 @@ namespace FinalAssignemnt_APDP.Services
         public string Subject { get; init; } = string.Empty;
         public string Semester { get; init; } = string.Empty;
         public int StudentCount { get; init; }
+        public int? TotalSlots { get; init; }
         public string ScheduleSummary { get; init; } = "Schedule pending";
     }
 
