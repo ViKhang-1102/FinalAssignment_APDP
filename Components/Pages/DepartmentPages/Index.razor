@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @implements IAsyncDisposable
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
@@ -70,4 +71,11 @@ else
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();
+
+    private string GetActionClass(string tone) => tone switch
+    {
+        "sky" => $"{ActionBase} border-sky-100 text-sky-600 hover:bg-sky-50 focus-visible:outline-sky-500",
+        "rose" => $"{ActionBase} border-rose-100 text-rose-600 hover:bg-rose-50 focus-visible:outline-rose-500",
+        _ => $"{ActionBase} border-indigo-100 text-indigo-600 hover:bg-indigo-50 focus-visible:outline-indigo-500"
+    };
 }

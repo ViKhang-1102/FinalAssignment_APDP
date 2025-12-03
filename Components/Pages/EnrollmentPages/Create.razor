@@ -230,7 +230,7 @@
 
         context.Enrollments.Add(Enrollment);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/enrollments");
+        NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 
     private void ApplyDayInput(string? value)

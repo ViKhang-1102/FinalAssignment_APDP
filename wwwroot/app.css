@@ -35,7 +35,7 @@ main {
 }
 
 .top-row {
-    background: linear-gradient(90deg, rgba(30, 64, 175, 0.95), rgba(79, 70, 229, 0.9));
+    background: linear-gradient(90deg, rgba(16, 30, 74, 0.95), rgba(79, 70, 229, 0.9));
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     justify-content: flex-end;
     height: 3.5rem;
@@ -278,7 +278,7 @@ main {
 }
 
 .card {
-    background-color: #fff;
+    background-color: #2f416d;
     border: 1px solid #e2e8f0;
     border-radius: 1.5rem;
     box-shadow: 0 25px 50px -20px rgba(15, 23, 42, 0.35);

@@ -1,0 +1,211 @@
+@page "/student/schedule"
+@using System.Security.Claims
+@using System.Linq
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize(Roles = "Student")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@implements IAsyncDisposable
+
+<PageTitle>Student Schedule</PageTitle>
+
+<div class="@UiClasses.PageShell">
+    <div class="text-center space-y-2">
+        <p class="@UiClasses.SectionTag">Weekly schedule</p>
+        <h1 class="@UiClasses.SectionTitle">See when and where to attend</h1>
+        <p class="@UiClasses.SectionSubtitle">Built from your enrollments so you always know the day, time, room, lecturer, and subject details.</p>
+    </div>
+
+    <AuthorizeView Roles="Student">
+        <Authorized>
+            @if (!scheduleEntries.Any())
+            {
+                <div class="@UiClasses.Card text-center text-slate-500">
+                    <p>No schedule data yet.</p>
+                    <p class="@UiClasses.HelperText">As soon as classes have day and time information, they will appear here automatically.</p>
+                </div>
+            }
+            else
+            {
+                <div class="space-y-6">
+                    @foreach (var day in scheduleByDay)
+                    {
+                        <section class="@UiClasses.Card space-y-4">
+                            <header class="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Day</p>
+                                    <h2 class="text-2xl font-bold text-slate-900">@day.Key</h2>
+                                </div>
+                                <span class="inline-flex items-center gap-1 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                                    @($"{day.Count()} session(s)")
+                                </span>
+                            </header>
+
+                            <div class="divide-y divide-slate-100">
+                                @foreach (var slot in day)
+                                {
+                                    <article class="flex flex-col gap-3 py-4">
+                                        <div class="flex flex-wrap items-center justify-between gap-2">
+                                            <div>
+                                                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">@slot.Time</p>
+                                                <h3 class="text-xl font-bold text-slate-900">@slot.CourseTitle</h3>
+                                                <p class="text-sm text-slate-500">@slot.SubjectCode · @slot.Semester</p>
+                                            </div>
+                                            <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700">@slot.Room</span>
+                                        </div>
+                                        <dl class="grid gap-3 md:grid-cols-3 text-sm text-slate-600">
+                                            <div>
+                                                <dt class="@UiClasses.Label">Lecturer</dt>
+                                                <dd>@slot.Lecturer</dd>
+                                            </div>
+                                            <div>
+                                                <dt class="@UiClasses.Label">Duration</dt>
+                                                <dd>@slot.Duration</dd>
+                                            </div>
+                                            <div>
+                                                <dt class="@UiClasses.Label">Notes</dt>
+                                                <dd>@slot.Note</dd>
+                                            </div>
+                                        </dl>
+                                    </article>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="@UiClasses.Card text-center space-y-3">
+                <p class="@UiClasses.SectionTag">Students</p>
+                <h3 class="text-2xl font-bold text-slate-900">Sign in to view your schedule</h3>
+                <p class="@UiClasses.SectionSubtitle">Schedules are only shown for authenticated students.</p>
+                <a class="@UiClasses.PrimaryButton" href="@AppRoutes.Login"><i class="bi bi-box-arrow-in-right"></i> Sign in</a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private ApplicationDbContext? context;
+    private readonly List<ScheduleEntry> scheduleEntries = new();
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    private IEnumerable<IGrouping<string, ScheduleEntry>> scheduleByDay => scheduleEntries
+        .OrderBy(e => e.DayOrder)
+        .ThenBy(e => e.TimeSortKey)
+        .GroupBy(e => e.Day);
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        ApplicationUser? appUser = null;
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            appUser = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        var studentId = appUser?.StudentId ?? appUser?.UserName ?? user.Identity.Name;
+
+        if (string.IsNullOrWhiteSpace(studentId))
+        {
+            return;
+        }
+
+        await LoadScheduleAsync(studentId);
+    }
+
+    private async Task LoadScheduleAsync(string studentId)
+    {
+        var enrollments = await context!.Enrollments
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Subject)
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Semester)
+            .Include(e => e.Course)!
+                .ThenInclude(c => c.Lecture)
+            .Where(e => e.StudentID == studentId)
+            .ToListAsync();
+
+        scheduleEntries.Clear();
+
+        foreach (var enrollment in enrollments)
+        {
+            var day = string.IsNullOrWhiteSpace(enrollment.DayOfWeek) ? "Day TBD" : enrollment.DayOfWeek!;
+            var time = string.IsNullOrWhiteSpace(enrollment.TimeSlot) ? "Time TBD" : enrollment.TimeSlot!;
+            var course = enrollment.Course;
+
+            scheduleEntries.Add(new ScheduleEntry
+            {
+                Day = day,
+                DayOrder = GetDayOrder(day),
+                Time = time,
+                TimeSortKey = time,
+                CourseTitle = course?.Name ?? "Course",
+                SubjectCode = course?.Subject?.Code ?? "SUB",
+                Semester = course?.Semester?.Name ?? "Semester",
+                Lecturer = course?.Lecture != null
+                    ? (string.IsNullOrWhiteSpace(course.Lecture.Name) ? (course.Lecture.Email ?? "Lecturer") : course.Lecture.Name)
+                    : (course?.LectureID ?? "Lecturer"),
+                Room = string.IsNullOrWhiteSpace(enrollment.Room) ? "Room TBD" : enrollment.Room!,
+                Duration = course?.Semester != null ? $"{course.Semester.Name} · 15 weeks" : "15 weeks",
+                Note = string.IsNullOrWhiteSpace(enrollment.TimeSlot) ? "Time to be confirmed" : "Arrive 5 minutes early"
+            });
+        }
+    }
+
+    private static int GetDayOrder(string day) => day.ToLowerInvariant() switch
+    {
+        "monday" => 1,
+        "tuesday" => 2,
+        "wednesday" => 3,
+        "thursday" => 4,
+        "friday" => 5,
+        "saturday" => 6,
+        "sunday" => 7,
+        _ => 8
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (context is not null)
+        {
+            await context.DisposeAsync();
+        }
+    }
+
+    private sealed class ScheduleEntry
+    {
+        public string Day { get; set; } = string.Empty;
+        public int DayOrder { get; set; }
+        public string Time { get; set; } = string.Empty;
+        public string TimeSortKey { get; set; } = string.Empty;
+        public string CourseTitle { get; set; } = string.Empty;
+        public string SubjectCode { get; set; } = string.Empty;
+        public string Semester { get; set; } = string.Empty;
+        public string Lecturer { get; set; } = string.Empty;
+        public string Room { get; set; } = string.Empty;
+        public string Duration { get; set; } = string.Empty;
+        public string Note { get; set; } = string.Empty;
+    }
+}
