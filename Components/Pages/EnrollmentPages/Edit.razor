@@ -117,8 +117,7 @@ else
                 </div>
             </EditForm>
         </div>
-    </div>
-}
+    }
 
 @code {
     [SupplyParameterFromQuery]
@@ -260,7 +259,7 @@ else
             }
         }
 
-        NavigationManager.NavigateTo("/enrollments");
+        NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 
     private void ApplyDayInput(string? value)

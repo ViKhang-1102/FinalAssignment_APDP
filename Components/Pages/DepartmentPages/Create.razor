@@ -29,7 +29,6 @@
             </div>
         </EditForm>
     </div>
-</div>
 
 @code {
     [SupplyParameterFromForm]
@@ -41,6 +40,6 @@
         context.Departments.Add(Department);
         await context.SaveChangesAsync();
         Toasts.Enqueue("Thêm phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
-        NavigationManager.NavigateTo("/departments");
+        NavigationManager.NavigateTo(AppRoutes.Departments);
     }
 }

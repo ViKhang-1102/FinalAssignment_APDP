@@ -1,0 +1,231 @@
+@page "/student/grades"
+@using System.Security.Claims
+@using System.Linq
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize(Roles = "Student")]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@implements IAsyncDisposable
+
+<PageTitle>Student Grades</PageTitle>
+
+<div class="@UiClasses.PageShell">
+    <div class="text-center space-y-2">
+        <p class="@UiClasses.SectionTag">Academic results</p>
+        <h1 class="@UiClasses.SectionTitle">Track your grades by course</h1>
+        <p class="@UiClasses.SectionSubtitle">See midterm, final, weighted average, and pass status for every subject.</p>
+    </div>
+
+    <AuthorizeView Roles="Student">
+        <Authorized>
+            @if (gradeItems.Count == 0)
+            {
+                <div class="@UiClasses.Card text-center text-slate-500">
+                    <p>No grade entries yet.</p>
+                    <p class="@UiClasses.HelperText">As soon as lecturers publish marks, your transcript will show up here.</p>
+                </div>
+            }
+            else
+            {
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div class="@UiClasses.Card">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Courses completed</p>
+                        <p class="text-4xl font-bold text-slate-900">@passedCount</p>
+                        <p class="text-sm text-slate-500">Passed with >= 50 score</p>
+                    </div>
+                    <div class="@UiClasses.Card">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">In marking</p>
+                        <p class="text-4xl font-bold text-slate-900">@inProgressCount</p>
+                        <p class="text-sm text-slate-500">Waiting for final score</p>
+                    </div>
+                    <div class="@UiClasses.Card">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Converted GPA</p>
+                        <p class="text-4xl font-bold text-slate-900">@gpaDisplay</p>
+                        <p class="text-sm text-slate-500">Calculated on completed courses</p>
+                    </div>
+                </div>
+
+                <div class="@UiClasses.Card overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm text-slate-600">
+                        <thead>
+                            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                <th class="py-3">Course</th>
+                                <th class="py-3">Lecturer</th>
+                                <th class="py-3 text-center">Midterm</th>
+                                <th class="py-3 text-center">Final</th>
+                                <th class="py-3 text-center">Average</th>
+                                <th class="py-3">Status</th>
+                                <th class="py-3">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach (var grade in gradeItems)
+                            {
+                                <tr>
+                                    <td class="py-3 font-semibold text-slate-900">@grade.CourseLabel</td>
+                                    <td class="py-3">@grade.Lecturer</td>
+                                    <td class="py-3 text-center">@grade.MidtermDisplay</td>
+                                    <td class="py-3 text-center">@grade.FinalDisplay</td>
+                                    <td class="py-3 text-center">@grade.AverageDisplay</td>
+                                    <td class="py-3">
+                                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold @grade.StatusClass">
+                                            <i class="bi @grade.StatusIcon"></i> @grade.StatusText
+                                        </span>
+                                    </td>
+                                    <td class="py-3">@grade.Note</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </Authorized>
+        <NotAuthorized>
+            <div class="@UiClasses.Card text-center space-y-3">
+                <p class="@UiClasses.SectionTag">Students</p>
+                <h3 class="text-2xl font-bold text-slate-900">Sign in to view grades</h3>
+                <p class="@UiClasses.SectionSubtitle">Transcripts are only available after you log in.</p>
+                <a class="@UiClasses.PrimaryButton" href="@AppRoutes.Login"><i class="bi bi-box-arrow-in-right"></i> Sign in</a>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private ApplicationDbContext? context;
+    private readonly List<GradeViewModel> gradeItems = new();
+    private int passedCount;
+    private int inProgressCount;
+    private string gpaDisplay = "--";
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+
+        if (AuthenticationStateTask is null)
+        {
+            return;
+        }
+
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        ApplicationUser? appUser = null;
+
+        if (!string.IsNullOrEmpty(userId))
+        {
+            appUser = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        }
+
+        var studentId = appUser?.StudentId ?? appUser?.UserName ?? user.Identity.Name;
+
+        if (string.IsNullOrWhiteSpace(studentId))
+        {
+            return;
+        }
+
+        await LoadGradesAsync(studentId);
+        ComputeSummaries();
+    }
+
+    private async Task LoadGradesAsync(string studentId)
+    {
+        var results = await context!.Grades
+            .Include(g => g.Course)!
+                .ThenInclude(c => c.Subject)
+            .Include(g => g.Course)!
+                .ThenInclude(c => c.Lecture)
+            .Where(g => g.StudentID == studentId)
+            .Select(g => new GradeViewModel
+            {
+                CourseLabel = g.Course != null
+                    ? $"{(g.Course.Subject != null ? g.Course.Subject.Code : "SUB")} · {g.Course.Name}"
+                    : $"Course #{g.CourseID}",
+                Lecturer = g.Course != null
+                    ? (g.Course.Lecture != null
+                        ? (string.IsNullOrWhiteSpace(g.Course.Lecture.Name) ? (g.Course.Lecture.Email ?? "Lecturer") : g.Course.Lecture.Name)
+                        : (g.Course.LectureID ?? "Lecturer"))
+                    : "Lecturer",
+                Midterm = g.MidtermScore,
+                Final = g.FinalScore,
+                Average = g.AverageScore ?? ((g.MidtermScore.HasValue && g.FinalScore.HasValue)
+                    ? (g.MidtermScore.Value * 0.4 + g.FinalScore.Value * 0.6)
+                    : null),
+                Passed = g.IsPassed,
+                Note = string.IsNullOrWhiteSpace(g.Note) ? "--" : g.Note,
+                Letter = g.LetterGrade ?? "--"
+            })
+            .ToListAsync();
+
+        gradeItems.Clear();
+        gradeItems.AddRange(results);
+    }
+
+    private void ComputeSummaries()
+    {
+        passedCount = gradeItems.Count(g => g.Passed);
+        inProgressCount = gradeItems.Count(g => !g.Average.HasValue);
+
+        var completed = gradeItems
+            .Where(g => g.Average.HasValue)
+            .Select(g => g.Average!.Value)
+            .ToList();
+
+        if (completed.Count == 0)
+        {
+            gpaDisplay = "--";
+            return;
+        }
+
+        var gpa = completed.Average(score => ConvertToGpa(score));
+        gpaDisplay = gpa.ToString("0.00");
+    }
+
+    private static double ConvertToGpa(double score)
+    {
+        if (score >= 85) return 4.0;
+        if (score >= 75) return 3.5;
+        if (score >= 65) return 3.0;
+        if (score >= 55) return 2.5;
+        if (score >= 50) return 2.0;
+        return 0;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (context is not null)
+        {
+            await context.DisposeAsync();
+        }
+    }
+
+    private sealed class GradeViewModel
+    {
+        public string CourseLabel { get; set; } = string.Empty;
+        public string Lecturer { get; set; } = string.Empty;
+        public double? Midterm { get; set; }
+        public double? Final { get; set; }
+        public double? Average { get; set; }
+        public bool Passed { get; set; }
+        public string Note { get; set; } = string.Empty;
+        public string Letter { get; set; } = string.Empty;
+
+        public string MidtermDisplay => Midterm.HasValue ? Midterm.Value.ToString("0.0") : "--";
+        public string FinalDisplay => Final.HasValue ? Final.Value.ToString("0.0") : "--";
+        public string AverageDisplay => Average.HasValue ? Average.Value.ToString("0.0") : "--";
+        public string StatusText => Passed ? "Passed" : "Pending";
+        public string StatusIcon => Passed ? "bi-check-circle" : "bi-hourglass-split";
+        public string StatusClass => Passed ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700";
+    }
+}

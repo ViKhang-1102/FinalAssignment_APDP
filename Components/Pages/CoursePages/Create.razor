@@ -165,7 +165,7 @@
 
         context.Courses.Add(Course);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/courses");
+        NavigationManager.NavigateTo(AppRoutes.Courses);
     }
 
     private async Task<List<ApplicationUser>> LoadLecturerUsersAsync(ApplicationDbContext context)
