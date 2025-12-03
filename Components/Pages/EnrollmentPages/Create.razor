@@ -10,24 +10,17 @@
 <PageTitle>Create Enrollment</PageTitle>
 
 <div class="max-w-3xl space-y-6">
-    <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Create enrollment</h1>
-        <p class="text-sm text-slate-500">Assign a student to a course.</p>
-    </div>
+<div>
+    <h1 class="text-2xl font-semibold text-slate-900">Create enrollment</h1>
+    <p class="text-sm text-slate-500">Create a course enrollment with schedule details. Students can be assigned later.</p>
+</div>
 
     <div class="rounded-2xl bg-white p-6 shadow-sm">
-        @if (Students.Count == 0 || Courses.Count == 0)
+        @if (Courses.Count == 0)
         {
             <div class="space-y-3 text-sm text-slate-600">
                 <p class="font-medium text-slate-900">Missing related data</p>
-                @if (Students.Count == 0)
-                {
-                    <p>- No students available. Please create a student first.</p>
-                }
-                @if (Courses.Count == 0)
-                {
-                    <p>- No courses available. Please create a course first.</p>
-                }
+                <p>- No courses available. Please create a course first.</p>
             </div>
         }
         else
@@ -40,32 +33,18 @@
                     <p class="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">@ErrorMessage</p>
                 }
 
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div class="space-y-1">
-                        <label for="studentid" class="text-sm font-medium text-slate-700">Student</label>
-                        <SearchableSelect TValue="string" TItem="ApplicationUser"
-                                          Items="Students"
-                                          @bind-Value="Enrollment.StudentID"
-                                          ValueSelector="student => student.Id"
-                                          LabelSelector="student => EnrollmentDisplayHelper.FormatStudentOption(student)"
-                                          FilterPlaceholder="Search student..."
-                                          PlaceholderOption="-- Select student --"
-                                          PlaceholderValue="@string.Empty"
-                                          SelectId="studentid" />
-                        <ValidationMessage For="() => Enrollment.StudentID" class="text-sm text-rose-600" />
-                    </div>
-                    <div class="space-y-1">
-                        <label for="courseid" class="text-sm font-medium text-slate-700">Course</label>
-                        <SearchableSelect TValue="int" TItem="Course"
-                                          Items="Courses"
-                                          @bind-Value="Enrollment.CourseID"
-                                          ValueSelector="course => course.Id"
-                                          LabelSelector="course => EnrollmentDisplayHelper.FormatCourseOption(course)"
-                                          PlaceholderOption="-- Select course --"
-                                          PlaceholderValue="@(0)"
-                                          SelectId="courseid" />
-                        <ValidationMessage For="() => Enrollment.CourseID" class="text-sm text-rose-600" />
-                    </div>
+                <div class="space-y-1">
+                    <label for="courseid" class="text-sm font-medium text-slate-700">Course</label>
+                    <InputSelect id="courseid" 
+                                 @bind-Value="Enrollment.CourseID"
+                                 class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                        <option value="0">-- Select course --</option>
+                        @foreach (var course in Courses)
+                        {
+                            <option value="@course.Id">@EnrollmentDisplayHelper.FormatCourseOption(course)</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => Enrollment.CourseID" class="text-sm text-rose-600" />
                 </div>
 
                 <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
@@ -132,7 +111,6 @@
     [SupplyParameterFromForm]
     private Enrollment Enrollment { get; set; } = new();
 
-    private List<ApplicationUser> Students { get; set; } = new();
     private List<Course> Courses { get; set; } = new();
     private string? ErrorMessage { get; set; }
     private EnrollmentScheduleState ScheduleState = default!;
@@ -175,7 +153,6 @@
         SyncDayInputFromState();
 
         using var context = DbFactory.CreateDbContext();
-        Students = await LoadStudentUsersAsync(context);
 
         Courses = await context.Courses
             .Include(c => c.Subject)
@@ -191,12 +168,6 @@
         ErrorMessage = null;
         ScheduleState.Persist();
 
-        if (string.IsNullOrWhiteSpace(Enrollment.StudentID))
-        {
-            ErrorMessage = "Please select a student.";
-            return;
-        }
-
         if (Enrollment.CourseID <= 0)
         {
             ErrorMessage = "Please select a course.";
@@ -211,15 +182,6 @@
 
         using var context = DbFactory.CreateDbContext();
 
-        var studentExists = await context.Users.AnyAsync(u => u.Id == Enrollment.StudentID);
-        if (!studentExists)
-        {
-            ErrorMessage = "Selected student no longer exists.";
-            Students = await LoadStudentUsersAsync(context);
-            Courses = await context.Courses.Include(c => c.Subject).Include(c => c.Semester).OrderBy(c => c.Name).ThenBy(c => c.Id).ToListAsync();
-            return;
-        }
-
         var courseExists = await context.Courses.AnyAsync(c => c.Id == Enrollment.CourseID);
         if (!courseExists)
         {
@@ -228,6 +190,8 @@
             return;
         }
 
+        // Note: StudentID will need to be set separately, possibly through a different flow
+        // This page now only creates the course enrollment template
         context.Enrollments.Add(Enrollment);
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo(AppRoutes.Enrollments);
@@ -263,27 +227,6 @@
         _dayInput = ScheduleState.SelectedDays.Count == 0
             ? string.Empty
             : WeekdayCatalog.Serialize(ScheduleState.SelectedDays);
-    }
-
-
-    private async Task<List<ApplicationUser>> LoadStudentUsersAsync(ApplicationDbContext context)
-    {
-        var studentRoleId = await context.Roles
-            .Where(r => r.Name == "Student")
-            .Select(r => r.Id)
-            .FirstOrDefaultAsync();
-
-        if (string.IsNullOrEmpty(studentRoleId))
-        {
-            return new();
-        }
-
-        return await context.Users
-            .Where(u => context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == studentRoleId))
-            .OrderBy(u => u.StudentId)
-            .ThenBy(u => u.Name)
-            .ThenBy(u => u.Email)
-            .ToListAsync();
     }
 
 }

@@ -271,7 +271,7 @@
                     ? (e.Course.Lecture != null
                         ? e.Course.Lecture.Name
                         : (e.Course.LectureID ?? "Unassigned"))
-                    : "Unassigned",
+                    : "Unassigned" ?? "Unassigned",
                 RoomLabel = string.IsNullOrWhiteSpace(e.Room) ? "Room TBC" : e.Room,
                 Day = e.DayOfWeek ?? string.Empty,
                 Time = e.TimeSlot ?? string.Empty,

@@ -1,146 +1,64 @@
-@using System.Linq.Expressions
 @typeparam TValue
 @typeparam TItem
 
-<div class="space-y-2">
-    <div class="relative">
-        <input type="text"
-               class="@FilterInputClass"
-               placeholder="@FilterPlaceholder"
-               @bind-value="_searchText"
-               @bind-value:event="oninput" />
-        <span class="@FilterIconClass" aria-hidden="true">🔍</span>
-    </div>
-
-    <InputSelect TValue="TValue"
-                 Value="CurrentValue"
-                 ValueChanged="EventCallback.Factory.Create<TValue>(this, HandleSelectionChanged)"
-                 ValueExpression="ValueExpression"
-                 class="@SelectClass"
-                 id="@SelectId"
-                 disabled="@Disabled">
-        @if (ShowPlaceholderOption)
-        {
-            <option value="@PlaceholderValue">@PlaceholderOption</option>
-        }
-
-        @foreach (var item in RenderableItems)
-        {
-            <option value="@ValueSelector(item)">@LabelSelector(item)</option>
-        }
-    </InputSelect>
-
-    @if (ShowHelperText)
+<select id="@SelectId"
+        value="@Value"
+        @onchange="HandleChange"
+        class="@(string.IsNullOrWhiteSpace(CssClass) ? "w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" : CssClass)">
+    @if (!string.IsNullOrWhiteSpace(PlaceholderOption))
     {
-        <p class="text-xs text-slate-500">@HelperText</p>
+        <option value="@PlaceholderValue">@PlaceholderOption</option>
     }
-</div>
+    @foreach (var item in Items)
+    {
+        var itemValue = ValueSelector(item);
+        var itemLabel = LabelSelector(item);
+        <option value="@itemValue">@itemLabel</option>
+    }
+</select>
 
 @code {
-    private string _searchText = string.Empty;
-    private TValue? _currentValue;
+    [Parameter] public TValue? Value { get; set; }
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public List<TItem> Items { get; set; } = new();
+    [Parameter] public Func<TItem, TValue> ValueSelector { get; set; } = default!;
+    [Parameter] public Func<TItem, string> LabelSelector { get; set; } = default!;
+    [Parameter] public string? PlaceholderOption { get; set; }
+    [Parameter] public TValue? PlaceholderValue { get; set; }
+    [Parameter] public string SelectId { get; set; } = Guid.NewGuid().ToString();
+    [Parameter] public string? FilterPlaceholder { get; set; }
+    [Parameter] public string? CssClass { get; set; }
 
-    [Parameter, EditorRequired]
-    public IEnumerable<TItem> Items { get; set; } = Array.Empty<TItem>();
-
-    [Parameter, EditorRequired]
-    public Func<TItem, TValue> ValueSelector { get; set; } = default!;
-
-    [Parameter, EditorRequired]
-    public Func<TItem, string> LabelSelector { get; set; } = default!;
-
-    [Parameter]
-    public string FilterPlaceholder { get; set; } = "Type to search...";
-
-    [Parameter]
-    public string PlaceholderOption { get; set; } = "-- Select --";
-
-    [Parameter]
-    public TValue PlaceholderValue { get; set; } = default!;
-
-    [Parameter]
-    public bool ShowPlaceholderOption { get; set; } = true;
-
-    [Parameter]
-    public string FilterInputClass { get; set; } = "w-full rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100";
-
-    [Parameter]
-    public string FilterIconClass { get; set; } = "pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400";
-
-    [Parameter]
-    public string SelectClass { get; set; } = "w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100";
-
-    [Parameter]
-    public string? SelectId { get; set; }
-
-    [Parameter]
-    public bool Disabled { get; set; }
-
-    [Parameter]
-    public TValue Value { get; set; } = default!;
-
-    [Parameter]
-    public EventCallback<TValue> ValueChanged { get; set; }
-
-    [Parameter]
-    public Expression<Func<TValue>>? ValueExpression { get; set; }
-
-    [Parameter]
-    public bool ShowHelperText { get; set; }
-
-    [Parameter]
-    public string HelperText { get; set; } = string.Empty;
-
-    private TValue CurrentValue => _currentValue is null ? Value : _currentValue;
-
-    private Task HandleSelectionChanged(TValue value)
+    private async Task HandleChange(ChangeEventArgs e)
     {
-        if (!EqualityComparer<TValue>.Default.Equals(_currentValue, value))
+        if (e.Value is null)
         {
-            _currentValue = value;
-            return ValueChanged.InvokeAsync(value);
+            return;
         }
 
-        return Task.CompletedTask;
-    }
-
-    private IEnumerable<TItem> RenderableItems
-    {
-        get
+        TValue? newValue;
+        
+        if (typeof(TValue) == typeof(int))
         {
-            if (string.IsNullOrWhiteSpace(_searchText))
+            if (int.TryParse(e.Value.ToString(), out var intValue))
             {
-                return EnsureSelectedItemPresent(Items);
+                newValue = (TValue)(object)intValue;
             }
-
-            var filtered = Items
-                .Where(item => LabelSelector(item)
-                    .Contains(_searchText, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            return EnsureSelectedItemPresent(filtered);
+            else
+            {
+                return;
+            }
         }
-    }
-
-    private IEnumerable<TItem> EnsureSelectedItemPresent(IEnumerable<TItem> source)
-    {
-        if (_currentValue is null && EqualityComparer<TValue>.Default.Equals(Value, default!))
+        else if (typeof(TValue) == typeof(string))
         {
-            return source;
+            newValue = (TValue)(object)e.Value.ToString()!;
         }
-
-        var list = source.ToList();
-        var selected = Items.FirstOrDefault(item => EqualityComparer<TValue>.Default.Equals(ValueSelector(item), CurrentValue));
-        if (selected is not null && list.All(item => !ReferenceEquals(item, selected)))
+        else
         {
-            list.Insert(0, selected);
+            newValue = (TValue)Convert.ChangeType(e.Value, typeof(TValue));
         }
 
-        return list;
-    }
-
-    protected override void OnParametersSet()
-    {
-        _currentValue = Value;
+        Value = newValue;
+        await ValueChanged.InvokeAsync(newValue);
     }
 }

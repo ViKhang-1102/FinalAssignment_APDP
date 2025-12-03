@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
@@ -29,6 +30,7 @@
             </div>
         </EditForm>
     </div>
+</div>
 
 @code {
     [SupplyParameterFromForm]

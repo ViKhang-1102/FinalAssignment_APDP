@@ -96,6 +96,6 @@
 
         context.Majors.Add(Major);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo(AppRoutes.Majors);
+        NavigationManager.NavigateTo("/majors");
     }
 }
