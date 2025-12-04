@@ -1,0 +1,390 @@
+@page "/edit-profile"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+@using System.IO
+@using System.Linq
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Services
+@attribute [Authorize]
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject FileUploadService FileUploadService
+
+<PageTitle>Edit profile</PageTitle>
+
+<div class="@UiClasses.PageShell">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="@UiClasses.SectionTag">Profile settings</p>
+            <h1 class="@UiClasses.SectionTitle">Refresh your personal information</h1>
+            <p class="@UiClasses.SectionSubtitle">Use your institutional details so lecturers and advisors can reach you quickly.</p>
+        </div>
+        <a class="@UiClasses.GhostButton" href="/profile">
+            <i class="bi bi-arrow-left"></i>
+            <span>Back to profile</span>
+        </a>
+    </div>
+
+    @if (!isLoaded)
+    {
+        <div class="@(UiClasses.Card + " text-center text-slate-500")">
+            <div class="flex flex-col items-center gap-3 py-6">
+                <span class="bi bi-arrow-repeat animate-spin text-2xl"></span>
+                <p>Loading your account...</p>
+            </div>
+        </div>
+    }
+    else if (currentUser is null)
+    {
+        <div class="@(UiClasses.Card + " text-center text-rose-600")">
+            <p>We could not find your account.</p>
+        </div>
+    }
+    else
+    {
+        <div class="grid gap-6 lg:grid-cols-3">
+            <section class="lg:col-span-2 @(UiClasses.Card + " space-y-5")">
+                <div>
+                    <p class="@UiClasses.SectionTag">Personal details</p>
+                    <h2 class="text-xl font-semibold text-slate-900">Basic information</h2>
+                </div>
+
+                <EditForm Model="@Input" OnValidSubmit="UpdateProfile">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-sm text-rose-600" />
+
+                    @if (!string.IsNullOrEmpty(message))
+                    {
+                        <div class="rounded-2xl px-4 py-3 text-sm @(isSuccess ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")">
+                            @message
+                            <button class="ml-3 text-xs font-semibold" type="button" @onclick="() => message = string.Empty">Dismiss</button>
+                        </div>
+                    }
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="@UiClasses.FieldStack">
+                            <label class="@UiClasses.Label">Full name</label>
+                            <InputText @bind-Value="Input.Name" class="@UiClasses.Input" placeholder="Enter your full name" />
+                            <ValidationMessage For="() => Input.Name" class="text-xs text-rose-600" />
+                        </div>
+                        <div class="@UiClasses.FieldStack">
+                            <label class="@UiClasses.Label">Student ID</label>
+                            <InputText @bind-Value="Input.StudentId" class="@UiClasses.Input" disabled />
+                        </div>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="@UiClasses.FieldStack">
+                            <label class="@UiClasses.Label">Institutional email</label>
+                            <InputText @bind-Value="Input.Email" class="@UiClasses.Input" disabled />
+                        </div>
+                        <div class="@UiClasses.FieldStack">
+                            <label class="@UiClasses.Label">Phone number</label>
+                            <InputText @bind-Value="Input.PhoneNumber" class="@UiClasses.Input" placeholder="(+84) 123-456" />
+                            <ValidationMessage For="() => Input.PhoneNumber" class="text-xs text-rose-600" />
+                        </div>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="@UiClasses.FieldStack">
+                            <label class="@UiClasses.Label">Date of birth</label>
+                            <InputDate @bind-Value="Input.DOB" class="@UiClasses.Input" />
+                        </div>
+                        <div class="@UiClasses.FieldStack">
+                            <label class="@UiClasses.Label">Upload new avatar</label>
+                            <InputFile OnChange="HandleAvatarUpload" class="@UiClasses.Input" accept=".jpg,.jpeg,.png,.gif" />
+                            <p class="@UiClasses.HelperText">Max 5 MB - JPG, PNG, or GIF</p>
+                        </div>
+                    </div>
+
+                    <div class="@UiClasses.FieldStack">
+                        <label class="@UiClasses.Label">Address</label>
+                        <InputTextArea @bind-Value="Input.Address" class="@UiClasses.Input" rows="3" placeholder="Street, city, province" />
+                    </div>
+
+                    <button type="submit" class="@UiClasses.PrimaryButton" disabled="@isUpdating">
+                        @if (isUpdating)
+                        {
+                            <span class="bi bi-arrow-repeat animate-spin"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <span class="bi bi-check-circle"></span>
+                            <span>Save changes</span>
+                        }
+                    </button>
+                </EditForm>
+            </section>
+
+            <section class="@(UiClasses.Card + " space-y-4")">
+                <div>
+                    <p class="@UiClasses.SectionTag">Avatar preview</p>
+                    <h2 class="text-xl font-semibold text-slate-900">How you appear</h2>
+                </div>
+                <div class="flex flex-col items-center gap-3">
+                    @if (!string.IsNullOrEmpty(previewAvatarUrl))
+                    {
+                        <img src="@previewAvatarUrl" alt="Avatar preview" class="h-36 w-36 rounded-3xl object-cover shadow" />
+                    }
+                    else
+                    {
+                        <div class="flex h-36 w-36 items-center justify-center rounded-3xl bg-slate-100 text-4xl font-semibold text-slate-400">
+                            @GetInitials()
+                        </div>
+                    }
+                    <p class="text-sm text-slate-500">This is displayed across dashboards and attendance lists.</p>
+                </div>
+            </section>
+        </div>
+
+        <section class="@(UiClasses.Card + " space-y-5")">
+            <div>
+                <p class="@UiClasses.SectionTag">Security</p>
+                <h2 class="text-xl font-semibold text-slate-900">Change password</h2>
+            </div>
+
+            <EditForm Model="@PasswordInput" OnValidSubmit="ChangePassword">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-sm text-rose-600" />
+
+                @if (!string.IsNullOrEmpty(passwordMessage))
+                {
+                    <div class="rounded-2xl px-4 py-3 text-sm @(isPasswordSuccess ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")">
+                        @passwordMessage
+                        <button class="ml-3 text-xs font-semibold" type="button" @onclick="() => passwordMessage = string.Empty">Dismiss</button>
+                    </div>
+                }
+
+                <div class="grid gap-4 md:grid-cols-3">
+                    <div class="@UiClasses.FieldStack md:col-span-1">
+                        <label class="@UiClasses.Label">Current password</label>
+                        <InputText type="password" @bind-Value="PasswordInput.CurrentPassword" class="@UiClasses.Input" />
+                        <ValidationMessage For="() => PasswordInput.CurrentPassword" class="text-xs text-rose-600" />
+                    </div>
+                    <div class="@UiClasses.FieldStack md:col-span-1">
+                        <label class="@UiClasses.Label">New password</label>
+                        <InputText type="password" @bind-Value="PasswordInput.NewPassword" class="@UiClasses.Input" />
+                        <ValidationMessage For="() => PasswordInput.NewPassword" class="text-xs text-rose-600" />
+                    </div>
+                    <div class="@UiClasses.FieldStack md:col-span-1">
+                        <label class="@UiClasses.Label">Confirm password</label>
+                        <InputText type="password" @bind-Value="PasswordInput.ConfirmPassword" class="@UiClasses.Input" />
+                        <ValidationMessage For="() => PasswordInput.ConfirmPassword" class="text-xs text-rose-600" />
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="@UiClasses.PrimaryButton" disabled="@isChangingPassword">
+                        @if (isChangingPassword)
+                        {
+                            <span class="bi bi-arrow-repeat animate-spin"></span>
+                            <span>Updating...</span>
+                        }
+                        else
+                        {
+                            <span class="bi bi-key"></span>
+                            <span>Change password</span>
+                        }
+                    </button>
+                    <p class="@UiClasses.HelperText">Keep your password unique to this portal to protect your records.</p>
+                </div>
+            </EditForm>
+        </section>
+    }
+</div>
+
+@code {
+    private ApplicationUser? currentUser;
+    private bool isLoaded;
+    private string message = string.Empty;
+    private bool isSuccess;
+    private bool isUpdating;
+    private IBrowserFile? avatarFile;
+    private string? previewAvatarUrl;
+
+    private string passwordMessage = string.Empty;
+    private bool isPasswordSuccess;
+    private bool isChangingPassword;
+
+    private ProfileInput Input { get; set; } = new();
+    private ChangePasswordInput PasswordInput { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(user);
+
+            if (currentUser is not null)
+            {
+                Input = new ProfileInput
+                {
+                    Name = currentUser.Name ?? string.Empty,
+                    Email = currentUser.Email ?? string.Empty,
+                    StudentId = currentUser.StudentId ?? string.Empty,
+                    PhoneNumber = currentUser.PhoneNumber ?? string.Empty,
+                    DOB = currentUser.DOB,
+                    Address = currentUser.Address
+                };
+
+                previewAvatarUrl = currentUser.Avatar;
+            }
+        }
+
+        isLoaded = true;
+    }
+
+    private async Task HandleAvatarUpload(InputFileChangeEventArgs e)
+    {
+        avatarFile = e.File;
+
+        if (avatarFile is null)
+        {
+            previewAvatarUrl = currentUser?.Avatar;
+            return;
+        }
+
+        using var memoryStream = new MemoryStream();
+        await avatarFile.OpenReadStream(5 * 1024 * 1024).CopyToAsync(memoryStream);
+        var base64 = Convert.ToBase64String(memoryStream.ToArray());
+        previewAvatarUrl = $"data:{avatarFile.ContentType};base64,{base64}";
+    }
+
+    private async Task UpdateProfile()
+    {
+        if (currentUser is null)
+        {
+            return;
+        }
+
+        message = string.Empty;
+        isSuccess = false;
+        isUpdating = true;
+
+        try
+        {
+            if (avatarFile is not null)
+            {
+                var uploadResult = await FileUploadService.UploadAvatarAsync(avatarFile, currentUser.Id);
+
+                if (uploadResult.Success)
+                {
+                    if (!string.IsNullOrEmpty(currentUser.Avatar) && currentUser.Avatar.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase))
+                    {
+                        FileUploadService.DeleteAvatar(currentUser.Avatar);
+                    }
+
+                    currentUser.Avatar = uploadResult.FilePath;
+                }
+                else
+                {
+                    message = uploadResult.ErrorMessage ?? "Could not upload avatar.";
+                    return;
+                }
+            }
+
+            currentUser.Name = Input.Name;
+            currentUser.PhoneNumber = Input.PhoneNumber;
+            currentUser.DOB = Input.DOB;
+            currentUser.Address = Input.Address;
+
+            var result = await UserManager.UpdateAsync(currentUser);
+
+            if (result.Succeeded)
+            {
+                message = "Profile updated successfully.";
+                isSuccess = true;
+                previewAvatarUrl = currentUser.Avatar;
+                avatarFile = null;
+            }
+            else
+            {
+                message = string.Join("; ", result.Errors.Select(e => e.Description));
+            }
+        }
+        finally
+        {
+            isUpdating = false;
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        if (currentUser is null)
+        {
+            return;
+        }
+
+        passwordMessage = string.Empty;
+        isPasswordSuccess = false;
+        isChangingPassword = true;
+
+        try
+        {
+            var result = await UserManager.ChangePasswordAsync(currentUser, PasswordInput.CurrentPassword, PasswordInput.NewPassword);
+
+            if (result.Succeeded)
+            {
+                passwordMessage = "Password updated successfully.";
+                isPasswordSuccess = true;
+                PasswordInput = new ChangePasswordInput();
+            }
+            else
+            {
+                passwordMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+            }
+        }
+        finally
+        {
+            isChangingPassword = false;
+        }
+    }
+
+    private string GetInitials()
+    {
+        if (string.IsNullOrWhiteSpace(Input.Name))
+        {
+            return "ST";
+        }
+
+        var parts = Input.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(string.Empty, parts.Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    }
+
+    private class ProfileInput
+    {
+        [Required(ErrorMessage = "Name is required")]
+        public string Name { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+        public string StudentId { get; set; } = string.Empty;
+
+        [Phone(ErrorMessage = "Invalid phone number")]
+        public string? PhoneNumber { get; set; }
+
+        public DateTime? DOB { get; set; }
+        public string? Address { get; set; }
+    }
+
+    private class ChangePasswordInput
+    {
+        [Required(ErrorMessage = "Current password is required")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Enter a new password")]
+        [MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirm your new password")]
+        [Compare(nameof(NewPassword), ErrorMessage = "Passwords do not match")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

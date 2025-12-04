@@ -1,36 +1,45 @@
 ﻿@page "/majors/delete"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Delete</PageTitle>
+<PageTitle>Delete Major</PageTitle>
 
-<h1>Delete</h1>
+@if (major is null)
+{
+    <p class="text-slate-500">Loading...</p>
+}
+else
+{
+    <div class="max-w-2xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Delete major</h1>
+            <p class="text-sm text-slate-500">This action cannot be undone.</p>
+        </div>
 
-<p>Are you sure you want to delete this?</p>
-<div>
-    <h2>Major</h2>
-    <hr />
-    @if (major is null)
-    {
-        <p><em>Loading...</em></p>
-    }
-    else {
-        <dl class="row">
-            <dt class="col-sm-2">Name</dt>
-            <dd class="col-sm-10">@major.Name</dd>
-        </dl>
-        <dl class="row">
-            <dt class="col-sm-2">Department</dt>
-            <dd class="col-sm-10">@GetDepartmentName()</dd>
-        </dl>
-        <EditForm method="post" Model="major" OnValidSubmit="DeleteMajor" FormName="delete" Enhance>
-            <button type="submit" class="btn btn-danger" disabled="@(major is null)">Delete</button> |
-            <a href="/majors">Back to List</a>
-        </EditForm>
-    }
-</div>
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <dl class="divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Name</dt>
+                    <dd class="col-span-2 text-slate-900">@major.Name</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Department</dt>
+                    <dd class="col-span-2 text-slate-900">@(major.Department?.Name ?? "Unassigned")</dd>
+                </div>
+            </dl>
+
+            <EditForm method="post" Model="major" OnValidSubmit="DeleteMajor" FormName="delete" Enhance>
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500">Delete</button>
+                    <a href="/majors" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
 
 @code {
     private Major? major;
@@ -58,6 +67,4 @@
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo("/majors");
     }
-
-    private string GetDepartmentName() => major?.Department?.Name ?? "Unassigned";
 }

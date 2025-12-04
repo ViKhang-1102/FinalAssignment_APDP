@@ -1,6 +1,6 @@
 ﻿@page "/majors"
+@attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.AspNetCore.Components.QuickGrid
 @using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Constants
 @implements IAsyncDisposable
@@ -8,55 +8,70 @@
 
 <PageTitle>Majors</PageTitle>
 
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-            <p class="text-xs uppercase tracking-widest text-slate-500">Programs</p>
-            <h1 class="text-3xl font-bold text-slate-900">Majors</h1>
-            <p class="text-sm text-slate-500">Align program structures with departments.</p>
-        </div>
-        <a href="@AppRoutes.MajorsCreate" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-            <i class="bi bi-plus-circle"></i> New Major
-        </a>
-    </div>
-
-    <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-            <QuickGrid Class="min-w-full divide-y divide-slate-200 text-sm text-slate-600" Items="majorsQuery">
-                <PropertyColumn Title="Name" Property="major => major.Name" />
-                <TemplateColumn Title="Department" Context="major">
-                    @(major.Department?.Name ?? "Unassigned")
-                </TemplateColumn>
-
-                <TemplateColumn Title="Actions" Context="major">
-                    <div class="flex flex-wrap items-center justify-end gap-2">
-                        <a class="@GetActionClass("indigo")" href="@AppRoutes.MajorsEdit(major.Id)"><i class="bi bi-pencil"></i> Edit</a>
-                        <a class="@GetActionClass("sky")" href="@AppRoutes.MajorsDetails(major.Id)"><i class="bi bi-info-circle"></i> Detail</a>
-                        <a class="@GetActionClass("rose")" href="@AppRoutes.MajorsDelete(major.Id)"><i class="bi bi-trash"></i> Delete</a>
-                    </div>
-                </TemplateColumn>
-            </QuickGrid>
-        </div>
-    </div>
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-900">Majors</h1>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <a href="majors/create" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+                <span class="text-lg">+</span> New Major
+            </a>
+        </Authorized>
+    </AuthorizeView>
 </div>
+
+@if (majors.Count == 0)
+{
+    <div class="mt-6 rounded-md border border-dashed border-slate-200 bg-white/60 p-6 text-center text-slate-500">
+        No majors found.
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <th class="px-6 py-3">Name</th>
+                    <th class="px-6 py-3">Department</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+                @foreach (var major in majors)
+                {
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium text-slate-900">@major.Name</td>
+                        <td class="px-6 py-4 text-slate-600">@(major.Department?.Name ?? "Unassigned")</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="@($"majors/details?id={major.Id}")" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <a href="@($"majors/edit?id={major.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                                        <a href="@($"majors/delete?id={major.Id}")" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
 
 @code {
     private ApplicationDbContext context = default!;
-    private IQueryable<Major> majorsQuery = default!;
-    private const string ActionBase = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2";
+    private List<Major> majors = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
-        majorsQuery = context.Majors.Include(m => m.Department);
+        majors = await context.Majors
+            .Include(m => m.Department)
+            .OrderBy(m => m.Name)
+            .ToListAsync();
     }
 
     public async ValueTask DisposeAsync() => await context.DisposeAsync();
-
-    private string GetActionClass(string tone) => tone switch
-    {
-        "sky" => $"{ActionBase} border-sky-100 text-sky-600 hover:bg-sky-50 focus-visible:outline-sky-500",
-        "rose" => $"{ActionBase} border-rose-100 text-rose-600 hover:bg-rose-50 focus-visible:outline-rose-500",
-        _ => $"{ActionBase} border-indigo-100 text-indigo-600 hover:bg-indigo-50 focus-visible:outline-indigo-500"
-    };
 }

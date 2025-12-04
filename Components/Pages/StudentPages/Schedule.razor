@@ -125,17 +125,19 @@
             appUser = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
         }
 
-        var studentId = appUser?.StudentId ?? appUser?.UserName ?? user.Identity.Name;
+        var keys = new List<string?> { appUser?.Id, appUser?.StudentId, appUser?.UserName, user.Identity?.Name }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!).ToList();
 
-        if (string.IsNullOrWhiteSpace(studentId))
+        if (!keys.Any())
         {
             return;
         }
 
-        await LoadScheduleAsync(studentId);
+        await LoadScheduleAsync(keys);
     }
 
-    private async Task LoadScheduleAsync(string studentId)
+    private async Task LoadScheduleAsync(List<string> studentKeys)
     {
         var enrollments = await context!.Enrollments
             .Include(e => e.Course)!
@@ -144,7 +146,7 @@
                 .ThenInclude(c => c.Semester)
             .Include(e => e.Course)!
                 .ThenInclude(c => c.Lecture)
-            .Where(e => e.StudentID == studentId)
+            .Where(e => studentKeys.Contains(e.StudentID))
             .ToListAsync();
 
         scheduleEntries.Clear();

@@ -46,7 +46,9 @@ namespace Microsoft.AspNetCore.Routing
                 [FromForm] string returnUrl) =>
             {
                 await signInManager.SignOutAsync();
-                return TypedResults.LocalRedirect($"~/{returnUrl}");
+                
+                // Always redirect to home page after logout to avoid accessing restricted pages
+                return TypedResults.LocalRedirect("~/");
             });
 
             var manageGroup = accountGroup.MapGroup("/Manage").RequireAuthorization();

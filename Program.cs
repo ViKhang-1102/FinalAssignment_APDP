@@ -20,7 +20,8 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ToastQueue>();
-builder.Services.AddSingleton<TimetableService>();
+builder.Services.AddScoped<LecturerWorkspaceService>();
+builder.Services.AddScoped<FileUploadService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -96,12 +97,17 @@ app.MapGet("/api/grades/export", async (IDbContextFactory<ApplicationDbContext> 
         .ToListAsync();
 
     var sb = new StringBuilder();
-    sb.AppendLine("StudentId,CourseId,Midterm,Final,Average,Letter,Note");
+    // Export student name and course name instead of internal IDs for readability
+    sb.AppendLine("StudentName,CourseName,Midterm,Final,Average,Letter,Note");
     foreach (var grade in grades)
     {
+        // Use student name and course name for export
+        var studentName = grade.Student?.Name ?? grade.StudentID;
+        var courseName = grade.Course?.Name ?? grade.CourseID.ToString();
+
         sb.AppendLine(string.Join(',',
-            FormatCsv(grade.StudentID),
-            FormatCsv(grade.CourseID),
+            FormatCsv(studentName),
+            FormatCsv(courseName),
             FormatCsv(grade.MidtermScore),
             FormatCsv(grade.FinalScore),
             FormatCsv(grade.AverageScore),

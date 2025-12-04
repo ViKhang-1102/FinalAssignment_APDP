@@ -4,9 +4,7 @@
 @using System.Linq
 @using FinalAssignemnt_APDP.Constants
 @using FinalAssignemnt_APDP.Data
-@using FinalAssignemnt_APDP.Services
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
-@inject TimetableService TimetableService
 
 <PageTitle>Admin Control Center</PageTitle>
 
@@ -113,27 +111,18 @@
             </div>
             <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-                    <div class="flex items-center gap-2 text-lg font-semibold text-slate-800"><i class="bi bi-calendar3 text-amber-500"></i>Timetable Management</div>
-                    <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600">Admin only</span>
+                    <div class="flex items-center gap-2 text-lg font-semibold text-slate-800"><i class="bi bi-calendar3 text-amber-500"></i>Enrollment Timetable</div>
+                    <span class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600">Powered by enrollments</span>
                 </div>
                 <div class="px-6 py-6 space-y-4">
-                    <p class="text-sm text-slate-500">Draft weekly timetables, map rooms, and share snapshots with lecturers and students.</p>
+                    <p class="text-sm text-slate-500">Capture day, time, and room on each enrollment and the system will surface class schedules for lecturers automatically.</p>
                     <div class="grid gap-3">
-                        <a class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-white font-semibold shadow hover:bg-amber-600" href="@AppRoutes.AdminTimetable"><i class="bi bi-calendar2-week"></i>Manage Timetable</a>
-                        <a class="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500 px-4 py-2 text-amber-600 font-semibold hover:bg-amber-50" href="@AppRoutes.AdminTimetableNew"><i class="bi bi-plus-circle"></i>Create Timeslot</a>
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-white font-semibold shadow hover:bg-amber-600" href="@AppRoutes.Enrollments"><i class="bi bi-people"></i>Open Enrollment Workspace</a>
+                        <a class="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-500 px-4 py-2 text-amber-600 font-semibold hover:bg-amber-50" href="@AppRoutes.EnrollmentsCreate"><i class="bi bi-plus-circle"></i>Add Enrollment</a>
                     </div>
-                    <div>
-                        <span class="text-sm font-semibold text-slate-700">Current week focus:</span>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                            @foreach (var day in summary.ActiveDays)
-                            {
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">@day</span>
-                            }
-                            @if (!summary.ActiveDays.Any())
-                            {
-                                <span class="text-sm text-slate-500">No slots yet</span>
-                            }
-                        </div>
+                    <div class="text-sm text-slate-500">
+                        <p class="font-semibold text-slate-700">Tip</p>
+                        <p>Set the weekly meeting info once per course and every roster entry inherits it—no separate timetable to maintain.</p>
                     </div>
                 </div>
             </div>
@@ -158,7 +147,6 @@
     {
         isLoading = true;
         using var context = await DbFactory.CreateDbContextAsync();
-        var days = await TimetableService.GetActiveDaysAsync();
         summary = new AdminSummary
         {
             Departments = await context.Departments.CountAsync(),
@@ -168,8 +156,7 @@
             Courses = await context.Courses.CountAsync(),
             Enrollments = await context.Enrollments.CountAsync(),
             Users = await context.Users.CountAsync(),
-            Grades = await context.Grades.CountAsync(),
-            ActiveDays = days.Select(day => day.ToString()).ToList()
+            Grades = await context.Grades.CountAsync()
         };
         BuildCards();
         lastRefreshed = DateTime.UtcNow;
@@ -214,7 +201,6 @@
         public int Enrollments { get; set; }
         public int Users { get; set; }
         public int Grades { get; set; }
-        public IEnumerable<string> ActiveDays { get; set; } = Enumerable.Empty<string>();
     }
 
     private record SummaryCard(string Label, int Value, string Route, string Icon);

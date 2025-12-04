@@ -1,33 +1,42 @@
-ï»¿@page "/subjects/details"
+@page "/subjects/details"
+@attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Details</PageTitle>
+<PageTitle>Subject Details</PageTitle>
 
-<h1>Details</h1>
-
-<div>
-    <h2>Subject</h2>
-    <hr />
-    @if (subject is null)
-    {
-        <p><em>Loading...</em></p>
-    }
-    else {
-        <dl class="row">
-            <dt class="col-sm-2">Code</dt>
-            <dd class="col-sm-10">@subject.Code</dd>
-            <dt class="col-sm-2">Name</dt>
-            <dd class="col-sm-10">@subject.Name</dd>
-        </dl>
+@if (subject is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-2xl space-y-6">
         <div>
-            <a href="@($"/subjects/edit?id={subject.Id}")">Edit</a> |
-            <a href="@($"/subjects")">Back to List</a>
+            <h1 class="text-2xl font-semibold text-slate-900">Subject details</h1>
+            <p class="text-sm text-slate-500">Review the information below.</p>
         </div>
-    }
-</div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <dl class="divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Code</dt>
+                    <dd class="col-span-2 font-mono text-slate-900">@subject.Code</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Name</dt>
+                    <dd class="col-span-2 text-slate-900">@subject.Name</dd>
+                </div>
+            </dl>
+            <div class="mt-6 flex items-center gap-3">
+                <a href="@($"/subjects/edit?id={subject.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                <a href="/subjects" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Back to list</a>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private Subject? subject;

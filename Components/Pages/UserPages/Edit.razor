@@ -1,4 +1,5 @@
 @page "/users/edit"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.Extensions.Logging
@@ -9,57 +10,60 @@
 
 <PageTitle>Edit User</PageTitle>
 
-<div class="container-fluid p-4">
-    <div class="d-flex align-items-center mb-4">
-        <a href="/users" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
-        <h1 class="mb-0"><i class="bi bi-pencil text-primary"></i> Edit User</h1>
-    </div>
-
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    @if (User is null)
-                    {
-                        <div>Loading...</div>
-                    }
-                    else
-                    {
-                        <EditForm Model="User" OnValidSubmit="SaveUser" FormName="edit-user" method="post" Enhance>
-                            <DataAnnotationsValidator />
-                            <ValidationSummary class="text-danger" />
-                            <input type="hidden" name="User.Id" value="@User.Id" />
-                            <div class="form-floating mb-3">
-                                <InputText @bind-Value="User.Email" class="form-control" placeholder="name@example.com" />
-                                <label>Email</label>
-                            </div>
-                            <div class="form-floating mb-3">
-                                <InputText @bind-Value="User.Name" class="form-control" placeholder="Full name" />
-                                <label>Name</label>
-                            </div>
-                            <div class="form-floating mb-3">
-                                <InputText @bind-Value="User.StudentId" class="form-control" placeholder="Student Id" />
-                                <label>Student ID</label>
-                            </div>
-                            <div class="mb-3">
-                                <label>Role</label>
-                                <InputSelect @bind-Value="SelectedRole" class="form-select" name="SelectedRole">
-                                    <option value="">-- Select role --</option>
-                                    @foreach (var r in Roles)
-                                    {<option value="@r">@r</option>}
-                                </InputSelect>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-primary" type="submit">Save</button>
-                                <a class="btn btn-outline-secondary" href="/users">Cancel</a>
-                            </div>
-                        </EditForm>
-                    }
-                </div>
+@if (User is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-3xl space-y-6">
+        <div class="flex items-center gap-4">
+            <a href="/users" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Back</a>
+            <div>
+                <h1 class="text-2xl font-semibold text-slate-900">Edit user</h1>
+                <p class="text-sm text-slate-500">Update the profile and role.</p>
             </div>
         </div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <EditForm Model="User" OnValidSubmit="SaveUser" FormName="edit-user" method="post" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary class="mb-4 text-sm text-rose-600" />
+                <input type="hidden" name="User.Id" value="@User.Id" />
+
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-1 md:col-span-2">
+                        <label class="text-sm font-medium text-slate-700">Email</label>
+                        <InputText @bind-Value="User.Email" class="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate-700">Full name</label>
+                        <InputText @bind-Value="User.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-sm font-medium text-slate-700">Student ID</label>
+                        <InputText @bind-Value="User.StudentId" class="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                    </div>
+                    <div class="space-y-1 md:col-span-2">
+                        <label class="text-sm font-medium text-slate-700">Role</label>
+                        <InputSelect @bind-Value="SelectedRole" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" name="SelectedRole">
+                            <option value="">-- Select role --</option>
+                            @foreach (var r in Roles)
+                            {
+                                <option value="@r">@r</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center gap-3">
+                    <button class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500" type="submit">Save changes</button>
+                    <a class="text-sm font-semibold text-slate-600 hover:text-slate-900" href="/users">Cancel</a>
+                </div>
+            </EditForm>
+        </div>
     </div>
-</div>
+}
 
 @code {
     [SupplyParameterFromQuery]

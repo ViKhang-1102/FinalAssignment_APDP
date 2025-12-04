@@ -1,44 +1,73 @@
 ﻿@page "/enrollments/details"
+@attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Components.Enrollments
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
 <PageTitle>Enrollment Details</PageTitle>
 
-<div class="@UiClasses.PageShell">
-    <div>
-        <p class="@UiClasses.SectionTag">Assignments</p>
-        <h1 class="@UiClasses.SectionTitle">Enrollment Details</h1>
-        <p class="@UiClasses.SectionSubtitle">See which student is mapped to which course.</p>
-    </div>
-
-    @if (enrollment is null)
-    {
-        <div class="@UiClasses.Card text-center text-slate-500">
-            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading enrollment...</span>
+@if (enrollment is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-3xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Enrollment details</h1>
+            <p class="text-sm text-slate-500">Review the student-course assignment below.</p>
         </div>
-    }
-    else
-    {
-        <div class="@UiClasses.Card">
-            <dl class="@UiClasses.DetailList">
-                <div>
-                    <dt class="@UiClasses.Label">Student</dt>
-                    <dd class="text-base text-slate-900">@GetStudentLabel()</dd>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <dl class="divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Student</dt>
+                    <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatStudent(enrollment.Student, enrollment.StudentID)</dd>
                 </div>
-                <div>
-                    <dt class="@UiClasses.Label">Course</dt>
-                    <dd class="text-base text-slate-900">@enrollment.Course?.Name ?? "Unassigned"</dd>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Course</dt>
+                    <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatCourse(enrollment.Course, enrollment.CourseID)</dd>
                 </div>
+                @if (!string.IsNullOrWhiteSpace(enrollment.DayOfWeek))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Days</dt>
+                        <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatDayPattern(enrollment.DayOfWeek)</dd>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(enrollment.TimeSlot))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Time</dt>
+                        <dd class="col-span-2 text-slate-900">@enrollment.TimeSlot</dd>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(enrollment.Room))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Room</dt>
+                        <dd class="col-span-2 text-slate-900">@enrollment.Room</dd>
+                    </div>
+                }
+                @if (enrollment.TotalSlots is not null)
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Total slots</dt>
+                        <dd class="col-span-2 text-slate-900">@enrollment.TotalSlots</dd>
+                    </div>
+                }
             </dl>
-            <div class="flex flex-wrap gap-3 pt-4">
-                <a class="@UiClasses.PrimaryButton" href="@AppRoutes.EnrollmentsEdit(enrollment.Id)"><i class="bi bi-pencil"></i> Edit</a>
-                <a class="@UiClasses.GhostButton" href="@AppRoutes.Enrollments"><i class="bi bi-arrow-left"></i> Back to list</a>
+
+            <div class="mt-6 flex items-center gap-3">
+                <a href="@($"/enrollments/edit?id={enrollment.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                <a href="/enrollments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Back to list</a>
             </div>
         </div>
-    }
-</div>
+    </div>
+}
 
 @code {
     private Enrollment? enrollment;
@@ -52,6 +81,9 @@
         enrollment = await context.Enrollments
             .Include(e => e.Student)
             .Include(e => e.Course)
+                .ThenInclude(c => c.Subject)
+            .Include(e => e.Course)
+                .ThenInclude(c => c.Semester)
             .FirstOrDefaultAsync(m => m.Id == Id);
 
         if (enrollment is null)
@@ -60,14 +92,4 @@
         }
     }
 
-    private string GetStudentLabel()
-    {
-        if (enrollment?.Student is null)
-        {
-            return enrollment?.StudentID ?? "Unassigned";
-        }
-
-        var displayId = enrollment.Student.StudentId ?? enrollment.Student.Email ?? enrollment.Student.UserName ?? enrollment.Student.Id;
-        return string.IsNullOrWhiteSpace(enrollment.Student.Name) ? displayId : $"{enrollment.Student.Name} ({displayId})";
-    }
 }

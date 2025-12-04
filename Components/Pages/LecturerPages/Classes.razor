@@ -1,0 +1,100 @@
+@page "/lecturer/classes"
+@attribute [Authorize(Roles = "Lecture,Lecturer")]
+@using System
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Services
+@using FinalAssignemnt_APDP.Components.Pages.LecturerPages
+@inherits LecturerTeachingPageBase
+
+<PageTitle>My Classes</PageTitle>
+
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mb-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Class Schedule</p>
+            <h1 class="text-3xl font-bold text-slate-900">Classrooms you lead</h1>
+            <p class="text-sm text-slate-500">View the meeting details for every course assigned to you. This workspace is read-only so you can focus on teaching.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300" href="@AppRoutes.LecturerWorkspace">
+                <span class="bi bi-arrow-left"></span> Back to workspace
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            @ErrorMessage
+        </div>
+    }
+    else if (IsLoading)
+    {
+        <div class="flex items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white/80 py-16 text-slate-500">
+            <div class="flex items-center gap-3"><span class="spinner-border spinner-border-sm"></span> Loading class data...</div>
+        </div>
+    }
+    else if (!Workspace.HasCourses)
+    {
+        <div class="rounded-xl border border-dashed border-slate-200 bg-white/80 px-6 py-10 text-center">
+            <p class="text-lg font-semibold text-slate-800">No courses assigned</p>
+            <p class="mt-2 text-sm text-slate-500">Administrators will add you to a class when a section needs your expertise.</p>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-6">
+            @foreach (var course in Workspace.Courses)
+            {
+                var meetings = Workspace.CourseMeetings.TryGetValue(course.Id, out var schedule)
+                    ? schedule
+                    : Array.Empty<LecturerClassMeeting>();
+                <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">@course.Semester</p>
+                            <h2 class="text-2xl font-semibold text-slate-900">@course.Name</h2>
+                            <p class="text-sm text-slate-500">@course.Subject · @course.ScheduleSummary</p>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600">
+                                <span class="bi bi-people"></span> @course.StudentCount students
+                            </span>
+                        </div>
+                    </div>
+
+                    @if (meetings.Count == 0)
+                    {
+                        <div class="mt-6 rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
+                            No repeating class schedule stored yet. Once enrollment records capture day/time/room details they will appear automatically.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mt-6 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                    <tr>
+                                        <th class="px-4 py-3">Day</th>
+                                        <th class="px-4 py-3">Time</th>
+                                        <th class="px-4 py-3">Room</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @foreach (var meeting in meetings)
+                                    {
+                                        <tr class="hover:bg-slate-50/70">
+                                            <td class="px-4 py-3 text-slate-700">@meeting.Day</td>
+                                            <td class="px-4 py-3 text-slate-700">@meeting.Time</td>
+                                            <td class="px-4 py-3 text-slate-700">@meeting.Room</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    }
+</div>

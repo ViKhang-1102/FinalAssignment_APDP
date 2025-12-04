@@ -128,25 +128,27 @@
             appUser = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
         }
 
-        var studentId = appUser?.StudentId ?? appUser?.UserName ?? user.Identity.Name;
+        var keys = new List<string?> { appUser?.Id, appUser?.StudentId, appUser?.UserName, user.Identity?.Name }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!).ToList();
 
-        if (string.IsNullOrWhiteSpace(studentId))
+        if (!keys.Any())
         {
             return;
         }
 
-        await LoadGradesAsync(studentId);
+        await LoadGradesAsync(keys);
         ComputeSummaries();
     }
 
-    private async Task LoadGradesAsync(string studentId)
+    private async Task LoadGradesAsync(List<string> studentKeys)
     {
         var results = await context!.Grades
             .Include(g => g.Course)!
                 .ThenInclude(c => c.Subject)
             .Include(g => g.Course)!
                 .ThenInclude(c => c.Lecture)
-            .Where(g => g.StudentID == studentId)
+            .Where(g => studentKeys.Contains(g.StudentID))
             .Select(g => new GradeViewModel
             {
                 CourseLabel = g.Course != null

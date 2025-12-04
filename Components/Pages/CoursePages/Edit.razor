@@ -1,79 +1,96 @@
 ﻿@page "/courses/edit"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
 <PageTitle>Edit Course</PageTitle>
 
-<div class="@UiClasses.PageShell">
-    <div>
-        <p class="@UiClasses.SectionTag">Courses</p>
-        <h1 class="@UiClasses.SectionTitle">Edit Course</h1>
-        <p class="@UiClasses.SectionSubtitle">Update the links between this course, its subject, semester, and lecturer.</p>
-    </div>
+<div class="min-h-screen bg-slate-50/40 p-4 sm:p-6">
+    <div class="mx-auto max-w-2xl">
+        @if (Course is null)
+        {
+            <div class="text-center py-12">
+                <p class="text-slate-500">Loading…</p>
+            </div>
+        }
+        else
+        {
+            <div class="mb-6 flex items-center gap-3">
+                <a href="courses" class="inline-flex items-center justify-center rounded-full border border-slate-200 w-10 h-10 hover:bg-slate-50">
+                    <span class="text-lg">←</span>
+                </a>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Edit Course</p>
+                    <h1 class="text-2xl font-semibold text-slate-900">@Course.Name</h1>
+                </div>
+            </div>
 
-    @if (Course is null)
-    {
-        <div class="@UiClasses.Card text-center text-slate-500">
-            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading course...</span>
-        </div>
-    }
-    else
-    {
-        <div class="@UiClasses.Card">
-            <EditForm method="post" Model="Course" OnValidSubmit="UpdateCourse" FormName="edit" Enhance class="space-y-5">
-                <DataAnnotationsValidator />
-                <ValidationSummary class="text-rose-500 text-sm" role="alert" />
-                <input type="hidden" name="Course.Id" value="@Course.Id" />
+            <div class="rounded-2xl bg-white p-6 shadow-sm">
+                <EditForm method="post" Model="Course" OnValidSubmit="UpdateCourse" FormName="edit" Enhance class="space-y-6">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-rose-500 text-sm" role="alert" />
+                    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+                    {
+                        <p class="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">@ErrorMessage</p>
+                    }
 
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div class="@UiClasses.FieldStack">
-                        <label for="name" class="@UiClasses.Label">Name</label>
-                        <InputText id="name" @bind-Value="Course.Name" class="@UiClasses.Input" />
-                        <ValidationMessage For="() => Course.Name" class="text-rose-500 text-xs" />
+                    <input type="hidden" name="Course.Id" value="@Course.Id" />
+
+                    <div>
+                        <label for="name" class="block text-sm font-semibold text-slate-900">Course Name</label>
+                        <InputText id="name" @bind-Value="Course.Name" placeholder="Enter course name" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm placeholder-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                        <ValidationMessage For="() => Course.Name" class="mt-1 text-xs text-rose-600" />
                     </div>
-                    <div class="@UiClasses.FieldStack">
-                        <label for="subjectid" class="@UiClasses.Label">Subject</label>
-                        <InputSelect id="subjectid" @bind-Value="Course.SubjectID" class="@UiClasses.Input">
+
+                    <div>
+                        <label for="subjectid" class="block text-sm font-semibold text-slate-900">Subject</label>
+                        <InputSelect id="subjectid" @bind-Value="Course.SubjectID" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">-- Select a subject --</option>
                             @foreach (var subject in Subjects)
                             {
                                 <option value="@subject.Id">@subject.Name</option>
                             }
                         </InputSelect>
-                        <ValidationMessage For="() => Course.SubjectID" class="text-rose-500 text-xs" />
+                        <ValidationMessage For="() => Course.SubjectID" class="mt-1 text-xs text-rose-600" />
                     </div>
-                    <div class="@UiClasses.FieldStack">
-                        <label for="semesterid" class="@UiClasses.Label">Semester</label>
-                        <InputSelect id="semesterid" @bind-Value="Course.SemesterID" class="@UiClasses.Input">
+
+                    <div>
+                        <label for="semesterid" class="block text-sm font-semibold text-slate-900">Semester</label>
+                        <InputSelect id="semesterid" @bind-Value="Course.SemesterID" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">-- Select a semester --</option>
                             @foreach (var semester in Semesters)
                             {
                                 <option value="@semester.Id">@semester.Name</option>
                             }
                         </InputSelect>
-                        <ValidationMessage For="() => Course.SemesterID" class="text-rose-500 text-xs" />
+                        <ValidationMessage For="() => Course.SemesterID" class="mt-1 text-xs text-rose-600" />
                     </div>
-                    <div class="@UiClasses.FieldStack">
-                        <label for="lectureid" class="@UiClasses.Label">Lecturer</label>
-                        <InputSelect id="lectureid" @bind-Value="Course.LectureID" class="@UiClasses.Input">
+
+                    <div>
+                        <label for="lectureid" class="block text-sm font-semibold text-slate-900">Lecturer</label>
+                        <InputSelect id="lectureid" @bind-Value="Course.LectureID" class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                            <option value="">-- Select a lecturer --</option>
                             @foreach (var lecturer in Lecturers)
                             {
                                 <option value="@lecturer.Id">@GetUserLabel(lecturer)</option>
                             }
                         </InputSelect>
-                        <ValidationMessage For="() => Course.LectureID" class="text-rose-500 text-xs" />
+                        <ValidationMessage For="() => Course.LectureID" class="mt-1 text-xs text-rose-600" />
                     </div>
-                </div>
 
-                <div class="flex flex-wrap gap-3 pt-2">
-                    <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Changes</button>
-                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Courses"><i class="bi bi-arrow-left"></i> Cancel</a>
-                </div>
-            </EditForm>
-        </div>
-    }
-
-    <a class="@UiClasses.LinkButton" href="@AppRoutes.Courses"><i class="bi bi-arrow-left"></i> Back to courses</a>
+                    <div class="flex items-center justify-between gap-3 border-t border-slate-100 pt-6">
+                        <a href="courses" class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Cancel</a>
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">
+                            <span>✓</span> Save Changes
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+    </div>
 </div>
 
 @code {
@@ -86,20 +103,16 @@
     private List<Subject> Subjects { get; set; } = new();
     private List<Semester> Semesters { get; set; } = new();
     private List<ApplicationUser> Lecturers { get; set; } = new();
+    private string? ErrorMessage { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
+        Subjects = await context.Subjects.OrderBy(s => s.Name).ToListAsync();
+        Semesters = await context.Semesters.OrderBy(s => s.Name).ToListAsync();
+        Lecturers = await context.Users.OrderBy(u => u.Name ?? u.Email ?? u.UserName).ToListAsync();
+
         Course ??= await context.Courses.FirstOrDefaultAsync(m => m.Id == Id);
-        Subjects = await context.Subjects
-            .OrderBy(s => s.Name)
-            .ToListAsync();
-        Semesters = await context.Semesters
-            .OrderBy(s => s.Name)
-            .ToListAsync();
-        Lecturers = await context.Users
-            .OrderBy(u => u.Name ?? u.Email ?? u.UserName)
-            .ToListAsync();
 
         if (Course is null)
         {
@@ -107,8 +120,6 @@
         }
     }
 
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more information, see https://learn.microsoft.com/aspnet/core/blazor/forms/#mitigate-overposting-attacks.
     private async Task UpdateCourse()
     {
         using var context = DbFactory.CreateDbContext();
@@ -120,7 +131,7 @@
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!CourseExists(Course!.Id))
+            if (!await context.Courses.AnyAsync(e => e.Id == Course!.Id))
             {
                 NavigationManager.NavigateTo("notfound");
             }
@@ -130,19 +141,13 @@
             }
         }
 
-        NavigationManager.NavigateTo(AppRoutes.Courses);
-    }
-
-    private bool CourseExists(int id)
-    {
-        using var context = DbFactory.CreateDbContext();
-        return context.Courses.Any(e => e.Id == id);
+        NavigationManager.NavigateTo("courses");
     }
 
     private static string GetUserLabel(ApplicationUser user)
     {
         var identity = user.Name;
         var secondary = user.Email ?? user.UserName ?? user.Id;
-        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity} ({secondary})";
+        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity}";
     }
 }

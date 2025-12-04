@@ -1,0 +1,226 @@
+@page "/lecturer/course-info"
+@attribute [Authorize(Roles = "Lecture,Lecturer")]
+@using System
+@using System.Linq
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Course Info</PageTitle>
+
+@if (isLoading)
+{
+    <div class="rounded-xl border border-dashed border-slate-200 bg-white/80 px-6 py-10 text-center text-slate-500">
+        Loading course details…
+    </div>
+}
+else if (course is null)
+{
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center text-rose-700">
+        Course not found or you do not have access.
+        <div class="mt-4">
+            <a class="text-sm font-semibold text-rose-800 hover:underline" href="@AppRoutes.LecturerWorkspace">Back to lecturer workspace</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="mx-auto max-w-4xl space-y-8">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-emerald-500">Course overview</p>
+                <h1 class="text-3xl font-bold text-slate-900">@course.Name</h1>
+                <p class="text-sm text-slate-500">@course.Subject?.Name · @course.Semester?.Name</p>
+            </div>
+            <a class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300" href="@AppRoutes.LecturerWorkspace">
+                <span class="bi bi-arrow-left"></span> Back to workspace
+            </a>
+        </div>
+
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <h2 class="text-xl font-semibold text-slate-900">Key details</h2>
+            <dl class="mt-4 divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Course name</dt>
+                    <dd class="col-span-2 text-slate-900">@course.Name</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Subject</dt>
+                    <dd class="col-span-2 text-slate-900">@course.Subject?.Name</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Semester</dt>
+                    <dd class="col-span-2 text-slate-900">@course.Semester?.Name</dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Lecturer</dt>
+                    <dd class="col-span-2 text-slate-900">@GetLecturerDisplayName()</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
+                <h2 class="text-xl font-semibold text-slate-900">Capacity snapshot</h2>
+                <span class="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">@enrollmentCount current</span>
+            </div>
+            <div class="grid gap-6 md:grid-cols-3">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Total slots</p>
+                    <p class="text-3xl font-semibold text-slate-900">@(totalSlots?.ToString() ?? "—")</p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Enrolled students</p>
+                    <p class="text-3xl font-semibold text-slate-900">@enrollmentCount</p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-400">Remaining slots</p>
+                    <p class="text-3xl font-semibold text-slate-900">@(remainingSlots?.ToString() ?? "—")</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-slate-900">Meeting schedule</h2>
+                <span class="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">@scheduleSummary.Count entries</span>
+            </div>
+            @if (scheduleSummary.Count == 0)
+            {
+                <div class="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
+                    No day/time information captured for this course yet.
+                </div>
+            }
+            else
+            {
+                <ul class="space-y-3 text-sm">
+                    @foreach (var item in scheduleSummary)
+                    {
+                        <li class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-slate-700">
+                            <span class="bi bi-calendar-week text-emerald-500"></span>
+                            <span>@item</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private Course? course;
+    private int enrollmentCount;
+    private int? totalSlots;
+    private int? remainingSlots;
+    private List<string> scheduleSummary = new();
+    private bool isLoading = true;
+
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        await using var context = await DbFactory.CreateDbContextAsync();
+
+        course = await context.Courses
+            .Include(c => c.Subject)
+            .Include(c => c.Semester)
+            .Include(c => c.Lecture)
+            .FirstOrDefaultAsync(c => c.Id == Id);
+
+        if (course is null)
+        {
+            isLoading = false;
+            NavigationManager.NavigateTo(AppRoutes.LecturerWorkspace);
+            return;
+        }
+
+        var enrollments = await context.Enrollments
+            .AsNoTracking()
+            .Where(e => e.CourseID == Id)
+            .ToListAsync();
+
+        enrollmentCount = enrollments.Count;
+        totalSlots = enrollments
+            .Select(e => e.TotalSlots)
+            .Where(slot => slot.HasValue)
+            .Select(slot => slot!.Value)
+            .DefaultIfEmpty()
+            .Max();
+
+        if (totalSlots.HasValue)
+        {
+            remainingSlots = Math.Max(totalSlots.Value - enrollmentCount, 0);
+        }
+
+        scheduleSummary = BuildScheduleSummary(enrollments);
+        isLoading = false;
+    }
+
+    private string GetLecturerDisplayName()
+    {
+        if (course?.Lecture is null)
+        {
+            return course?.LectureID ?? "-";
+        }
+
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(course.Lecture.Name))
+        {
+            parts.Add(course.Lecture.Name!);
+        }
+
+        if (!string.IsNullOrWhiteSpace(course.Lecture.Email))
+        {
+            parts.Add(course.Lecture.Email!);
+        }
+
+        return parts.Count == 0 ? (course.LectureID ?? "-") : string.Join(" · ", parts);
+    }
+
+    private static List<string> BuildScheduleSummary(IEnumerable<Enrollment> enrollments)
+    {
+        var labels = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var enrollment in enrollments)
+        {
+            var time = string.IsNullOrWhiteSpace(enrollment.TimeSlot) ? string.Empty : enrollment.TimeSlot!;
+            var days = WeekdayCatalog.FromStoredValue(enrollment.DayOfWeek);
+
+            if (days.Count == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(time))
+                {
+                    AddLabel($"TBD {time}".Trim());
+                }
+
+                continue;
+            }
+
+            foreach (var day in days)
+            {
+                var label = string.IsNullOrWhiteSpace(time) ? day.Display : FormattableString.Invariant($"{day.Display} {time}");
+                AddLabel(label);
+            }
+        }
+
+        labels.Sort(StringComparer.OrdinalIgnoreCase);
+        return labels;
+
+        void AddLabel(string value)
+        {
+            if (seen.Add(value))
+            {
+                labels.Add(value);
+            }
+        }
+    }
+}

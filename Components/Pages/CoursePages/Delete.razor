@@ -1,57 +1,66 @@
 ﻿@page "/courses/delete"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
 <PageTitle>Delete Course</PageTitle>
 
-<div class="@UiClasses.PageShell">
-    <div>
-        <p class="@UiClasses.SectionTag">Courses</p>
-        <h1 class="@UiClasses.SectionTitle">Delete Course</h1>
-        <p class="@UiClasses.SectionSubtitle">Confirm removal of this course record from the catalog.</p>
-    </div>
-
-    @if (course is null)
-    {
-        <div class="@UiClasses.Card text-center text-slate-500">
-            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading course...</span>
-        </div>
-    }
-    else
-    {
-        <div class="@UiClasses.Card space-y-5">
-            <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                <i class="bi bi-exclamation-triangle-fill text-amber-500 me-2"></i>
-                This action cannot be undone. Students assigned to this course will lose the linkage.
+<div class="min-h-screen bg-slate-50/40 p-4 sm:p-6">
+    <div class="mx-auto max-w-2xl">
+        @if (course is null)
+        {
+            <div class="rounded-2xl bg-white p-6 text-center text-slate-500">
+                <p class="text-sm">Loading course…</p>
             </div>
-            <dl class="@UiClasses.DetailList">
+        }
+        else
+        {
+            <div class="mb-6 flex items-center gap-3">
+                <a href="courses" class="inline-flex items-center justify-center rounded-full border border-slate-200 w-10 h-10 hover:bg-slate-50">
+                    <span class="text-lg">←</span>
+                </a>
                 <div>
-                    <dt class="@UiClasses.Label">Name</dt>
-                    <dd class="text-base text-slate-900">@course.Name</dd>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Delete Course</p>
+                    <h1 class="text-2xl font-semibold text-slate-900">@course.Name</h1>
                 </div>
-                <div>
-                    <dt class="@UiClasses.Label">Subject</dt>
-                    <dd class="text-base text-slate-900">@course.Subject?.Name ?? "Unassigned"</dd>
+            </div>
+
+            <div class="rounded-2xl bg-white p-6 shadow-sm">
+                <div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 p-4">
+                    <p class="text-sm text-rose-800">
+                        <span class="font-semibold">⚠️ Warning:</span> This action cannot be undone. Students assigned to this course will lose the linkage.
+                    </p>
                 </div>
-                <div>
-                    <dt class="@UiClasses.Label">Semester</dt>
-                    <dd class="text-base text-slate-900">@course.Semester?.Name ?? "Unassigned"</dd>
-                </div>
-                <div>
-                    <dt class="@UiClasses.Label">Lecturer</dt>
-                    <dd class="text-base text-slate-900">@GetLecturerLabel()</dd>
-                </div>
-            </dl>
-            <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance>
-                <div class="flex flex-wrap gap-3">
-                    <button type="submit" class="@UiClasses.DangerButton" disabled="@(course is null)"><i class="bi bi-trash"></i> Delete course</button>
-                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Courses"><i class="bi bi-arrow-left"></i> Back to list</a>
-                </div>
-            </EditForm>
-        </div>
-    }
+
+                <dl class="mb-6 grid gap-6 border-b border-slate-100 pb-6">
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Subject</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@(course.Subject?.Name ?? "Unassigned")</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Semester</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@(course.Semester?.Name ?? "Unassigned")</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Lecturer</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@GetLecturerLabel()</dd>
+                    </div>
+                </dl>
+
+                <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance class="space-y-6">
+                    <div class="flex items-center justify-between gap-3">
+                        <a href="courses" class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Cancel</a>
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500" disabled="@(course is null)">
+                            <span>🗑</span> Delete Course
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+    </div>
 </div>
 
 @code {
@@ -80,7 +89,7 @@
         using var context = DbFactory.CreateDbContext();
         context.Courses.Remove(course!);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo(AppRoutes.Courses);
+        NavigationManager.NavigateTo("courses");
     }
 
     private string GetLecturerLabel()
@@ -92,6 +101,6 @@
 
         var identity = course.Lecture.Name;
         var secondary = course.Lecture.Email ?? course.Lecture.UserName ?? course.Lecture.Id;
-        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity} ({secondary})";
+        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity}";
     }
 }

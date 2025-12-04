@@ -128,10 +128,14 @@
             return;
         }
 
-        await LoadCoursesAsync(studentId);
+        var keys = new List<string?> { appUser?.Id, appUser?.StudentId, appUser?.UserName, user.Identity?.Name }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!).ToList();
+
+        await LoadCoursesAsync(keys);
     }
 
-    private async Task LoadCoursesAsync(string studentId)
+    private async Task LoadCoursesAsync(List<string> studentKeys)
     {
         var enrollments = await context!.Enrollments
             .Include(e => e.Course)!
@@ -140,7 +144,7 @@
                 .ThenInclude(c => c.Semester)
             .Include(e => e.Course)!
                 .ThenInclude(c => c.Lecture)
-            .Where(e => e.StudentID == studentId)
+            .Where(e => studentKeys.Contains(e.StudentID))
             .Select(e => new CourseDetailView
             {
                 CourseName = e.Course != null ? e.Course.Name : "Updating soon",

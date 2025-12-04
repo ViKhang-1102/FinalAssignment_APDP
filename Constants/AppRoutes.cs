@@ -13,9 +13,17 @@ namespace FinalAssignemnt_APDP.Constants
         public const string Register = "/Account/Register";
         public const string Logout = "/Account/Logout";
         public const string ManageAccount = "/Account/Manage";
+        public const string Profile = "/profile";
+        public const string ProfileForgotPassword = "/profile/forgot-password";
 
         // Admin & Lecturer Routes
         public const string Home = "/";
+        public const string LecturerWorkspace = "/lecturer";
+        public const string LecturerClasses = "/lecturer/classes";
+        public const string LecturerCourseRosterPage = "/lecturer/course-classes";
+        public const string LecturerCourseInfoPage = "/lecturer/course-info";
+        public const string LecturerTimetable = "/lecturer/timetable";
+        public const string LecturerStudents = "/lecturer/students";
         public const string Departments = "/departments";
         public const string DepartmentsCreate = "/departments/create";
         public const string Courses = "/courses";
@@ -28,14 +36,13 @@ namespace FinalAssignemnt_APDP.Constants
         public const string SubjectsCreate = "/subjects/create";
         public const string Enrollments = "/enrollments";
         public const string EnrollmentsCreate = "/enrollments/create";
+        public const string EnrollmentsAssignStudents = "/enrollments/assign-students";
         public const string Users = "/users";
         public const string UsersCreate = "/users/create";
         public const string AdminDashboard = "/admin";
         public const string AdminGrades = "/admin/grades";
         public const string AdminGradesCreate = "/admin/grades/create";
         public const string AdminGradesImport = "/admin/grades/import";
-        public const string AdminTimetable = "/admin/timetable";
-        public const string AdminTimetableNew = "/admin/timetable/edit";
 
         // Student Routes
         public const string StudentDashboard = "/student/dashboard";
@@ -82,11 +89,11 @@ namespace FinalAssignemnt_APDP.Constants
         public static string UsersDelete(string id) => $"/users/delete?id={id}";
 
         // Grade Routes
-        public static string AdminGradesEdit(int id) => $"/admin/grades/edit?id={id}";
         public static string AdminGradesDelete(int id) => $"/admin/grades/delete?id={id}";
 
-        // Timetable Routes
-        public static string AdminTimetableEdit(Guid id) => $"/admin/timetable/edit?id={id}";
+        // Lecturer course detail routes
+        public static string LecturerCourseClasses(int courseId) => $"{LecturerCourseRosterPage}?id={courseId}";
+        public static string LecturerCourseInfo(int courseId) => $"{LecturerCourseInfoPage}?id={courseId}";
 
         // Login with return URL
         public static string LoginWithReturnUrl(string returnUrl) => 

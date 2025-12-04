@@ -170,11 +170,13 @@ namespace FinalAssignemnt_APDP.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StudentID")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("TimeSlot")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TotalSlots")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -199,6 +201,9 @@ namespace FinalAssignemnt_APDP.Migrations
                     b.Property<int>("CourseID")
                         .HasColumnType("int");
 
+                    b.Property<int>("FinalEditCount")
+                        .HasColumnType("int");
+
                     b.Property<double?>("FinalScore")
                         .HasColumnType("float");
 
@@ -207,6 +212,9 @@ namespace FinalAssignemnt_APDP.Migrations
 
                     b.Property<string>("LetterGrade")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("MidtermEditCount")
+                        .HasColumnType("int");
 
                     b.Property<double?>("MidtermScore")
                         .HasColumnType("float");
@@ -217,6 +225,15 @@ namespace FinalAssignemnt_APDP.Migrations
                     b.Property<string>("StudentID")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("UploadedFileDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UploadedFileName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UploadedFileStoredPath")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -458,8 +475,7 @@ namespace FinalAssignemnt_APDP.Migrations
                     b.HasOne("FinalAssignemnt_APDP.Data.ApplicationUser", "Student")
                         .WithMany()
                         .HasForeignKey("StudentID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Course");
 

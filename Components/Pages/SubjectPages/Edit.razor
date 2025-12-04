@@ -1,47 +1,50 @@
-Ôªø@page "/subjects/edit"
+@page "/subjects/edit"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 
-<PageTitle>Edit</PageTitle>
+<PageTitle>Edit Subject</PageTitle>
 
-<h1>Edit</h1>
-
-<h2>Subject</h2>
-<hr />
 @if (Subject is null)
 {
-    <p><em>Loading...</em></p>
+    <p class="text-slate-500">LoadingÖ</p>
 }
 else
 {
-    <div class="row">
-        <div class="col-md-4">
+    <div class="max-w-2xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Edit Subject</h1>
+            <p class="text-sm text-slate-500">Update the code or name and save.</p>
+        </div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
             <EditForm method="post" Model="Subject" OnValidSubmit="UpdateSubject" FormName="edit" Enhance>
                 <DataAnnotationsValidator />
-                <ValidationSummary role="alert"/>
+                <ValidationSummary role="alert" class="mb-4 text-sm text-rose-600" />
                 <input type="hidden" name="Subject.Id" value="@Subject.Id" />
-                <div class="mb-3">
-                    <label for="code" class="form-label">Code:</label>
-                    <InputText id="code" @bind-Value="Subject.Code" class="form-control" />
-                    <ValidationMessage For="() => Subject.Code" class="text-danger" />
+                <div class="grid gap-4 md:grid-cols-2">
+                    <div class="space-y-1">
+                        <label for="code" class="text-sm font-medium text-slate-700">Code</label>
+                        <InputText id="code" @bind-Value="Subject.Code" class="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                        <ValidationMessage For="() => Subject.Code" class="text-sm text-rose-600" />
+                    </div>
+                    <div class="space-y-1">
+                        <label for="name" class="text-sm font-medium text-slate-700">Name</label>
+                        <InputText id="name" @bind-Value="Subject.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                        <ValidationMessage For="() => Subject.Name" class="text-sm text-rose-600" />
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="name" class="form-label">Name:</label>
-                    <InputText id="name" @bind-Value="Subject.Name" class="form-control" />
-                    <ValidationMessage For="() => Subject.Name" class="text-danger" />
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Save</button>
+                    <a href="/subjects" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
-                <button type="submit" class="btn btn-primary">Save</button>
             </EditForm>
         </div>
     </div>
 }
-
-<div>
-    <a href="/subjects">Back to List</a>
-</div>
 
 @code {
     [SupplyParameterFromQuery]
@@ -82,7 +85,7 @@ else
             }
         }
 
-        Toasts.Enqueue("C·∫≠p nh·∫≠t m√¥n h·ªçc th√†nh c√¥ng", FinalAssignemnt_APDP.Services.ToastType.Success);
+        Toasts.Enqueue("C?p nh?t mÙn h?c th‡nh cÙng", FinalAssignemnt_APDP.Services.ToastType.Success);
         NavigationManager.NavigateTo("/subjects");
     }
 

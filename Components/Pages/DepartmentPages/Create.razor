@@ -1,36 +1,35 @@
-ï»¿@page "/departments/create"
+@page "/departments/create"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 
 <PageTitle>Create Department</PageTitle>
 
-<div class="@UiClasses.PageShell">
+<div class="max-w-2xl space-y-6">
     <div>
-        <p class="@UiClasses.SectionTag">Structure</p>
-        <h1 class="@UiClasses.SectionTitle">Create Department</h1>
-        <p class="@UiClasses.SectionSubtitle">Register a new faculty or administrative unit.</p>
+        <h1 class="text-2xl font-semibold text-slate-900">Create Department</h1>
+        <p class="text-sm text-slate-500">Provide the information below to add a new department.</p>
     </div>
 
-    <div class="@UiClasses.Card">
-        <EditForm method="post" Model="Department" OnValidSubmit="AddDepartment" FormName="create" Enhance class="space-y-5">
+    <div class="rounded-2xl bg-white p-6 shadow-sm">
+        <EditForm method="post" Model="Department" OnValidSubmit="AddDepartment" FormName="create" Enhance>
             <DataAnnotationsValidator />
-            <ValidationSummary class="text-rose-500 text-sm" role="alert" />
-            <div class="@UiClasses.FieldStack">
-                <label for="name" class="@UiClasses.Label">Name</label>
-                <InputText id="name" @bind-Value="Department.Name" class="@UiClasses.Input" />
-                <ValidationMessage For="() => Department.Name" class="text-rose-500 text-xs" />
+            <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
+            <div class="space-y-1">
+                <label for="name" class="text-sm font-medium text-slate-700">Name</label>
+                <InputText id="name" @bind-Value="Department.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
+                <ValidationMessage For="() => Department.Name" class="text-sm text-rose-600" />
             </div>
-            <div class="flex flex-wrap gap-3">
-                <button type="submit" class="@UiClasses.PrimaryButton"><i class="bi bi-save"></i> Save Department</button>
-                <a class="@UiClasses.GhostButton" href="@AppRoutes.Departments"><i class="bi bi-arrow-left"></i> Cancel</a>
+            <div class="mt-6 flex items-center gap-3">
+                <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Create</button>
+                <a href="/departments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
             </div>
         </EditForm>
     </div>
-
-    <a class="@UiClasses.LinkButton" href="@AppRoutes.Departments"><i class="bi bi-arrow-left"></i> Back to departments</a>
 </div>
 
 @code {
@@ -42,7 +41,7 @@
         using var context = DbFactory.CreateDbContext();
         context.Departments.Add(Department);
         await context.SaveChangesAsync();
-        Toasts.Enqueue("ThÃªm phÃ²ng ban thÃ nh cÃ´ng", FinalAssignemnt_APDP.Services.ToastType.Success);
+        Toasts.Enqueue("Thêm phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
         NavigationManager.NavigateTo(AppRoutes.Departments);
     }
 }

@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 @inject NavigationManager NavigationManager
 @using FinalAssignemnt_APDP.Constants
@@ -13,127 +13,128 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
+    
+        <!-- Lecture Menu -->
+        <AuthorizeView Roles="Lecture,Lecturer">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.LecturerWorkspace">
+                        <span class="bi bi-easel2" aria-hidden="true"></span> Lecturer Hub
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.LecturerClasses">
+                        <span class="bi bi-journal-bookmark" aria-hidden="true"></span> Classes
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.LecturerTimetable">
+                        <span class="bi bi-clock-history" aria-hidden="true"></span> Timetable
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.LecturerStudents">
+                        <span class="bi bi-people" aria-hidden="true"></span> Students
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Admin Menu -->
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.AdminDashboard">
+                        <span class="bi bi-speedometer2" aria-hidden="true"></span> Admin Hub
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Departments">
+                        <span class="bi bi-building" aria-hidden="true"></span> Department
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Courses">
+                        <span class="bi bi-journal-text" aria-hidden="true"></span> Course
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Semesters">
+                        <span class="bi bi-calendar3" aria-hidden="true"></span> Semester
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Majors">
+                        <span class="bi bi-mortarboard" aria-hidden="true"></span> Major
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Subjects">
+                        <span class="bi bi-book" aria-hidden="true"></span> Subject
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Enrollments">
+                        <span class="bi bi-person-check" aria-hidden="true"></span> Enrollment
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.AdminGrades">
+                        <span class="bi bi-clipboard2-check" aria-hidden="true"></span> Grades
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Users">
+                        <span class="bi bi-people-fill" aria-hidden="true"></span> Users
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <!-- Student Menu -->
+        <AuthorizeView Roles="Student">
+            <Authorized>
+
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.StudentDashboard">
+                        <span class="bi bi-house-door-fill" aria-hidden="true"></span> Dashboard
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.StudentSchedule">
+                        <span class="bi bi-calendar3" aria-hidden="true"></span> Schedule
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.StudentGrades">
+                        <span class="bi bi-clipboard-data" aria-hidden="true"></span> Grades
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.StudentCourses">
+                        <span class="bi bi-journal-text" aria-hidden="true"></span> Courses
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
         <AuthorizeView>
             <Authorized>
-                <!-- Admin Menu -->
-                <AuthorizeView Roles="Admin,Lecturer" Context="adminContext">
-                    <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Home" Match="NavLinkMatch.All">
-                                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-                            </NavLink>
-                        </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@AppRoutes.Profile">
+                        <span class="bi bi-person-circle" aria-hidden="true"></span> Profile
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
 
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.AdminDashboard">
-                                <span class="bi bi-speedometer2" aria-hidden="true"></span> Admin Hub
-                            </NavLink>
-                        </div>
-
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Departments">
-                                <span class="bi bi-building" aria-hidden="true"></span> Department
-                            </NavLink>
-                        </div>
-
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Courses">
-                                <span class="bi bi-journal-text" aria-hidden="true"></span> Course
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Semesters">
-                                <span class="bi bi-calendar3" aria-hidden="true"></span> Semester
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Majors">
-                                <span class="bi bi-mortarboard" aria-hidden="true"></span> Major
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Subjects">
-                                <span class="bi bi-book" aria-hidden="true"></span> Subject
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Enrollments">
-                                <span class="bi bi-person-check" aria-hidden="true"></span> Enrollment
-                            </NavLink>
-                        </div>
-
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.AdminGrades">
-                                <span class="bi bi-clipboard2-check" aria-hidden="true"></span> Grades
-                            </NavLink>
-                        </div>
-
-                        <AuthorizeView Roles="Admin" Context="adminTimetableContext">
-                            <Authorized>
-                                <div class="nav-item px-3">
-                                    <NavLink class="nav-link" href="@AppRoutes.AdminTimetable">
-                                        <span class="bi bi-calendar3" aria-hidden="true"></span> Timetable
-                                    </NavLink>
-                                </div>
-                            </Authorized>
-                        </AuthorizeView>
-                    </Authorized>
-                </AuthorizeView>
-                
-                <!-- Admin Only Menu -->
-                <AuthorizeView Roles="Admin" Context="adminOnlyContext">
-                    <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.Users">
-                                <span class="bi bi-people-fill" aria-hidden="true"></span> User Management
-                            </NavLink>
-                        </div>
-                    </Authorized>
-                </AuthorizeView>
-                
-                <!-- Student Menu -->
-                <AuthorizeView Roles="Student" Context="studentContext">
-                    <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.StudentDashboard">
-                                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Dashboard
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.StudentSchedule">
-                                <span class="bi bi-calendar3" aria-hidden="true"></span> Schedule
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.StudentGrades">
-                                <span class="bi bi-clipboard-data" aria-hidden="true"></span> Grades
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.StudentCourses">
-                                <span class="bi bi-journal-text" aria-hidden="true"></span> Courses
-                            </NavLink>
-                        </div>
-                        
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="@AppRoutes.StudentProfile">
-                                <span class="bi bi-person-circle" aria-hidden="true"></span> Profile
-                            </NavLink>
-                        </div>
-                    </Authorized>
-                </AuthorizeView>
-
+        <!-- Logout (All authenticated users) -->
+        <AuthorizeView>
+            <Authorized>
                 <div class="nav-item px-3">
                     <form action="@AppRoutes.Logout" method="post">
                         <AntiforgeryToken />
-                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        <input type="hidden" name="ReturnUrl" value="/" />
                         <button type="submit" class="nav-link">
                             <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
                         </button>
@@ -176,4 +177,3 @@
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
-

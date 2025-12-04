@@ -1,0 +1,64 @@
+@typeparam TValue
+@typeparam TItem
+
+<select id="@SelectId"
+        value="@Value"
+        @onchange="HandleChange"
+        class="@(string.IsNullOrWhiteSpace(CssClass) ? "w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" : CssClass)">
+    @if (!string.IsNullOrWhiteSpace(PlaceholderOption))
+    {
+        <option value="@PlaceholderValue">@PlaceholderOption</option>
+    }
+    @foreach (var item in Items)
+    {
+        var itemValue = ValueSelector(item);
+        var itemLabel = LabelSelector(item);
+        <option value="@itemValue">@itemLabel</option>
+    }
+</select>
+
+@code {
+    [Parameter] public TValue? Value { get; set; }
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter] public List<TItem> Items { get; set; } = new();
+    [Parameter] public Func<TItem, TValue> ValueSelector { get; set; } = default!;
+    [Parameter] public Func<TItem, string> LabelSelector { get; set; } = default!;
+    [Parameter] public string? PlaceholderOption { get; set; }
+    [Parameter] public TValue? PlaceholderValue { get; set; }
+    [Parameter] public string SelectId { get; set; } = Guid.NewGuid().ToString();
+    [Parameter] public string? FilterPlaceholder { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        if (e.Value is null)
+        {
+            return;
+        }
+
+        TValue? newValue;
+        
+        if (typeof(TValue) == typeof(int))
+        {
+            if (int.TryParse(e.Value.ToString(), out var intValue))
+            {
+                newValue = (TValue)(object)intValue;
+            }
+            else
+            {
+                return;
+            }
+        }
+        else if (typeof(TValue) == typeof(string))
+        {
+            newValue = (TValue)(object)e.Value.ToString()!;
+        }
+        else
+        {
+            newValue = (TValue)Convert.ChangeType(e.Value, typeof(TValue));
+        }
+
+        Value = newValue;
+        await ValueChanged.InvokeAsync(newValue);
+    }
+}

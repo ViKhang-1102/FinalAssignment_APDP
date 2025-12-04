@@ -1,47 +1,43 @@
-ï»¿@page "/departments/delete"
+@page "/departments/delete"
+@attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 
 <PageTitle>Delete Department</PageTitle>
 
-<div class="@UiClasses.PageShell">
-    <div>
-        <p class="@UiClasses.SectionTag">Structure</p>
-        <h1 class="@UiClasses.SectionTitle">Delete Department</h1>
-        <p class="@UiClasses.SectionSubtitle">Confirm you want to remove this unit from the organization tree.</p>
-    </div>
-
-    @if (department is null)
-    {
-        <div class="@UiClasses.Card text-center text-slate-500">
-            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading department...</span>
+@if (department is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-2xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Delete department</h1>
+            <p class="text-sm text-slate-500">This action cannot be undone.</p>
         </div>
-    }
-    else
-    {
-        <div class="@UiClasses.Card space-y-5">
-            <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                <i class="bi bi-exclamation-triangle-fill text-amber-500 me-2"></i>
-                Deleting this department will remove it from all dropdowns and reports.
-            </div>
-            <dl class="@UiClasses.DetailList">
-                <div>
-                    <dt class="@UiClasses.Label">Name</dt>
-                    <dd class="text-base text-slate-900">@department.Name</dd>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <dl class="divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Name</dt>
+                    <dd class="col-span-2 text-slate-900">@department.Name</dd>
                 </div>
             </dl>
+
             <EditForm method="post" Model="department" OnValidSubmit="DeleteDepartment" FormName="delete" Enhance>
-                <div class="flex flex-wrap gap-3">
-                    <button type="submit" class="@UiClasses.DangerButton" disabled="@(department is null)"><i class="bi bi-trash"></i> Delete department</button>
-                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Departments"><i class="bi bi-arrow-left"></i> Back to list</a>
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500">Delete</button>
+                    <a href="/departments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
             </EditForm>
         </div>
-    }
-</div>
+    </div>
+}
 
 @code {
     private Department? department;
@@ -65,7 +61,7 @@
         using var context = DbFactory.CreateDbContext();
         context.Departments.Remove(department!);
         await context.SaveChangesAsync();
-        Toasts.Enqueue("XÃ³a phÃ²ng ban thÃ nh cÃ´ng", FinalAssignemnt_APDP.Services.ToastType.Success);
-        NavigationManager.NavigateTo(AppRoutes.Departments);
+        Toasts.Enqueue("Xóa phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
+        NavigationManager.NavigateTo(Constants.AppRoutes.Departments);
     }
 }
