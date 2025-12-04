@@ -1,4 +1,5 @@
 ﻿@page "/enrollments/delete"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Components.Enrollments
@@ -7,7 +8,7 @@
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
-<PageTitle>Delete Enrollment</PageTitle>
+<PageTitle>Remove Students from Course</PageTitle>
 
 @if (enrollment is null)
 {
@@ -15,64 +16,202 @@
 }
 else
 {
-    <div class="max-w-3xl space-y-6">
+    <div class="max-w-5xl space-y-6">
         <div>
-            <h1 class="text-2xl font-semibold text-slate-900">Delete enrollment</h1>
-            <p class="text-sm text-slate-500">This action cannot be undone.</p>
+            <h1 class="text-2xl font-semibold text-slate-900">Remove students from course</h1>
+            <p class="text-sm text-slate-500">Select one or more students to remove from this course enrollment.</p>
         </div>
 
-        <div class="rounded-2xl bg-white p-6 shadow-sm">
-            <dl class="divide-y divide-slate-100 text-sm">
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Student</dt>
-                    <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatStudent(enrollment.Student, enrollment.StudentID)</dd>
+        <!-- Course Info Banner -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-start gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100">
+                    <span class="bi bi-book-fill text-xl text-indigo-600"></span>
                 </div>
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Course</dt>
-                    <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatCourse(enrollment.Course, enrollment.CourseID)</dd>
+                <div class="flex-1">
+                    <h2 class="text-lg font-semibold text-slate-900">
+                        @EnrollmentDisplayHelper.FormatCourse(enrollment.Course, enrollment.CourseID)
+                    </h2>
+                    <div class="mt-2 flex flex-wrap gap-2 text-sm">
+                        @if (enrollment.Course?.Subject != null)
+                        {
+                            <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                                <span class="bi bi-bookmark-fill"></span>
+                                @enrollment.Course.Subject.Name
+                            </span>
+                        }
+                        @if (enrollment.Course?.Semester != null)
+                        {
+                            <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                                <span class="bi bi-calendar3"></span>
+                                @enrollment.Course.Semester.Name
+                            </span>
+                        }
+                        <span class="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700">
+                            <span class="bi bi-people-fill"></span>
+                            @enrolledStudents.Count student@(enrolledStudents.Count != 1 ? "s" : "") enrolled
+                        </span>
+                    </div>
                 </div>
-                @if (!string.IsNullOrWhiteSpace(enrollment.DayOfWeek))
-                {
-                    <div class="grid grid-cols-3 gap-4 py-3">
-                        <dt class="font-medium text-slate-500">Days</dt>
-                        <dd class="col-span-2 text-slate-900">@EnrollmentDisplayHelper.FormatDayPattern(enrollment.DayOfWeek)</dd>
-                    </div>
-                }
-                @if (!string.IsNullOrWhiteSpace(enrollment.TimeSlot))
-                {
-                    <div class="grid grid-cols-3 gap-4 py-3">
-                        <dt class="font-medium text-slate-500">Time</dt>
-                        <dd class="col-span-2 text-slate-900">@enrollment.TimeSlot</dd>
-                    </div>
-                }
-                @if (!string.IsNullOrWhiteSpace(enrollment.Room))
-                {
-                    <div class="grid grid-cols-3 gap-4 py-3">
-                        <dt class="font-medium text-slate-500">Room</dt>
-                        <dd class="col-span-2 text-slate-900">@enrollment.Room</dd>
-                    </div>
-                }
-                @if (enrollment.TotalSlots is not null)
-                {
-                    <div class="grid grid-cols-3 gap-4 py-3">
-                        <dt class="font-medium text-slate-500">Total slots</dt>
-                        <dd class="col-span-2 text-slate-900">@enrollment.TotalSlots</dd>
-                    </div>
-                }
-            </dl>
-
-            <EditForm method="post" Model="enrollment" OnValidSubmit="DeleteEnrollment" FormName="delete" Enhance>
-                <div class="mt-6 flex items-center gap-3">
-                    <button type="submit" class="inline-flex items-center rounded-full bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500">Delete</button>
-                    <a href="/enrollments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
-                </div>
-            </EditForm>
+            </div>
         </div>
+
+        @if (enrolledStudents.Count == 0)
+        {
+            <!-- No Students Enrolled -->
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+                <div class="flex gap-3">
+                    <span class="bi bi-info-circle-fill text-xl text-amber-600"></span>
+                    <div class="flex-1">
+                        <p class="font-semibold text-amber-900">No students enrolled</p>
+                        <p class="mt-1 text-sm text-amber-700">
+                            This course currently has no students enrolled. There is nothing to remove.
+                        </p>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="/enrollments" 
+                       class="inline-flex items-center gap-2 rounded-full bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-500">
+                        <span class="bi bi-arrow-left"></span>
+                        Back to Enrollments
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Warning Banner -->
+            <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+                <div class="flex gap-3">
+                    <span class="bi bi-exclamation-triangle-fill text-xl text-rose-600"></span>
+                    <div class="flex-1">
+                        <p class="font-semibold text-rose-900">Select students to remove</p>
+                        <p class="mt-1 text-sm text-rose-700">
+                            Selected students will be removed from this course. The enrollment records will be kept as templates.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Selection Table -->
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-200 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-900">Enrolled Students</h3>
+                            <p class="text-sm text-slate-500">
+                                @SelectedStudentIds.Count of @enrolledStudents.Count student@(SelectedStudentIds.Count != 1 ? "s" : "") selected
+                            </p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button" 
+                                    @onclick="SelectAllStudents" 
+                                    class="text-xs font-semibold text-indigo-600 hover:text-indigo-500">
+                                Select All
+                            </button>
+                            <button type="button" 
+                                    @onclick="ClearAllStudents" 
+                                    class="text-xs font-semibold text-slate-600 hover:text-slate-900">
+                                Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
+                            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                <th class="px-6 py-3 w-12">
+                                    <input type="checkbox"
+                                           @onchange="ToggleAllStudents"
+                                           checked="@(SelectedStudentIds.Count == enrolledStudents.Count && enrolledStudents.Count > 0)"
+                                           class="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500" />
+                                </th>
+                                <th class="px-6 py-3">Student ID</th>
+                                <th class="px-6 py-3">Name</th>
+                                <th class="px-6 py-3">Email</th>
+                                <th class="px-6 py-3">Enrollment ID</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var studentEnrollment in enrolledStudents)
+                            {
+                                var isSelected = SelectedStudentIds.Contains(studentEnrollment.EnrollmentId);
+                                <tr class="@(isSelected ? "bg-rose-50" : "") hover:bg-slate-50 cursor-pointer" 
+                                    @onclick="() => ToggleStudent(studentEnrollment.EnrollmentId)">
+                                    <td class="px-6 py-4">
+                                        <input type="checkbox"
+                                               checked="@isSelected"
+                                               @onclick:stopPropagation="true"
+                                               @onchange="() => ToggleStudent(studentEnrollment.EnrollmentId)"
+                                               class="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500" />
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="font-medium text-slate-900">
+                                            @(studentEnrollment.Student?.StudentId ?? "—")
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div>
+                                            <p class="font-medium text-slate-900">
+                                                @(studentEnrollment.Student?.Name ?? "Unknown")
+                                            </p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600">
+                                        @(studentEnrollment.Student?.Email ?? "—")
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-500">
+                                        #@studentEnrollment.EnrollmentId
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @if (SelectedStudentIds.Count > 0)
+            {
+                <!-- Summary Section -->
+                <div class="rounded-2xl border-2 border-rose-200 bg-rose-50/50 p-6">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100">
+                            <span class="bi bi-person-dash-fill text-rose-600"></span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-rose-900">Confirm Removal</h3>
+                            <p class="mt-1 text-sm text-rose-700">
+                                You are about to remove <strong>@SelectedStudentIds.Count student@(SelectedStudentIds.Count != 1 ? "s" : "")</strong> from this course.
+                                The enrollment records will be kept and can be reassigned later.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 flex items-center gap-3">
+                        <button type="button"
+                                @onclick="RemoveSelectedStudents" 
+                                class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2">
+                            <span class="bi bi-person-x-fill"></span>
+                            Remove @SelectedStudentIds.Count Student@(SelectedStudentIds.Count != 1 ? "s" : "")
+                        </button>
+                        <a href="/enrollments" 
+                           class="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:ring-2 focus:ring-slate-500 focus:ring-offset-2">
+                            <span class="bi bi-x-circle"></span>
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            }
+        }
     </div>
 }
 
 @code {
     private Enrollment? enrollment;
+    private List<StudentEnrollmentInfo> enrolledStudents = new();
+    private HashSet<int> SelectedStudentIds { get; set; } = new();
 
     [SupplyParameterFromQuery]
     private int Id { get; set; }
@@ -80,8 +219,9 @@ else
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
+        
+        // Load the enrollment to get course info
         enrollment = await context.Enrollments
-            .Include(e => e.Student)
             .Include(e => e.Course)
                 .ThenInclude(c => c.Subject)
             .Include(e => e.Course)
@@ -91,15 +231,91 @@ else
         if (enrollment is null)
         {
             NavigationManager.NavigateTo("notfound");
+            return;
         }
+
+        // Load all enrollments for this course that have students assigned
+        var courseEnrollments = await context.Enrollments
+            .Where(e => e.CourseID == enrollment.CourseID && e.StudentID != null)
+            .Include(e => e.Student)
+            .OrderBy(e => e.Student!.StudentId)
+            .ThenBy(e => e.Student!.Name)
+            .ToListAsync();
+
+        enrolledStudents = courseEnrollments
+            .Select(e => new StudentEnrollmentInfo
+            {
+                EnrollmentId = e.Id,
+                Student = e.Student
+            })
+            .ToList();
     }
 
-    private async Task DeleteEnrollment()
+    private void ToggleStudent(int enrollmentId)
     {
+        if (!SelectedStudentIds.Add(enrollmentId))
+        {
+            SelectedStudentIds.Remove(enrollmentId);
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleAllStudents()
+    {
+        if (SelectedStudentIds.Count == enrolledStudents.Count)
+        {
+            SelectedStudentIds.Clear();
+        }
+        else
+        {
+            SelectAllStudents();
+        }
+        StateHasChanged();
+    }
+
+    private void SelectAllStudents()
+    {
+        SelectedStudentIds.Clear();
+        foreach (var student in enrolledStudents)
+        {
+            SelectedStudentIds.Add(student.EnrollmentId);
+        }
+        StateHasChanged();
+    }
+
+    private void ClearAllStudents()
+    {
+        SelectedStudentIds.Clear();
+        StateHasChanged();
+    }
+
+    private async Task RemoveSelectedStudents()
+    {
+        if (SelectedStudentIds.Count == 0)
+        {
+            return;
+        }
+
         using var context = DbFactory.CreateDbContext();
-        context.Enrollments.Remove(enrollment!);
+        
+        // Load all selected enrollments
+        var enrollmentsToUpdate = await context.Enrollments
+            .Where(e => SelectedStudentIds.Contains(e.Id))
+            .ToListAsync();
+
+        // Remove student assignments (set StudentID to null)
+        foreach (var e in enrollmentsToUpdate)
+        {
+            e.StudentID = null;
+        }
+
         await context.SaveChangesAsync();
         NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 
+    private class StudentEnrollmentInfo
+    {
+        public int EnrollmentId { get; set; }
+        public ApplicationUser? Student { get; set; }
+    }
 }

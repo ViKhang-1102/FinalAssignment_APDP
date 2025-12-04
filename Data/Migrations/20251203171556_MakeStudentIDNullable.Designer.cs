@@ -4,6 +4,7 @@ using FinalAssignemnt_APDP.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FinalAssignemnt_APDP.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251203171556_MakeStudentIDNullable")]
+    partial class MakeStudentIDNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -201,9 +204,6 @@ namespace FinalAssignemnt_APDP.Migrations
                     b.Property<int>("CourseID")
                         .HasColumnType("int");
 
-                    b.Property<int>("FinalEditCount")
-                        .HasColumnType("int");
-
                     b.Property<double?>("FinalScore")
                         .HasColumnType("float");
 
@@ -212,9 +212,6 @@ namespace FinalAssignemnt_APDP.Migrations
 
                     b.Property<string>("LetterGrade")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("MidtermEditCount")
-                        .HasColumnType("int");
 
                     b.Property<double?>("MidtermScore")
                         .HasColumnType("float");
@@ -225,15 +222,6 @@ namespace FinalAssignemnt_APDP.Migrations
                     b.Property<string>("StudentID")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("UploadedFileDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UploadedFileName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UploadedFileStoredPath")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

@@ -62,6 +62,9 @@ else
     private ApplicationDbContext context = default!;
     private List<Department> departments = new();
 
+    // Add this constant to define ActionBase
+    private const string ActionBase = "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2";
+
     protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();

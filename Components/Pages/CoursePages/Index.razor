@@ -5,7 +5,7 @@
 @using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Constants
 @implements IAsyncDisposable
-@inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
 
 <PageTitle>Courses</PageTitle>
 
@@ -80,16 +80,25 @@
     protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
-        courses = await context.Courses
+        var loadedCourses = await context.Courses
             .Include(c => c.Subject)
             .Include(c => c.Semester)
             .Include(c => c.Lecture)
+            .AsNoTracking()
             .OrderBy(c => c.Name)
             .ThenBy(c => c.Id)
             .ToListAsync();
+
+        courses.AddRange(loadedCourses);
     }
 
-    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        if (context is not null)
+        {
+            await context.DisposeAsync();
+        }
+    }
 
     private static string GetLecturerDisplayName(ApplicationUser? lecturer, string? fallbackId)
     {

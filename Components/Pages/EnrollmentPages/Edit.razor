@@ -1,4 +1,5 @@
 ﻿@page "/enrollments/edit"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Components.Enrollments
@@ -18,11 +19,11 @@ else
     <div class="max-w-3xl space-y-6">
         <div>
             <h1 class="text-2xl font-semibold text-slate-900">Edit enrollment</h1>
-            <p class="text-sm text-slate-500">Update the assignment and save the changes.</p>
+            <p class="text-sm text-slate-500">Update course details, schedule, and assign students.</p>
         </div>
 
         <div class="rounded-2xl bg-white p-6 shadow-sm">
-            <EditForm method="post" Model="Enrollment" OnValidSubmit="UpdateEnrollment" FormName="edit" Enhance>
+            <EditForm method="post" Model="Enrollment" OnValidSubmit="UpdateEnrollment" FormName="edit">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
                 <input type="hidden" name="Enrollment.Id" value="@Enrollment.Id" />
@@ -33,32 +34,125 @@ else
 
                 <div class="grid gap-4 md:grid-cols-2">
                     <div class="space-y-1">
-                        <label for="studentid" class="text-sm font-medium text-slate-700">Student</label>
-                        <SearchableSelect TValue="string" TItem="ApplicationUser"
-                                          Items="Students"
-                                          @bind-Value="Enrollment.StudentID"
-                                          ValueSelector="student => student.Id"
-                                          LabelSelector="student => EnrollmentDisplayHelper.FormatStudentOption(student)"
-                                          FilterPlaceholder="Search student..."
-                                          PlaceholderOption="-- Select student --"
-                                          PlaceholderValue="@string.Empty"
-                                          SelectId="studentid" />
-                        <ValidationMessage For="() => Enrollment.StudentID" class="text-sm text-rose-600" />
+                        <div class="flex items-center justify-between">
+                            <label for="studentid" class="text-sm font-medium text-slate-700">
+                                Student
+                                <span class="text-xs text-slate-500">(optional)</span>
+                            </label>
+                            <button type="button" 
+                                    @onclick="ToggleMultipleStudentMode"
+                                    class="text-xs font-semibold text-indigo-600 hover:text-indigo-500">
+                                @(ShowMultipleStudentMode ? "Single Student" : "Assign Multiple Students")
+                            </button>
+                        </div>
+                        <InputSelect id="studentid" 
+                                     @bind-Value="Enrollment.StudentID"
+                                     class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                                     disabled="@ShowMultipleStudentMode">
+                            <option value="">-- No student assigned --</option>
+                            @foreach (var student in Students)
+                            {
+                                <option value="@student.Id">@EnrollmentDisplayHelper.FormatStudentOption(student)</option>
+                            }
+                        </InputSelect>
+                        <p class="text-xs text-slate-500">
+                            @if (ShowMultipleStudentMode)
+                            {
+                                <span class="text-indigo-600">Multiple student mode enabled. Select students below.</span>
+                            }
+                            else
+                            {
+                                <span>Assign a student to this course enrollment.</span>
+                            }
+                        </p>
                     </div>
                     <div class="space-y-1">
                         <label for="courseid" class="text-sm font-medium text-slate-700">Course</label>
-                        <SearchableSelect TValue="int" TItem="Course"
-                                          Items="Courses"
-                                          @bind-Value="Enrollment.CourseID"
-                                          ValueSelector="course => course.Id"
-                                          LabelSelector="course => EnrollmentDisplayHelper.FormatCourseOption(course)"
-                                          FilterPlaceholder="Search course..."
-                                          PlaceholderOption="-- Select course --"
-                                          PlaceholderValue="@(0)"
-                                          SelectId="courseid" />
+                        <InputSelect id="courseid" 
+                                     @bind-Value="Enrollment.CourseID"
+                                     @bind-Value:after="LoadAvailableStudentsForMultipleAsync"
+                                     class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                            <option value="0">-- Select course --</option>
+                            @foreach (var course in Courses)
+                            {
+                                <option value="@course.Id">@EnrollmentDisplayHelper.FormatCourseOption(course)</option>
+                            }
+                        </InputSelect>
                         <ValidationMessage For="() => Enrollment.CourseID" class="text-sm text-rose-600" />
                     </div>
                 </div>
+
+                @if (ShowMultipleStudentMode && Enrollment.CourseID > 0)
+                {
+                    <div class="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/30 p-4">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-semibold text-indigo-900">Assign Multiple Students</p>
+                                    <p class="text-xs text-indigo-600">@SelectedStudentsForMultiple.Count student(s) selected</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="button" @onclick="SelectAllAvailableStudents" class="text-xs font-semibold text-indigo-700 hover:text-indigo-600">Select All</button>
+                                    <button type="button" @onclick="ClearAllSelectedStudents" class="text-xs font-semibold text-indigo-700 hover:text-indigo-600">Clear All</button>
+                                </div>
+                            </div>
+
+                            @if (AvailableStudentsForMultiple.Count == 0)
+                            {
+                                <p class="rounded-lg bg-white px-3 py-2 text-sm text-slate-600">
+                                    No available students. All students may already be enrolled in this course.
+                                </p>
+                            }
+                            else
+                            {
+                                <div class="max-h-64 overflow-y-auto rounded-lg border border-indigo-200 bg-white">
+                                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                                        <thead class="sticky top-0 bg-slate-50">
+                                            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                                <th class="px-3 py-2 w-10">
+                                                    <input type="checkbox"
+                                                           @onchange="ToggleAllAvailableStudents"
+                                                           checked="@(SelectedStudentsForMultiple.Count == AvailableStudentsForMultiple.Count && AvailableStudentsForMultiple.Count > 0)"
+                                                           class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                                                </th>
+                                                <th class="px-3 py-2">Student ID</th>
+                                                <th class="px-3 py-2">Name</th>
+                                                <th class="px-3 py-2">Email</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            @foreach (var student in AvailableStudentsForMultiple)
+                                            {
+                                                var isSelected = SelectedStudentsForMultiple.Contains(student.Id);
+                                                <tr class="@(isSelected ? "bg-indigo-50" : "") hover:bg-slate-50 cursor-pointer" @onclick="() => ToggleStudentSelection(student.Id)">
+                                                    <td class="px-3 py-2">
+                                                        <input type="checkbox"
+                                                               checked="@isSelected"
+                                                               @onclick:stopPropagation="true"
+                                                               @onchange="() => ToggleStudentSelection(student.Id)"
+                                                               class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+                                                    </td>
+                                                    <td class="px-3 py-2 font-medium text-slate-900">@student.StudentId</td>
+                                                    <td class="px-3 py-2 text-slate-700">@student.Name</td>
+                                                    <td class="px-3 py-2 text-slate-600 text-xs">@student.Email</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+
+                            @if (SelectedStudentsForMultiple.Count > 0)
+                            {
+                                <div class="rounded-lg bg-white px-3 py-2 text-sm">
+                                    <p class="text-indigo-900">
+                                        <strong>@SelectedStudentsForMultiple.Count student(s)</strong> will be enrolled with the same schedule details as this enrollment.
+                                    </p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
 
                 <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
                     <p class="text-sm font-semibold text-slate-800">Schedule details</p>
@@ -131,6 +225,12 @@ else
     private List<Course> Courses { get; set; } = new();
     private string? ErrorMessage { get; set; }
     private EnrollmentScheduleState? ScheduleState { get; set; }
+    
+    // Multiple student assignment
+    private bool ShowMultipleStudentMode { get; set; } = false;
+    private List<ApplicationUser> AvailableStudentsForMultiple { get; set; } = new();
+    private HashSet<string> SelectedStudentsForMultiple { get; set; } = new();
+    
     private string _dayInput = string.Empty;
     private string SelectedTimeBlockLabel
     {
@@ -205,10 +305,10 @@ else
 
         ScheduleState?.Persist();
 
+        // Convert empty string to null for StudentID
         if (string.IsNullOrWhiteSpace(Enrollment.StudentID))
         {
-            ErrorMessage = "Please select a student.";
-            return;
+            Enrollment.StudentID = null;
         }
 
         if (Enrollment.CourseID <= 0)
@@ -225,13 +325,17 @@ else
 
         using var context = DbFactory.CreateDbContext();
 
-        var studentExists = await context.Users.AnyAsync(u => u.Id == Enrollment.StudentID);
-        if (!studentExists)
+        // Validate student exists if one is selected (single mode)
+        if (!ShowMultipleStudentMode && !string.IsNullOrWhiteSpace(Enrollment.StudentID))
         {
-            ErrorMessage = "Selected student no longer exists.";
-            Students = await LoadStudentUsersAsync(context);
-            Courses = await context.Courses.Include(c => c.Subject).Include(c => c.Semester).OrderBy(c => c.Name).ThenBy(c => c.Id).ToListAsync();
-            return;
+            var studentExists = await context.Users.AnyAsync(u => u.Id == Enrollment.StudentID);
+            if (!studentExists)
+            {
+                ErrorMessage = "Selected student no longer exists.";
+                Students = await LoadStudentUsersAsync(context);
+                Courses = await context.Courses.Include(c => c.Subject).Include(c => c.Semester).OrderBy(c => c.Name).ThenBy(c => c.Id).ToListAsync();
+                return;
+            }
         }
 
         var courseExists = await context.Courses.AnyAsync(c => c.Id == Enrollment.CourseID);
@@ -242,6 +346,54 @@ else
             return;
         }
 
+        // Handle multiple student assignment
+        if (ShowMultipleStudentMode && SelectedStudentsForMultiple.Count > 0)
+        {
+            // Verify all selected students exist
+            var existingStudentIds = await context.Users
+                .Where(u => SelectedStudentsForMultiple.Contains(u.Id))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            if (existingStudentIds.Count != SelectedStudentsForMultiple.Count)
+            {
+                ErrorMessage = "Some selected students no longer exist.";
+                await LoadAvailableStudentsForMultipleAsync();
+                return;
+            }
+
+            // Check for existing enrollments
+            var alreadyEnrolledIds = await context.Enrollments
+                .Where(e => e.CourseID == Enrollment.CourseID && SelectedStudentsForMultiple.Contains(e.StudentID))
+                .Select(e => e.StudentID)
+                .ToListAsync();
+
+            if (alreadyEnrolledIds.Count > 0)
+            {
+                ErrorMessage = $"{alreadyEnrolledIds.Count} student(s) are already enrolled in this course.";
+                await LoadAvailableStudentsForMultipleAsync();
+                return;
+            }
+
+            // Create enrollments for selected students
+            var newEnrollments = new List<Enrollment>();
+            foreach (var studentId in SelectedStudentsForMultiple)
+            {
+                newEnrollments.Add(new Enrollment
+                {
+                    StudentID = studentId,
+                    CourseID = Enrollment.CourseID,
+                    DayOfWeek = Enrollment.DayOfWeek,
+                    Room = Enrollment.Room,
+                    TimeSlot = Enrollment.TimeSlot,
+                    TotalSlots = Enrollment.TotalSlots
+                });
+            }
+
+            context.Enrollments.AddRange(newEnrollments);
+        }
+
+        // Update the original enrollment
         context.Attach(Enrollment).State = EntityState.Modified;
 
         try
@@ -326,6 +478,107 @@ else
             .ThenBy(u => u.Name)
             .ThenBy(u => u.Email)
             .ToListAsync();
+    }
+
+    // Multiple student assignment methods
+    private void ToggleMultipleStudentMode()
+    {
+        ShowMultipleStudentMode = !ShowMultipleStudentMode;
+        if (ShowMultipleStudentMode)
+        {
+            _ = LoadAvailableStudentsForMultipleAsync();
+        }
+        else
+        {
+            SelectedStudentsForMultiple.Clear();
+            AvailableStudentsForMultiple.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async Task LoadAvailableStudentsForMultipleAsync()
+    {
+        if (!ShowMultipleStudentMode || Enrollment?.CourseID <= 0)
+        {
+            AvailableStudentsForMultiple.Clear();
+            return;
+        }
+
+        using var context = DbFactory.CreateDbContext();
+
+        var studentRoleId = await context.Roles
+            .Where(r => r.Name == "Student")
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync();
+
+        if (string.IsNullOrEmpty(studentRoleId))
+        {
+            AvailableStudentsForMultiple = new();
+            StateHasChanged();
+            return;
+        }
+
+        // Get all students
+        var allStudents = await context.Users
+            .Where(u => context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == studentRoleId))
+            .OrderBy(u => u.StudentId)
+            .ThenBy(u => u.Name)
+            .ToListAsync();
+
+        // Filter out already enrolled students in this course
+        var enrolledStudentIds = await context.Enrollments
+            .Where(e => e.CourseID == Enrollment.CourseID && e.StudentID != null)
+            .Select(e => e.StudentID)
+            .ToListAsync();
+
+        var enrolledSet = enrolledStudentIds.Where(id => id != null).ToHashSet()!;
+
+        AvailableStudentsForMultiple = allStudents
+            .Where(s => !enrolledSet.Contains(s.Id))
+            .ToList();
+
+        // Clear selections that are no longer available
+        SelectedStudentsForMultiple.RemoveWhere(id => !AvailableStudentsForMultiple.Any(s => s.Id == id));
+        
+        StateHasChanged();
+    }
+
+    private void ToggleStudentSelection(string studentId)
+    {
+        if (!SelectedStudentsForMultiple.Add(studentId))
+        {
+            SelectedStudentsForMultiple.Remove(studentId);
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleAllAvailableStudents()
+    {
+        if (SelectedStudentsForMultiple.Count == AvailableStudentsForMultiple.Count)
+        {
+            SelectedStudentsForMultiple.Clear();
+        }
+        else
+        {
+            SelectAllAvailableStudents();
+        }
+        StateHasChanged();
+    }
+
+    private void SelectAllAvailableStudents()
+    {
+        SelectedStudentsForMultiple.Clear();
+        foreach (var student in AvailableStudentsForMultiple)
+        {
+            SelectedStudentsForMultiple.Add(student.Id);
+        }
+        StateHasChanged();
+    }
+
+    private void ClearAllSelectedStudents()
+    {
+        SelectedStudentsForMultiple.Clear();
+        StateHasChanged();
     }
 
 }
