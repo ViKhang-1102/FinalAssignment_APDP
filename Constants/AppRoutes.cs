@@ -86,7 +86,6 @@ namespace FinalAssignemnt_APDP.Constants
         public static string UsersDelete(string id) => $"/users/delete?id={id}";
 
         // Grade Routes
-        public static string AdminGradesEdit(int id) => $"/admin/grades/edit?id={id}";
         public static string AdminGradesDelete(int id) => $"/admin/grades/delete?id={id}";
 
         // Lecturer course detail routes

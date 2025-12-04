@@ -11,8 +11,10 @@ namespace FinalAssignemnt_APDP.Data
         public Course Course { get; set; }
         
         public double? MidtermScore { get; set; }
+        public int MidtermEditCount { get; set; } = 0;
         
         public double? FinalScore { get; set; }
+        public int FinalEditCount { get; set; } = 0;
         
         public double? AverageScore { get; set; }
         
@@ -21,6 +23,13 @@ namespace FinalAssignemnt_APDP.Data
         public bool IsPassed { get; set; }
         
         public string? Note { get; set; }
+        
+        // File upload information
+        public string? UploadedFileName { get; set; }
+        public string? UploadedFileStoredPath { get; set; }
+        public DateTime? UploadedFileDate { get; set; }
+        
+        public const int MaxEditCount = 2;
         
         public void CalculateGrade()
         {

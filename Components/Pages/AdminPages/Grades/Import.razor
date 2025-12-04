@@ -1,38 +1,49 @@
+
 @page "/admin/grades/import"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin,Lecturer")]
+@using System.IO
 @using System.Text
 @using System.Linq
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
+@using OfficeOpenXml
 @using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@inject IWebHostEnvironment WebHostEnvironment
 
 <PageTitle>Import Grades</PageTitle>
-
 <div class="container py-4">
     <a class="btn btn-link px-0" href="@AppRoutes.AdminGrades"><i class="bi bi-arrow-left"></i> Back to grade list</a>
-    <div class="row g-4">
+    <div class="row g-4 mt-3">
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm h-100">
+                <div class="p-6">
                     <h5 class="fw-bold">Template</h5>
                     <p class="text-muted">Use CSV file with the following columns:</p>
-                    <code class="d-block bg-light p-2 rounded small">StudentId,CourseId,Midterm,Final,Note</code>
+                    <code class="d-block bg-slate-50 p-2 rounded small">StudentId,CourseId,Midterm,Final,Note</code>
                     <p class="text-muted mt-3 small">Download current data as reference:</p>
-                    <a class="btn btn-outline-secondary w-100" href="/api/grades/export"><i class="bi bi-download"></i> Download CSV</a>
+                    <button class="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow w-full" @onclick="DownloadExport"><i class="bi bi-download"></i> Download CSV</button>
                 </div>
             </div>
         </div>
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
+            <div class="overflow-hidden rounded-xl bg-white shadow-sm h-100">
+                <div class="p-6">
                     <h5 class="fw-bold">Upload</h5>
                     <p class="text-muted">Existing rows (Student + Course) will be updated, new rows will be created.</p>
-                    <InputFile OnChange="OnFileChange" accept=".csv" />
-                    <div class="form-text">Max size: 1 MB</div>
+                    <InputFile OnChange="OnFileChange" accept=".csv,.xlsx" class="form-control" />
+                    <div class="form-text">
+                        <strong>Supported formats:</strong> CSV (.csv) or Excel (.xlsx)<br />
+                        <strong>Max size:</strong> CSV: 1 MB | Excel: 5 MB
+                    </div>
                 </div>
                 <div class="card-footer bg-white text-end">
                     <button class="btn btn-primary" @onclick="ProcessFile" disabled="@(!canProcess || isProcessing)">
@@ -41,58 +52,73 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
 
             @if (results.Any())
             {
-                <div class="card border-0 shadow-sm mt-4">
-                    <div class="card-body">
-                        <h6 class="fw-bold">Summary</h6>
-                        <ul class="list-inline mb-3">
-                            <li class="list-inline-item"><span class="badge bg-success">Inserted: @results.Count(r => r.Status == ImportStatus.Inserted)</span></li>
-                            <li class="list-inline-item"><span class="badge bg-info text-dark">Updated: @results.Count(r => r.Status == ImportStatus.Updated)</span></li>
-                            <li class="list-inline-item"><span class="badge bg-danger">Failed: @results.Count(r => r.Status == ImportStatus.Failed)</span></li>
-                        </ul>
-                        <div class="table-responsive" style="max-height: 320px;">
-                            <table class="table table-sm align-middle">
-                                <thead>
-                                    <tr>
-                                        <th>Student</th>
-                                        <th>Course</th>
-                                        <th>Status</th>
-                                        <th>Message</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var row in results)
-                                    {
-                                        <tr>
-                                            <td>@row.StudentId</td>
-                                            <td>@row.CourseId</td>
-                                            <td>
-                                                @if (row.Status == ImportStatus.Inserted)
-                                                {
-                                                    <span class="badge bg-success">Inserted</span>
-                                                }
-                                                else if (row.Status == ImportStatus.Updated)
-                                                {
-                                                    <span class="badge bg-info text-dark">Updated</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge bg-danger">Failed</span>
-                                                }
-                                            </td>
-                                            <td>@row.Message</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                var inserted = results.Count(r => r.Status == ImportStatus.Inserted);
+                var updated = results.Count(r => r.Status == ImportStatus.Updated);
+                var failed = results.Count(r => r.Status == ImportStatus.Failed);
+
+                <div class="mt-4 overflow-hidden rounded-xl bg-white shadow-sm p-6">
+                    @if (failed == 0 && (inserted + updated) > 0)
+                    {
+                        <div class="inline-flex items-center gap-3 text-slate-700">
+                            <i class="bi bi-check-circle-fill text-emerald-500 text-2xl"></i>
+                            <div>
+                                <div class="text-lg font-semibold">Import successful</div>
+                                <div class="text-sm text-slate-500">@inserted rows inserted, @updated rows updated.</div>
+                            </div>
                         </div>
-                    </div>
+                    }
+                    else if ((inserted + updated) > 0)
+                    {
+                        <div class="inline-flex items-start gap-3">
+                            <i class="bi bi-exclamation-triangle-fill text-amber-500 text-2xl"></i>
+                            <div>
+                                <div class="text-lg font-semibold">Import completed with some issues</div>
+                                <div class="text-sm text-slate-500">@inserted inserted, @updated updated, @failed failed. Check details below.</div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <div class="table-responsive" style="max-height: 220px; overflow:auto;">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Student</th>
+                                            <th>Course</th>
+                                            <th>Status</th>
+                                            <th>Message</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var row in results.Where(r => r.Status == ImportStatus.Failed))
+                                        {
+                                            <tr>
+                                                <td>@row.StudentId</td>
+                                                <td>@row.CourseId</td>
+                                                <td><span class="badge bg-danger">Failed</span></td>
+                                                <td>@row.Message</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="inline-flex items-center gap-3 text-slate-700">
+                            <i class="bi bi-x-circle-fill text-rose-500 text-2xl"></i>
+                            <div>
+                                <div class="text-lg font-semibold">Import failed</div>
+                                <div class="text-sm text-slate-500">No rows were imported. See messages for details.</div>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
-        </div>
-    </div>
 </div>
 
 @code {
@@ -105,99 +131,342 @@
     {
         file = args.File;
         results.Clear();
+        
+        Console.WriteLine($"[OnFileChange] File selected: {file?.Name ?? "NULL"}");
+        
+        // Show toast
+        if (file != null)
+        {
+            Toasts.Enqueue($"File selected: {file.Name} ({file.Size} bytes)", FinalAssignemnt_APDP.Services.ToastType.Info);
+            Console.WriteLine($"[OnFileChange] Toast enqueued for file: {file.Name}");
+        }
+        
+        StateHasChanged(); // Force UI update
     }
 
     private async Task ProcessFile()
     {
-        if (file is null || isProcessing)
+        Console.WriteLine("[ProcessFile] === START ===");
+        
+        if (file is null)
         {
+            Console.WriteLine("[ProcessFile] ERROR: No file selected");
+            Toasts.Enqueue("No file selected", FinalAssignemnt_APDP.Services.ToastType.Warning);
+            return;
+        }
+
+        if (isProcessing)
+        {
+            Console.WriteLine("[ProcessFile] ERROR: Already processing");
             return;
         }
 
         isProcessing = true;
-        results.Clear();
+        StateHasChanged(); // Update UI to show spinner
+        
+        string originalFileName = file.Name;
+        Console.WriteLine($"[ProcessFile] File: {originalFileName}, Size: {file.Size} bytes");
+        
         try
         {
-            using var context = await DbFactory.CreateDbContextAsync();
-            using var stream = file.OpenReadStream(1_000_000);
-            using var reader = new StreamReader(stream, Encoding.UTF8);
-            var lineNumber = 0;
-            while (!reader.EndOfStream)
+            // Set EPPlus license context
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            Console.WriteLine($"[ProcessFile] Extension: {extension}");
+            
+            Toasts.Enqueue($"Processing {extension} file...", FinalAssignemnt_APDP.Services.ToastType.Info);
+            
+            // Process the file directly from stream
+            if (extension == ".csv")
             {
-                var line = await reader.ReadLineAsync();
-                if (line is null)
-                {
-                    break;
-                }
-                lineNumber++;
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
-                if (lineNumber == 1 && line.StartsWith("StudentId", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue; // header
-                }
-
-                var cells = line.Split(',');
-                var studentId = cells.ElementAtOrDefault(0)?.Trim() ?? string.Empty;
-                var courseCell = cells.ElementAtOrDefault(1)?.Trim() ?? string.Empty;
-                if (cells.Length < 4)
-                {
-                    results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, "Expected 4+ columns"));
-                    continue;
-                }
-
-                if (!int.TryParse(courseCell, out var courseId))
-                {
-                    results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, "CourseId is not a number"));
-                    continue;
-                }
-                double? midterm = TryParseDouble(cells.ElementAtOrDefault(2));
-                double? final = TryParseDouble(cells.ElementAtOrDefault(3));
-                var note = cells.ElementAtOrDefault(4)?.Trim();
-
-                try
-                {
-                    var entity = await context.Grades.FirstOrDefaultAsync(g => g.StudentID == studentId && g.CourseID == courseId);
-                    var isNew = entity is null;
-                    if (isNew)
-                    {
-                        entity = new Grade { StudentID = studentId, CourseID = courseId };
-                        context.Grades.Add(entity);
-                    }
-                    entity!.MidtermScore = midterm;
-                    entity.FinalScore = final;
-                    entity.Note = note;
-                    entity.CalculateGrade();
-                    await context.SaveChangesAsync();
-                    results.Add(new ImportResult(studentId, courseCell, isNew ? ImportStatus.Inserted : ImportStatus.Updated, "OK"));
-                }
-                catch (Exception ex)
-                {
-                    results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, ex.Message));
-                }
+                Console.WriteLine("[ProcessFile] Processing CSV file...");
+                await ProcessCsvFile(originalFileName);
+            }
+            else if (extension == ".xlsx")
+            {
+                Console.WriteLine("[ProcessFile] Processing XLSX file...");
+                await ProcessExcelFile(originalFileName);
+            }
+            else
+            {
+                Console.WriteLine($"[ProcessFile] ERROR: Unsupported extension: {extension}");
+                Toasts.Enqueue("Unsupported file format. Please upload CSV or XLSX file.", FinalAssignemnt_APDP.Services.ToastType.Error);
+                return;
             }
 
-            Toasts.Enqueue("Import finished", FinalAssignemnt_APDP.Services.ToastType.Success);
+            var successCount = results.Count(r => r.Status == ImportStatus.Inserted || r.Status == ImportStatus.Updated);
+            var failCount = results.Count(r => r.Status == ImportStatus.Failed);
+            
+            Console.WriteLine($"[ProcessFile] Import complete: {successCount} successful, {failCount} failed, {results.Count} total");
+            
+            // Save file to uploads/grades if import was successful
+            if (successCount > 0)
+            {
+                await SaveUploadedFile(originalFileName);
+                Toasts.Enqueue($"Import finished: {successCount} rows processed successfully", FinalAssignemnt_APDP.Services.ToastType.Success);
+            }
+            
+            if (failCount > 0)
+            {
+                Toasts.Enqueue($"Warning: {failCount} rows failed", FinalAssignemnt_APDP.Services.ToastType.Warning);
+            }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ProcessFile] === EXCEPTION ===");
+            Console.WriteLine($"[ProcessFile] Type: {ex.GetType().Name}");
+            Console.WriteLine($"[ProcessFile] Message: {ex.Message}");
+            Console.WriteLine($"[ProcessFile] StackTrace: {ex.StackTrace}");
+            
             Toasts.Enqueue($"Import failed: {ex.Message}", FinalAssignemnt_APDP.Services.ToastType.Error);
         }
         finally
         {
             isProcessing = false;
+            StateHasChanged(); // Update UI to hide spinner
+            Console.WriteLine("[ProcessFile] === END ===");
+        }
+    }
+
+    private async Task ProcessCsvFile(string originalFileName)
+    {
+        Console.WriteLine("[ProcessCsvFile] Starting CSV processing");
+        
+        using var context = await DbFactory.CreateDbContextAsync();
+        using var stream = file!.OpenReadStream(1_000_000);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        
+        var lineNumber = 0;
+        
+        // ? FIX: Use async pattern instead of EndOfStream
+        string? line;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            lineNumber++;
+            
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                Console.WriteLine($"[ProcessCsvFile] Line {lineNumber}: Empty, skipping");
+                continue;
+            }
+            
+            if (lineNumber == 1 && line.StartsWith("StudentId", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($"[ProcessCsvFile] Line {lineNumber}: Header row, skipping");
+                continue;
+            }
+
+            Console.WriteLine($"[ProcessCsvFile] Line {lineNumber}: {line}");
+            var cells = line.Split(',');
+            await ProcessRow(context, cells, lineNumber, originalFileName);
+        }
+        
+        Console.WriteLine($"[ProcessCsvFile] Finished processing {lineNumber} lines");
+    }
+
+    private async Task ProcessExcelFile(string originalFileName)
+    {
+        Console.WriteLine("[ProcessExcelFile] Starting Excel processing");
+        
+        using var context = await DbFactory.CreateDbContextAsync();
+        using var stream = file!.OpenReadStream(5_000_000);
+        using var package = new ExcelPackage(stream);
+        
+        var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+        if (worksheet == null)
+        {
+            Console.WriteLine("[ProcessExcelFile] ERROR: No worksheet found");
+            Toasts.Enqueue("No worksheet found in Excel file", FinalAssignemnt_APDP.Services.ToastType.Error);
+            return;
+        }
+
+        var rowCount = worksheet.Dimension?.Rows ?? 0;
+        Console.WriteLine($"[ProcessExcelFile] Found {rowCount} rows");
+        
+        if (rowCount == 0)
+        {
+            Console.WriteLine("[ProcessExcelFile] ERROR: Empty worksheet");
+            Toasts.Enqueue("Excel file is empty", FinalAssignemnt_APDP.Services.ToastType.Error);
+            return;
+        }
+
+        // Skip header row (row 1)
+        for (int row = 2; row <= rowCount; row++)
+        {
+            var cells = new string[7];
+            for (int col = 1; col <= Math.Min(7, worksheet.Dimension?.Columns ?? 0); col++)
+            {
+                cells[col - 1] = worksheet.Cells[row, col].Text?.Trim() ?? string.Empty;
+            }
+            
+            Console.WriteLine($"[ProcessExcelFile] Row {row}: {string.Join(",", cells.Take(4))}");
+            await ProcessRow(context, cells, row, originalFileName);
+        }
+        
+        Console.WriteLine($"[ProcessExcelFile] Finished processing {rowCount - 1} data rows");
+    }
+
+    private async Task ProcessRow(ApplicationDbContext context, string[] cells, int rowNumber, string originalFileName)
+    {
+        var studentId = cells.ElementAtOrDefault(0)?.Trim() ?? string.Empty;
+        var courseCell = cells.ElementAtOrDefault(1)?.Trim() ?? string.Empty;
+        
+        Console.WriteLine($"[ProcessRow] Row {rowNumber}: StudentId={studentId}, CourseId={courseCell}");
+        
+        if (cells.Length < 4)
+        {
+            var error = $"Row {rowNumber}: Expected at least 4 columns, got {cells.Length}";
+            Console.WriteLine($"[ProcessRow] ERROR: {error}");
+            results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
+            return;
+        }
+
+        if (!int.TryParse(courseCell, out var courseId))
+        {
+            var error = $"Row {rowNumber}: CourseId '{courseCell}' is not a valid number";
+            Console.WriteLine($"[ProcessRow] ERROR: {error}");
+            results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
+            return;
+        }
+        
+        double? midterm = TryParseDouble(cells.ElementAtOrDefault(2));
+        double? final = TryParseDouble(cells.ElementAtOrDefault(3));
+        var note = cells.ElementAtOrDefault(6)?.Trim();
+        
+        Console.WriteLine($"[ProcessRow] Row {rowNumber}: Midterm={midterm}, Final={final}");
+
+        try
+        {
+            // Find user by StudentId property
+            var user = await context.Users.FirstOrDefaultAsync(u => u.StudentId == studentId);
+            if (user == null)
+            {
+                var error = $"Row {rowNumber}: Student '{studentId}' not found in database";
+                Console.WriteLine($"[ProcessRow] ERROR: {error}");
+                results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
+                return;
+            }
+
+            Console.WriteLine($"[ProcessRow] Row {rowNumber}: Found user {user.Name} (Id: {user.Id})");
+
+            // Check if grade already exists
+            var entity = await context.Grades
+                .FirstOrDefaultAsync(g => g.StudentID == user.Id && g.CourseID == courseId);
+            
+            var isNew = entity is null;
+            
+            if (isNew)
+            {
+                Console.WriteLine($"[ProcessRow] Row {rowNumber}: Creating new grade record");
+                entity = new Grade { StudentID = user.Id, CourseID = courseId };
+                context.Grades.Add(entity);
+            }
+            else
+            {
+                Console.WriteLine($"[ProcessRow] Row {rowNumber}: Updating existing grade record (Id: {entity.Id})");
+            }
+            
+            // Update scores
+            entity!.MidtermScore = midterm;
+            entity.FinalScore = final;
+            entity.Note = note;
+            
+            // Save file metadata
+            entity.UploadedFileName = originalFileName;
+            entity.UploadedFileDate = DateTime.UtcNow;
+            
+            // Calculate grade
+            entity.CalculateGrade();
+            
+            Console.WriteLine($"[ProcessRow] Row {rowNumber}: Calculated Average={entity.AverageScore}, Letter={entity.LetterGrade}");
+            
+            // Save to database
+            await context.SaveChangesAsync();
+            
+            Console.WriteLine($"[ProcessRow] Row {rowNumber}: ? Saved to database");
+            
+            results.Add(new ImportResult(
+                studentId, 
+                courseCell, 
+                isNew ? ImportStatus.Inserted : ImportStatus.Updated, 
+                "OK"
+            ));
+        }
+        catch (Exception ex)
+        {
+            var error = $"Row {rowNumber}: {ex.Message}";
+            Console.WriteLine($"[ProcessRow] ERROR: {error}");
+            Console.WriteLine($"[ProcessRow] Exception: {ex.GetType().Name}");
+            Console.WriteLine($"[ProcessRow] StackTrace: {ex.StackTrace}");
+            
+            results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
         }
     }
 
     private static double? TryParseDouble(string? value)
     {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+            
         if (double.TryParse(value, out var result))
         {
             return result;
         }
         return null;
+    }
+
+    private async Task DownloadExport()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("open", "/api/grades/export", "_blank");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DownloadExport] Error: {ex.Message}");
+            Toasts.Enqueue("Failed to download export file", FinalAssignemnt_APDP.Services.ToastType.Error);
+        }
+    }
+
+    private async Task SaveUploadedFile(string originalFileName)
+    {
+        try
+        {
+            Console.WriteLine("[SaveUploadedFile] Saving file to uploads/grades...");
+            
+            // Create unique filename with timestamp
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var extension = Path.GetExtension(originalFileName);
+            var fileNameWithoutExt = Path.GetFileNameWithoutExtension(originalFileName);
+            var newFileName = $"{fileNameWithoutExt}_{timestamp}{extension}";
+            
+            // Get the uploads/grades directory path
+            var uploadsPath = Path.Combine(WebHostEnvironment.WebRootPath, "uploads", "grades");
+            
+            // Ensure directory exists
+            if (!Directory.Exists(uploadsPath))
+            {
+                Directory.CreateDirectory(uploadsPath);
+                Console.WriteLine($"[SaveUploadedFile] Created directory: {uploadsPath}");
+            }
+            
+            var filePath = Path.Combine(uploadsPath, newFileName);
+            
+            // Reset file stream and save
+            using var fileStream = file!.OpenReadStream(5_000_000);
+            using var fs = new FileStream(filePath, FileMode.Create);
+            await fileStream.CopyToAsync(fs);
+            
+            Console.WriteLine($"[SaveUploadedFile] ✓ File saved: {newFileName}");
+            Console.WriteLine($"[SaveUploadedFile] Path: {filePath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SaveUploadedFile] ERROR: {ex.Message}");
+            Console.WriteLine($"[SaveUploadedFile] StackTrace: {ex.StackTrace}");
+            // Don't throw - just log the error, import was already successful
+        }
     }
 
     private sealed record ImportResult(string StudentId, string CourseId, ImportStatus Status, string Message);
