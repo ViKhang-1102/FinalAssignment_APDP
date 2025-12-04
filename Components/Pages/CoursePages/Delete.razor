@@ -21,6 +21,11 @@ else
         </div>
 
         <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <div class="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+                <span class="bi bi-exclamation-triangle-fill mr-2"></span>
+                This action cannot be undone. Students assigned to this course will lose the linkage.
+            </div>
+            
             <dl class="divide-y divide-slate-100 text-sm">
                 <div class="grid grid-cols-3 gap-4 py-3">
                     <dt class="font-medium text-slate-500">Name</dt>
@@ -43,59 +48,12 @@ else
             <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance>
                 <div class="mt-6 flex items-center gap-3">
                     <button type="submit" class="inline-flex items-center rounded-full bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500">Delete</button>
-                    <a href="/courses" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
+                    <a href="@AppRoutes.Courses" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
             </EditForm>
         </div>
     </div>
 }
-<div class="@UiClasses.PageShell">
-    <div>
-        <p class="@UiClasses.SectionTag">Courses</p>
-        <h1 class="@UiClasses.SectionTitle">Delete Course</h1>
-        <p class="@UiClasses.SectionSubtitle">Confirm removal of this course record from the catalog.</p>
-    </div>
-
-    @if (course is null)
-    {
-        <div class="@UiClasses.Card text-center text-slate-500">
-            <span class="inline-flex items-center gap-2 text-sm"><i class="bi bi-arrow-counterclockwise animate-spin"></i> Loading course...</span>
-        </div>
-    }
-    else
-    {
-        <div class="@UiClasses.Card space-y-5">
-            <div class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                <i class="bi bi-exclamation-triangle-fill text-amber-500 me-2"></i>
-                This action cannot be undone. Students assigned to this course will lose the linkage.
-            </div>
-            <dl class="@UiClasses.DetailList">
-                <div>
-                    <dt class="@UiClasses.Label">Name</dt>
-                    <dd class="text-base text-slate-900">@course.Name</dd>
-                </div>
-                <div>
-                    <dt class="@UiClasses.Label">Subject ID</dt>
-                    <dd class="text-base text-slate-900">@course.SubjectID</dd>
-                </div>
-                <div>
-                    <dt class="@UiClasses.Label">Semester ID</dt>
-                    <dd class="text-base text-slate-900">@course.SemesterID</dd>
-                </div>
-                <div>
-                    <dt class="@UiClasses.Label">Lecturer ID</dt>
-                    <dd class="text-base text-slate-900">@course.LectureID</dd>
-                </div>
-            </dl>
-            <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance>
-                <div class="flex flex-wrap gap-3">
-                    <button type="submit" class="@UiClasses.DangerButton" disabled="@(course is null)"><i class="bi bi-trash"></i> Delete course</button>
-                    <a class="@UiClasses.GhostButton" href="@AppRoutes.Courses"><i class="bi bi-arrow-left"></i> Back to list</a>
-                </div>
-            </EditForm>
-        </div>
-    }
-</div>
 
 @code {
     private Course? course;

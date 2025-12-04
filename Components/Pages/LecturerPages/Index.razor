@@ -1,12 +1,18 @@
 @page "/lecturer"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Lecture,Lecturer")]
 @using System
 @using System.Collections.Generic
 @using System.Linq
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Constants
 @using FinalAssignemnt_APDP.Services
+@using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Components.Pages.LecturerPages
 @inherits LecturerTeachingPageBase
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject ToastQueue Toasts
 
 <PageTitle>Lecturer Workspace</PageTitle>
 
@@ -18,8 +24,8 @@
             <p class="text-sm text-slate-500">Review assigned courses, classes, and scores in one place.</p>
         </div>
         <div class="flex flex-wrap gap-3">
-            <a href="@AppRoutes.AdminGrades" class="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50">
-                <span class="bi bi-clipboard-data"></span> Grade Workspace
+            <a href="@AppRoutes.LecturerStudents" class="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50">
+                <span class="bi bi-clipboard-data"></span> Full Grade View
             </a>
             <a href="@AppRoutes.Courses" class="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
                 <span class="bi bi-journal-text"></span> Course Catalog
@@ -79,7 +85,7 @@
                     @foreach (var course in Workspace.Courses)
                     {
                         var isSelected = course.Id == selectedCourseId;
-                        <article class="flex flex-col gap-3 py-4" style="cursor: pointer;" @onclick="() => SelectCourse(course.Id)">
+                        <article class="@(isSelected ? "bg-indigo-50" : "") flex flex-col gap-3 py-4 transition" style="cursor: pointer;" @onclick="() => SelectCourse(course.Id)">
                             <div class="flex items-start justify-between gap-4">
                                 <div>
                                     <p class="text-base font-semibold text-slate-900">@course.Name</p>
@@ -93,27 +99,29 @@
                                 <span class="bi bi-calendar-week text-emerald-500"></span>
                                 <span class="ms-2">@course.ScheduleSummary</span>
                             </p>
-                            <div class="flex flex-wrap gap-3">
+                            <div class="flex flex-wrap gap-2">
                                 <a href="@AppRoutes.LecturerCourseClasses(course.Id)"
-                                   class="inline-flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-200 hover:bg-emerald-100"
+                                   class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
                                    @onclick:stopPropagation="true">
-                                    <span class="bi bi-people"></span>
-                                    <span class="flex flex-col text-left leading-tight">
-                                        <span class="text-xs font-semibold uppercase tracking-wide">View classes</span>
-                                        <span>@FormatStudentSummary(course.StudentCount)</span>
-                                        <span class="text-xs text-emerald-800">Grade details & roster</span>
-                                    </span>
+                                    <span class="bi bi-people-fill"></span>
+                                    Full Roster & Grades
                                 </a>
                                 <a href="@AppRoutes.LecturerCourseInfo(course.Id)"
-                                   class="inline-flex items-start gap-3 rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                                   class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                                    @onclick:stopPropagation="true">
-                                    <span class="bi bi-box-arrow-up-right"></span>
-                                    <span class="flex flex-col text-left leading-tight">
-                                        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">Course info</span>
-                                        <span>@course.Name</span>
-                                        <span class="text-xs text-slate-500">@course.Subject · @course.Semester · @FormatSlotSummary(course.TotalSlots)</span>
-                                    </span>
+                                    <span class="bi bi-info-circle"></span>
+                                    Course Info
                                 </a>
+                                @if (isSelected)
+                                {
+                                    <!-- Link đến Full Grading Page -->
+                                    <a href="@AppRoutes.LecturerStudents"
+                                       class="inline-flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
+                                       @onclick:stopPropagation="true">
+                                        <span class="bi bi-clipboard2-check-fill"></span>
+                                        Full Grading View
+                                    </a>
+                                }
                             </div>
                         </article>
                     }
@@ -136,89 +144,71 @@
                 }
                 else
                 {
-                    <div class="timeline-scroll">
-                        <ol class="space-y-4">
-                            @foreach (var session in Workspace.UpcomingSessions)
-                            {
-                                <li class="flex gap-4">
-                                    <div class="flex w-28 flex-col items-center rounded-lg border border-slate-100 bg-slate-50 px-2 py-2 text-center">
-                                        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">@session.DayOfWeek</span>
-                                        <span class="text-sm font-bold text-slate-900">@session.TimeLabel</span>
-                                    </div>
-                                    <div class="flex-1 rounded-2xl border border-slate-100 bg-slate-900/90 px-4 py-3 text-white shadow-sm">
-                                        <div class="flex flex-wrap items-center justify-between gap-3">
-                                            <p class="text-sm font-semibold">@session.CourseName</p>
-                                            <span class="text-xs uppercase tracking-wide text-slate-200">Room @(string.IsNullOrWhiteSpace(session.Room) ? "TBD" : session.Room)</span>
-                                        </div>
-                                        <p class="mt-1 text-sm text-slate-100">
-                                            <span class="bi bi-calendar-week"></span>
-                                            <span class="ms-2">Weekly meeting captured from enrollments</span>
-                                        </p>
-                                    </div>
-                                </li>
-                            }
-                        </ol>
+                    <div class="max-h-96 space-y-3 overflow-y-auto">
+                        @foreach (var session in Workspace.UpcomingSessions)
+                        {
+                            <div class="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 transition hover:border-slate-200">
+                                <div class="flex w-20 flex-col items-center rounded-lg border border-slate-200 bg-white px-2 py-2 text-center">
+                                    <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">@session.DayOfWeek</span>
+                                    <span class="text-sm font-bold text-slate-900">@session.TimeLabel</span>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-slate-900">@session.CourseName</p>
+                                    <p class="mt-1 text-xs text-slate-600">
+                                        <span class="bi bi-geo-alt-fill"></span>
+                                        Room @(string.IsNullOrWhiteSpace(session.Room) ? "TBD" : session.Room)
+                                    </p>
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
             </section>
         </div>
 
-        <div class="mt-10 grid gap-8 lg:grid-cols-2">
-            <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-                <div class="mb-4">
-                    <p class="text-xs uppercase tracking-widest text-slate-400">Classes</p>
-                    <h2 class="text-xl font-semibold text-slate-900">@selectedCourseName schedule</h2>
-                    <p class="text-sm text-slate-500">@selectedCourseSubtitle</p>
-                </div>
-                @if (selectedMeetings.Count == 0)
-                {
-                    <div class="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
-                        No class schedule data found. Update enrollment records to add day, time, and room.
-                    </div>
-                }
-                else
-                {
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-100 text-sm">
-                            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                <tr>
-                                    <th class="px-4 py-3">Day</th>
-                                    <th class="px-4 py-3">Time</th>
-                                    <th class="px-4 py-3">Room</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                @foreach (var meeting in selectedMeetings)
-                                {
-                                    <tr class="hover:bg-slate-50/70">
-                                        <td class="px-4 py-3 text-slate-700">@meeting.Day</td>
-                                        <td class="px-4 py-3 text-slate-700">@meeting.Time</td>
-                                        <td class="px-4 py-3 text-slate-700">@meeting.Room</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </section>
-
+        <div class="mt-10">
             <section class="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
                 <div class="mb-4 flex items-center justify-between">
                     <div>
-                        <p class="text-xs uppercase tracking-widest text-slate-400">Scores</p>
-                        <h2 class="text-xl font-semibold text-slate-900">@selectedCourseName · Students</h2>
-                        <p class="text-sm text-slate-500">Click a course above to load its roster and grade snapshot.</p>
+                        <h2 class="text-xl font-semibold text-slate-900">@selectedCourseName</h2>
+                        <p class="text-sm text-slate-500">@selectedCourseSubtitle</p>
                     </div>
-                    <span class="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">@selectedRoster.Count learners</span>
+                    <div class="flex items-center gap-2">
+                        <span class="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                            @selectedRoster.Count learner@(selectedRoster.Count != 1 ? "s" : "")
+                        </span>
+                        @if (isGradingMode && selectedRoster.Count > 0)
+                        {
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                                <span class="bi bi-pencil-fill"></span>
+                                Grading Mode Active
+                            </span>
+                        }
+                    </div>
                 </div>
+                
                 @if (selectedRoster.Count == 0)
                 {
                     <div class="rounded-lg border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
-                        No enrollments or grades found for the selected course.
+                        No enrollments or grades found for the selected course. Click a course above to view students.
                     </div>
                 }
                 else
                 {
+                    @if (isGradingMode)
+                    {
+                        <!-- Grading Mode Info Banner -->
+                        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <div class="flex items-start gap-3">
+                                <span class="bi bi-info-circle-fill text-xl text-amber-600"></span>
+                                <div class="flex-1 text-sm text-amber-800">
+                                    <p class="font-semibold">Quick Grading Mode</p>
+                                    <p class="mt-1">Each score can be edited up to <strong>2 times</strong>. Scores are auto-saved when you click Save.</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-100 text-sm">
                             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -228,25 +218,147 @@
                                     <th class="px-4 py-3">Final</th>
                                     <th class="px-4 py-3">Average</th>
                                     <th class="px-4 py-3">Letter</th>
+                                    @if (isGradingMode)
+                                    {
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    }
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 @foreach (var student in selectedRoster)
                                 {
-                                    <tr class="hover:bg-slate-50/70">
+                                    var isEditing = editingStudentId == student.StudentId;
+                                    var gradeInfo = studentGrades.GetValueOrDefault(student.StudentId);
+                                    var canEditMidterm = gradeInfo == null || gradeInfo.MidtermEditCount < Grade.MaxEditCount;
+                                    var canEditFinal = gradeInfo == null || gradeInfo.FinalEditCount < Grade.MaxEditCount;
+
+                                    <tr class="@(isEditing ? "bg-indigo-50" : "") hover:bg-slate-50/70">
                                         <td class="px-4 py-3">
                                             <p class="font-semibold text-slate-900">@student.Name</p>
                                             <p class="text-xs text-slate-500">@student.StudentId · @student.Email</p>
                                         </td>
-                                        <td class="px-4 py-3 text-slate-700">@FormatScore(student.MidtermScore)</td>
-                                        <td class="px-4 py-3 text-slate-700">@FormatScore(student.FinalScore)</td>
-                                        <td class="px-4 py-3 text-slate-700">@FormatScore(student.AverageScore)</td>
-                                        <td class="px-4 py-3 text-slate-700">@student.LetterGrade</td>
+                                        
+                                        @if (isGradingMode && isEditing)
+                                        {
+                                            <!-- Editing Mode -->
+                                            <td class="px-4 py-3">
+                                                <div class="space-y-1">
+                                                    <input type="number" 
+                                                           @bind="editMidterm"
+                                                           min="0" max="100" step="0.1"
+                                                           disabled="@(!canEditMidterm)"
+                                                           class="w-24 rounded-lg border @(canEditMidterm ? "border-indigo-300" : "border-slate-200 bg-slate-100") px-2 py-1.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" />
+                                                    @if (gradeInfo != null)
+                                                    {
+                                                        <p class="text-xs @GetEditCountClass(gradeInfo.MidtermEditCount)">
+                                                            @gradeInfo.MidtermEditCount/2 edits
+                                                        </p>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="space-y-1">
+                                                    <input type="number" 
+                                                           @bind="editFinal"
+                                                           min="0" max="100" step="0.1"
+                                                           disabled="@(!canEditFinal)"
+                                                           class="w-24 rounded-lg border @(canEditFinal ? "border-indigo-300" : "border-slate-200 bg-slate-100") px-2 py-1.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" />
+                                                    @if (gradeInfo != null)
+                                                    {
+                                                        <p class="text-xs @GetEditCountClass(gradeInfo.FinalEditCount)">
+                                                            @gradeInfo.FinalEditCount/2 edits
+                                                        </p>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 font-medium text-slate-700">
+                                                @FormatScore(CalculateAverage(editMidterm, editFinal))
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                                                    @GetLetterGrade(CalculateAverage(editMidterm, editFinal))
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center justify-end gap-1">
+                                                    <button @onclick="() => SaveGrade(student.StudentId)" 
+                                                            disabled="@(!canEditMidterm && !canEditFinal)"
+                                                            class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50">
+                                                        <span class="bi bi-check-lg"></span>
+                                                        Save
+                                                    </button>
+                                                    <button @onclick="CancelEdit"
+                                                            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50">
+                                                        <span class="bi bi-x-lg"></span>
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        }
+                                        else
+                                        {
+                                            <!-- Display Mode -->
+                                            <td class="px-4 py-3">
+                                                <div class="space-y-1">
+                                                    <p class="font-medium text-slate-700">@FormatScore(student.MidtermScore)</p>
+                                                    @if (gradeInfo != null && gradeInfo.MidtermEditCount > 0)
+                                                    {
+                                                        <p class="text-xs @GetEditCountClass(gradeInfo.MidtermEditCount)">
+                                                            @gradeInfo.MidtermEditCount/2 edits
+                                                        </p>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="space-y-1">
+                                                    <p class="font-medium text-slate-700">@FormatScore(student.FinalScore)</p>
+                                                    @if (gradeInfo != null && gradeInfo.FinalEditCount > 0)
+                                                    {
+                                                        <p class="text-xs @GetEditCountClass(gradeInfo.FinalEditCount)">
+                                                            @gradeInfo.FinalEditCount/2 edits
+                                                        </p>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 font-medium text-slate-700">@FormatScore(student.AverageScore)</td>
+                                            <td class="px-4 py-3">
+                                                @if (!string.IsNullOrWhiteSpace(student.LetterGrade))
+                                                {
+                                                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                                                        @student.LetterGrade
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-slate-400">—</span>
+                                                }
+                                            </td>
+                                            @if (isGradingMode)
+                                            {
+                                                <td class="px-4 py-3">
+                                                    <div class="flex justify-end">
+                                                        <button @onclick="() => StartEdit(student.StudentId, student.MidtermScore, student.FinalScore)"
+                                                                disabled="@(!canEditMidterm && !canEditFinal)"
+                                                                class="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
+                                                            <span class="bi bi-pencil-fill"></span>
+                                                            @(gradeInfo == null ? "Grade" : "Edit")
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            }
+                                        }
                                     </tr>
                                 }
                             </tbody>
                         </table>
                     </div>
+
+                    @if (isGradingMode && selectedRoster.Count > 0)
+                    {
+                        <div class="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                            <p><strong>Tip:</strong> Scores auto-calculate: Average = (Midterm × 40%) + (Final × 60%). Letter grades: D (≥80), M (≥65), P (≥50), F (&lt;50).</p>
+                        </div>
+                    }
                 }
             </section>
         </div>
@@ -260,6 +372,13 @@
     private IReadOnlyList<LecturerClassMeeting> selectedMeetings = Array.Empty<LecturerClassMeeting>();
     private IReadOnlyList<LecturerRosterRow> selectedRoster = Array.Empty<LecturerRosterRow>();
 
+    // Grading state
+    private bool isGradingMode = false;
+    private string? editingStudentId;
+    private double? editMidterm;
+    private double? editFinal;
+    private Dictionary<string, Grade> studentGrades = new();
+
     protected override Task AfterWorkspaceLoadedAsync()
     {
         var firstCourse = Workspace.Courses.FirstOrDefault();
@@ -271,7 +390,7 @@
         return Task.CompletedTask;
     }
 
-    private void SelectCourse(int courseId)
+    private async void SelectCourse(int courseId)
     {
         selectedCourseId = courseId;
         var course = Workspace.Courses.FirstOrDefault(c => c.Id == courseId);
@@ -286,11 +405,192 @@
             ? roster
             : Array.Empty<LecturerRosterRow>();
 
+        // Load grade edit counts
+        await LoadGradeInfoAsync(courseId);
+
+        // Reset grading mode when switching courses
+        isGradingMode = false;
+        editingStudentId = null;
+
         StateHasChanged();
     }
 
+    private async Task LoadGradeInfoAsync(int courseId)
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        
+        var grades = await context.Grades
+            .Where(g => g.CourseID == courseId)
+            .ToDictionaryAsync(g => g.StudentID, g => g);
+
+        studentGrades = grades;
+    }
+
+    private void ToggleGradingMode(int courseId)
+    {
+        isGradingMode = !isGradingMode;
+        
+        if (!isGradingMode)
+        {
+            // Reset editing state when exiting grading mode
+            editingStudentId = null;
+            editMidterm = null;
+            editFinal = null;
+        }
+        
+        StateHasChanged();
+    }
+
+    private void StartEdit(string studentId, double? midterm, double? final)
+    {
+        editingStudentId = studentId;
+        editMidterm = midterm;
+        editFinal = final;
+        StateHasChanged();
+    }
+
+    private void CancelEdit()
+    {
+        editingStudentId = null;
+        editMidterm = null;
+        editFinal = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveGrade(string studentId)
+    {
+        if (!selectedCourseId.HasValue) return;
+
+        using var context = await DbFactory.CreateDbContextAsync();
+        
+        Grade? grade;
+        bool isNew = false;
+
+        // Find or create grade
+        grade = await context.Grades
+            .FirstOrDefaultAsync(g => g.StudentID == studentId && g.CourseID == selectedCourseId.Value);
+
+        if (grade == null)
+        {
+            grade = new Grade
+            {
+                StudentID = studentId,
+                CourseID = selectedCourseId.Value
+            };
+            isNew = true;
+        }
+
+        // Validate and update Midterm
+        if (editMidterm.HasValue)
+        {
+            if (editMidterm.Value < 0 || editMidterm.Value > 100)
+            {
+                Toasts.Enqueue("Midterm score must be between 0 and 100", ToastType.Error);
+                return;
+            }
+
+            if (grade.MidtermEditCount >= Grade.MaxEditCount && grade.MidtermScore != editMidterm.Value)
+            {
+                Toasts.Enqueue($"Midterm score has reached maximum edit limit ({Grade.MaxEditCount} times)", ToastType.Error);
+                return;
+            }
+
+            if (grade.MidtermScore != editMidterm.Value)
+            {
+                grade.MidtermScore = editMidterm.Value;
+                if (!isNew) grade.MidtermEditCount++;
+            }
+        }
+
+        // Validate and update Final
+        if (editFinal.HasValue)
+        {
+            if (editFinal.Value < 0 || editFinal.Value > 100)
+            {
+                Toasts.Enqueue("Final score must be between 0 and 100", ToastType.Error);
+                return;
+            }
+
+            if (grade.FinalEditCount >= Grade.MaxEditCount && grade.FinalScore != editFinal.Value)
+            {
+                Toasts.Enqueue($"Final score has reached maximum edit limit ({Grade.MaxEditCount} times)", ToastType.Error);
+                return;
+            }
+
+            if (grade.FinalScore != editFinal.Value)
+            {
+                grade.FinalScore = editFinal.Value;
+                if (!isNew) grade.FinalEditCount++;
+            }
+        }
+
+        // Calculate average and letter grade
+        grade.CalculateGrade();
+
+        if (isNew)
+        {
+            context.Grades.Add(grade);
+        }
+
+        await context.SaveChangesAsync();
+        
+        Toasts.Enqueue("Grade saved successfully", ToastType.Success);
+        
+        // Reload workspace data and re-select course
+        var userId = await GetCurrentUserIdAsync();
+        if (!string.IsNullOrWhiteSpace(userId))
+        {
+            var newWorkspace = await WorkspaceService.LoadAsync(userId);
+            // Update workspace through reflection or just reload the page
+            await OnInitializedAsync();
+        }
+        
+        CancelEdit();
+    }
+
+    private async Task<string?> GetCurrentUserIdAsync()
+    {
+        if (AuthenticationStateTask == null) return null;
+        
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+        
+        if (user?.Identity?.IsAuthenticated != true) return null;
+        
+        return user.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+    }
+
     private static string FormatScore(double? score)
-        => score.HasValue ? score.Value.ToString("0.0") : "-";
+        => score.HasValue ? score.Value.ToString("0.0") : "—";
+
+    private static double? CalculateAverage(double? midterm, double? final)
+    {
+        if (midterm.HasValue && final.HasValue)
+        {
+            return (midterm.Value * 0.4) + (final.Value * 0.6);
+        }
+        return null;
+    }
+
+    private static string GetLetterGrade(double? average)
+    {
+        if (!average.HasValue) return "—";
+        if (average >= 80) return "D";
+        if (average >= 65) return "M";
+        if (average >= 50) return "P";
+        return "F";
+    }
+
+    private static string GetEditCountClass(int editCount)
+    {
+        return editCount switch
+        {
+            0 => "text-slate-500",
+            1 => "text-amber-600 font-medium",
+            >= 2 => "text-rose-600 font-semibold",
+            _ => "text-slate-500"
+        };
+    }
 
     private static string FormatStudentSummary(int count)
         => count == 1 ? "1 student" : FormattableString.Invariant($"{count} students");
