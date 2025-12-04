@@ -1,4 +1,4 @@
-﻿@page "/Account/Login"
+@page "/Account/Login"
 
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authentication
@@ -9,6 +9,7 @@
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject UserManager<ApplicationUser> UserManager
 
 <PageTitle>Log in</PageTitle>
 
@@ -93,7 +94,21 @@
         if (result.Succeeded)
         {
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+            
+            // Get user and redirect based on role
+            var user = await UserManager.FindByEmailAsync(Input.Email);
+            if (user is not null)
+            {
+                var roles = await UserManager.GetRolesAsync(user);
+                
+                // Determine redirect URL based on role
+                var redirectUrl = DetermineRedirectUrl(roles, ReturnUrl);
+                RedirectManager.RedirectTo(redirectUrl);
+            }
+            else
+            {
+                RedirectManager.RedirectTo(ReturnUrl);
+            }
         }
         else if (result.RequiresTwoFactor)
         {
@@ -110,6 +125,53 @@
         {
             errorMessage = "Error: Invalid login attempt.";
         }
+    }
+
+    private string DetermineRedirectUrl(IList<string> roles, string? returnUrl)
+    {
+        // If returnUrl is provided and is safe, validate it's accessible for the user's role
+        if (!string.IsNullOrEmpty(returnUrl) && returnUrl != "/")
+        {
+            // Block role-specific URLs if user doesn't have that role
+            if (returnUrl.StartsWith("/lecturer", StringComparison.OrdinalIgnoreCase) && 
+                !roles.Any(r => r.Equals("Lecture", StringComparison.OrdinalIgnoreCase) || r.Equals("Lecturer", StringComparison.OrdinalIgnoreCase)))
+            {
+                returnUrl = null; // Invalidate returnUrl
+            }
+            else if (returnUrl.StartsWith("/admin", StringComparison.OrdinalIgnoreCase) && 
+                     !roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+            {
+                returnUrl = null; // Invalidate returnUrl
+            }
+            else if (returnUrl.StartsWith("/student", StringComparison.OrdinalIgnoreCase) && 
+                     !roles.Any(r => r.Equals("Student", StringComparison.OrdinalIgnoreCase)))
+            {
+                returnUrl = null; // Invalidate returnUrl
+            }
+        }
+
+        // If returnUrl is still valid, use it
+        if (!string.IsNullOrEmpty(returnUrl) && returnUrl != "/")
+        {
+            return returnUrl;
+        }
+
+        // Default redirect based on role
+        if (roles.Contains("Admin"))
+        {
+            return "/admin";
+        }
+        else if (roles.Any(r => r.Equals("Lecture", StringComparison.OrdinalIgnoreCase) || r.Equals("Lecturer", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "/lecturer";
+        }
+        else if (roles.Contains("Student"))
+        {
+            return "/student/dashboard";
+        }
+
+        // Fallback to home
+        return "/";
     }
 
     private sealed class InputModel

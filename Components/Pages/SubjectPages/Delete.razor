@@ -1,4 +1,4 @@
-Ôªø@page "/subjects/delete"
+@page "/subjects/delete"
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
@@ -10,7 +10,7 @@
 
 @if (subject is null)
 {
-    <p class="text-slate-500">Loading‚Ä¶</p>
+    <p class="text-slate-500">LoadingÖ</p>
 }
 else
 {
@@ -64,7 +64,7 @@ else
         using var context = DbFactory.CreateDbContext();
         context.Subjects.Remove(subject!);
         await context.SaveChangesAsync();
-        Toasts.Enqueue("X√≥a m√¥n h·ªçc th√†nh c√¥ng", FinalAssignemnt_APDP.Services.ToastType.Success);
+        Toasts.Enqueue("XÛa mÙn h?c th‡nh cÙng", FinalAssignemnt_APDP.Services.ToastType.Success);
         NavigationManager.NavigateTo("/subjects");
     }
 }

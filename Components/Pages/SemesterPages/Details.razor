@@ -1,4 +1,4 @@
-﻿@page "/semesters/details"
+@page "/semesters/details"
 @attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
@@ -9,7 +9,7 @@
 
 @if (semester is null)
 {
-    <p class="text-slate-500">Loading…</p>
+    <p class="text-slate-500">Loading�</p>
 }
 else
 {

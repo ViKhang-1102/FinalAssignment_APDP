@@ -25,8 +25,7 @@
                     <p class="text-lg font-semibold text-slate-900">@displayName</p>
                     <p class="text-sm text-slate-500">Student ID: @studentIdDisplay</p>
                     <div class="flex flex-wrap gap-3 pt-4">
-                        <a class="@UiClasses.PrimaryButton" href="@AppRoutes.ManageAccount"><i class="bi bi-person-gear"></i> Manage account</a>
-                        <a class="@UiClasses.GhostButton" href="@AppRoutes.StudentProfile"><i class="bi bi-person-circle"></i> My profile</a>
+                        <a class="@UiClasses.PrimaryButton" href="@AppRoutes.Profile"><i class="bi bi-person-gear"></i> Manage account</a>
                     </div>
                 </div>
                 <div class="@UiClasses.Card">
@@ -247,12 +246,22 @@
             return;
         }
 
-        await LoadClassesAsync(studentId);
-        await LoadGradesAsync(studentId);
+        var keys = new List<string?> { appUser?.Id, appUser?.StudentId, appUser?.UserName, user.Identity?.Name }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!).ToList();
+
+        if (!keys.Any())
+        {
+            return;
+        }
+
+        await LoadClassesAsync(keys);
+        await LoadGradesAsync(keys);
+        BuildTimetable();
         BuildTimetable();
     }
 
-    private async Task LoadClassesAsync(string targetStudentId)
+    private async Task LoadClassesAsync(List<string> studentKeys)
     {
         var classes = await context!.Enrollments
             .Include(e => e.Course)!
@@ -261,7 +270,7 @@
                 .ThenInclude(c => c.Semester)
             .Include(e => e.Course)!
                 .ThenInclude(c => c.Lecture)
-            .Where(e => e.StudentID == targetStudentId)
+            .Where(e => studentKeys.Contains(e.StudentID))
             .Select(e => new ClassCard
             {
                 Title = e.Course != null ? e.Course.Name : "Course TBD",
@@ -285,12 +294,12 @@
         currentClasses.AddRange(classes);
     }
 
-    private async Task LoadGradesAsync(string targetStudentId)
+    private async Task LoadGradesAsync(List<string> studentKeys)
     {
         var grades = await context!.Grades
             .Include(g => g.Course)!
                 .ThenInclude(c => c.Subject)
-            .Where(g => g.StudentID == targetStudentId)
+            .Where(g => studentKeys.Contains(g.StudentID))
             .Select(g => new GradeSummary
             {
                 Course = g.Course != null

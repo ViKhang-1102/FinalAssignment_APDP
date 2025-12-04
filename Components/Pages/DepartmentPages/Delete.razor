@@ -1,4 +1,4 @@
-ï»¿@page "/departments/delete"
+@page "/departments/delete"
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
@@ -11,7 +11,7 @@
 
 @if (department is null)
 {
-    <p class="text-slate-500">Loadingâ€¦</p>
+    <p class="text-slate-500">Loading…</p>
 }
 else
 {
@@ -61,7 +61,7 @@ else
         using var context = DbFactory.CreateDbContext();
         context.Departments.Remove(department!);
         await context.SaveChangesAsync();
-        Toasts.Enqueue("XÃ³a phÃ²ng ban thÃ nh cÃ´ng", FinalAssignemnt_APDP.Services.ToastType.Success);
+        Toasts.Enqueue("Xóa phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
         NavigationManager.NavigateTo(Constants.AppRoutes.Departments);
     }
 }

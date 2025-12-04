@@ -13,6 +13,8 @@ namespace FinalAssignemnt_APDP.Constants
         public const string Register = "/Account/Register";
         public const string Logout = "/Account/Logout";
         public const string ManageAccount = "/Account/Manage";
+        public const string Profile = "/profile";
+        public const string ProfileForgotPassword = "/profile/forgot-password";
 
         // Admin & Lecturer Routes
         public const string Home = "/";

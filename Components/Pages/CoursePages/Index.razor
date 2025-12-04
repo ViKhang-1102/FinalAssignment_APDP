@@ -1,77 +1,68 @@
 ﻿@page "/courses"
 @attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
-@using Microsoft.AspNetCore.Components.QuickGrid
 @using FinalAssignemnt_APDP.Data
 @using FinalAssignemnt_APDP.Constants
 @implements IAsyncDisposable
-@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 
 <PageTitle>Courses</PageTitle>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-            <p class="text-xs font-semibold tracking-widest text-slate-500 uppercase">Academics</p>
-            <h1 class="text-3xl font-bold text-slate-900">Courses</h1>
-            <p class="text-sm text-slate-500">Browse, edit, or remove teaching groups in a single view.</p>
-        </div>
-        <div class="flex flex-wrap gap-3">
-            <AuthorizeView Roles="Admin">
-                <Authorized>
-                    <a href="@AppRoutes.CoursesCreate" class="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                        <i class="bi bi-plus-circle"></i> New Course
-                    </a>
-                </Authorized>
-            </AuthorizeView>
-        </div>
-    </div>
-
-    @if (courses.Count == 0)
-    {
-        <div class="rounded-md border border-dashed border-slate-300 bg-white/60 p-6 text-center text-slate-600">
-            No courses found.
-        </div>
-    }
-    else
-    {
-        <div class="overflow-hidden rounded-xl bg-white shadow-sm">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50">
-                    <tr class="text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
-                        <th class="px-6 py-3">Name</th>
-                        <th class="px-6 py-3">Subject</th>
-                        <th class="px-6 py-3">Semester</th>
-                        <th class="px-6 py-3">Lecturer</th>
-                        <th class="px-6 py-3 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 bg-white">
-                    @foreach (var course in courses)
-                    {
-                        <tr class="hover:bg-slate-50">
-                            <td class="px-6 py-4 font-medium text-slate-900">@course.Name</td>
-                            <td class="px-6 py-4 text-slate-700">@course.Subject?.Name</td>
-                            <td class="px-6 py-4 text-slate-700">@course.Semester?.Name</td>
-                            <td class="px-6 py-4 text-slate-700">@GetLecturerDisplayName(course.Lecture, course.LectureID)</td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="@AppRoutes.CoursesDetails(course.Id)" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
-                                    <AuthorizeView Roles="Admin">
-                                        <Authorized>
-                                            <a href="@AppRoutes.CoursesEdit(course.Id)" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
-                                            <a href="@AppRoutes.CoursesDelete(course.Id)" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
-                                        </Authorized>
-                                    </AuthorizeView>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-900">Courses</h1>
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <a href="courses/create" class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
+                <span class="text-lg">+</span> New Course
+            </a>
+        </Authorized>
+    </AuthorizeView>
 </div>
+
+@if (courses.Count == 0)
+{
+    <div class="mt-6 rounded-md border border-dashed border-slate-200 bg-white/60 p-6 text-center text-slate-500">
+        No courses found.
+    </div>
+}
+else
+{
+    <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    <th class="px-6 py-3">Name</th>
+                    <th class="px-6 py-3">Subject</th>
+                    <th class="px-6 py-3">Semester</th>
+                    <th class="px-6 py-3">Lecturer</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+                @foreach (var course in courses)
+                {
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium text-slate-900">@course.Name</td>
+                        <td class="px-6 py-4 text-slate-600">@GetSubjectLabel(course)</td>
+                        <td class="px-6 py-4 text-slate-600">@GetSemesterLabel(course)</td>
+                        <td class="px-6 py-4 text-slate-600">@GetLecturerLabel(course)</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="@($"courses/details?id={course.Id}")" class="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Details</a>
+                                <AuthorizeView Roles="Admin">
+                                    <Authorized>
+                                        <a href="@($"courses/edit?id={course.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                                        <a href="@($"courses/delete?id={course.Id}")" class="inline-flex items-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">Delete</a>
+                                    </Authorized>
+                                </AuthorizeView>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
 
 @code {
     private ApplicationDbContext context = default!;
@@ -80,49 +71,27 @@
     protected override async Task OnInitializedAsync()
     {
         context = DbFactory.CreateDbContext();
-        var loadedCourses = await context.Courses
+        courses = await context.Courses
             .Include(c => c.Subject)
             .Include(c => c.Semester)
             .Include(c => c.Lecture)
-            .AsNoTracking()
             .OrderBy(c => c.Name)
-            .ThenBy(c => c.Id)
             .ToListAsync();
-
-        courses.AddRange(loadedCourses);
     }
 
-    public async ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+
+    private static string GetSubjectLabel(Course course) => course.Subject?.Name ?? "Unassigned";
+    private static string GetSemesterLabel(Course course) => course.Semester?.Name ?? "Unassigned";
+    private static string GetLecturerLabel(Course course)
     {
-        if (context is not null)
+        if (course.Lecture is null)
         {
-            await context.DisposeAsync();
-        }
-    }
-
-    private static string GetLecturerDisplayName(ApplicationUser? lecturer, string? fallbackId)
-    {
-        if (lecturer is null)
-        {
-            return fallbackId ?? string.Empty;
+            return course.LectureID ?? "Unassigned";
         }
 
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(lecturer.Name))
-        {
-            parts.Add(lecturer.Name!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(lecturer.Email))
-        {
-            parts.Add(lecturer.Email!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(lecturer.StudentId))
-        {
-            parts.Add($"ID: {lecturer.StudentId}");
-        }
-
-        return parts.Count == 0 ? fallbackId ?? string.Empty : string.Join(" | ", parts);
+        var identity = course.Lecture.Name;
+        var secondary = course.Lecture.Email ?? course.Lecture.UserName ?? course.Lecture.Id;
+        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity}";
     }
 }

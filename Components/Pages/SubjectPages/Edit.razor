@@ -1,4 +1,4 @@
-﻿@page "/subjects/edit"
+@page "/subjects/edit"
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
@@ -10,7 +10,7 @@
 
 @if (Subject is null)
 {
-    <p class="text-slate-500">Loading…</p>
+    <p class="text-slate-500">Loading�</p>
 }
 else
 {
@@ -85,7 +85,7 @@ else
             }
         }
 
-        Toasts.Enqueue("Cập nhật môn học thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
+        Toasts.Enqueue("C?p nh?t m�n h?c th�nh c�ng", FinalAssignemnt_APDP.Services.ToastType.Success);
         NavigationManager.NavigateTo("/subjects");
     }
 

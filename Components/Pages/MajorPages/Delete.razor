@@ -9,7 +9,7 @@
 
 @if (major is null)
 {
-    <p class="text-slate-500">Loading…</p>
+    <p class="text-slate-500">Loading...</p>
 }
 else
 {
@@ -27,7 +27,7 @@ else
                 </div>
                 <div class="grid grid-cols-3 gap-4 py-3">
                     <dt class="font-medium text-slate-500">Department</dt>
-                    <dd class="col-span-2 text-slate-900">@major.Department?.Name</dd>
+                    <dd class="col-span-2 text-slate-900">@(major.Department?.Name ?? "Unassigned")</dd>
                 </div>
             </dl>
 

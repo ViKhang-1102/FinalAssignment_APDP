@@ -1,51 +1,60 @@
 ﻿@page "/courses/details"
-@attribute [Authorize(Roles = "Admin,Lecture,Lecturer")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
 
 <PageTitle>Course Details</PageTitle>
 
-@if (course is null)
-{
-    <p class="text-slate-500">Loading…</p>
-}
-else
-{
-    <div class="max-w-3xl space-y-6">
-        <div>
-            <h1 class="text-2xl font-semibold text-slate-900">Course details</h1>
-            <p class="text-sm text-slate-500">Review the information below.</p>
-        </div>
-
-        <div class="rounded-2xl bg-white p-6 shadow-sm">
-            <dl class="divide-y divide-slate-100 text-sm">
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Name</dt>
-                    <dd class="col-span-2 text-slate-900">@course.Name</dd>
-                </div>
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Subject</dt>
-                    <dd class="col-span-2 text-slate-900">@course.Subject?.Name</dd>
-                </div>
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Semester</dt>
-                    <dd class="col-span-2 text-slate-900">@course.Semester?.Name</dd>
-                </div>
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Lecturer</dt>
-                    <dd class="col-span-2 text-slate-900">@GetLecturerDisplayName(course.Lecture, course.LectureID)</dd>
-                </div>
-            </dl>
-
-            <div class="mt-6 flex items-center gap-3">
-                <a href="@($"/courses/edit?id={course.Id}")" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Edit</a>
-                <a href="/courses" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Back to list</a>
+<div class="min-h-screen bg-slate-50/40 p-4 sm:p-6">
+    <div class="mx-auto max-w-2xl">
+        @if (course is null)
+        {
+            <div class="rounded-2xl bg-white p-6 text-center text-slate-500">
+                <p class="text-sm">Loading course…</p>
             </div>
-        </div>
+        }
+        else
+        {
+            <div class="mb-6 flex items-center gap-3">
+                <a href="courses" class="inline-flex items-center justify-center rounded-full border border-slate-200 w-10 h-10 hover:bg-slate-50">
+                    <span class="text-lg">←</span>
+                </a>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Course Details</p>
+                    <h1 class="text-2xl font-semibold text-slate-900">@course.Name</h1>
+                </div>
+            </div>
+
+            <div class="rounded-2xl bg-white p-6 shadow-sm">
+                <dl class="grid gap-6 md:grid-cols-2">
+                    <div class="border-b border-slate-100 pb-4 last:border-0">
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Subject</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@(course.Subject?.Name ?? "Unassigned")</dd>
+                    </div>
+                    <div class="border-b border-slate-100 pb-4 last:border-0">
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Semester</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@(course.Semester?.Name ?? "Unassigned")</dd>
+                    </div>
+                    <div class="border-b border-slate-100 pb-4 last:border-0 md:col-span-2">
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Lecturer</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@GetLecturerLabel()</dd>
+                    </div>
+                </dl>
+
+                <div class="mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-6">
+                    <a href="courses" class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Back</a>
+                    <AuthorizeView Roles="Admin">
+                        <Authorized>
+                            <a href="@($"courses/edit?id={course.Id}")" class="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Edit</a>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+        }
     </div>
-}
+</div>
 
 @code {
     private Course? course;
@@ -68,29 +77,15 @@ else
         }
     }
 
-    private static string GetLecturerDisplayName(ApplicationUser? lecturer, string? fallbackId)
+    private string GetLecturerLabel()
     {
-        if (lecturer is null)
+        if (course?.Lecture is null)
         {
-            return fallbackId ?? string.Empty;
+            return course?.LectureID ?? "Unassigned";
         }
 
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(lecturer.Name))
-        {
-            parts.Add(lecturer.Name!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(lecturer.Email))
-        {
-            parts.Add(lecturer.Email!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(lecturer.StudentId))
-        {
-            parts.Add($"ID: {lecturer.StudentId}");
-        }
-
-        return parts.Count == 0 ? fallbackId ?? string.Empty : string.Join(" | ", parts);
+        var identity = course.Lecture.Name;
+        var secondary = course.Lecture.Email ?? course.Lecture.UserName ?? course.Lecture.Id;
+        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity}";
     }
 }

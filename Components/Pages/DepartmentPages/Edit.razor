@@ -1,4 +1,4 @@
-ï»¿@page "/departments/edit"
+@page "/departments/edit"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
@@ -12,7 +12,7 @@
 
 @if (Department is null)
 {
-    <p class="text-slate-500">Loadingâ€¦</p>
+    <p class="text-slate-500">Loading…</p>
 }
 else
 {
@@ -80,7 +80,7 @@ else
             }
         }
 
-        Toasts.Enqueue("Cáº­p nháº­t phÃ²ng ban thÃ nh cÃ´ng", FinalAssignemnt_APDP.Services.ToastType.Success);
+        Toasts.Enqueue("C?p nh?t phòng ban thành công", FinalAssignemnt_APDP.Services.ToastType.Success);
         NavigationManager.NavigateTo(AppRoutes.Departments);
     }
 

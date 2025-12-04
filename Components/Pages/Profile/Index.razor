@@ -1,0 +1,442 @@
+@page "/profile"
+@using System.Linq
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Constants
+@using FinalAssignemnt_APDP.Data
+@attribute [Authorize]
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserManager<ApplicationUser> UserManager
+@implements IAsyncDisposable
+
+<PageTitle>Profile</PageTitle>
+
+<div class="@UiClasses.PageShell">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="@UiClasses.SectionTag">Profile</p>
+            <h1 class="@UiClasses.SectionTitle">Your profile</h1>
+            <p class="@UiClasses.SectionSubtitle">Review your information and keep your contact details current.</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <a class="@UiClasses.PrimaryButton" href="/edit-profile">
+                <i class="bi bi-pencil-square"></i>
+                <span>Update details</span>
+            </a>
+            <a class="@UiClasses.GhostButton" href="javascript:history.back()">
+                <i class="bi bi-arrow-left"></i>
+                <span>Back to dashboard</span>
+            </a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="@(UiClasses.Card + " text-center text-slate-500")">
+            <div class="flex flex-col items-center gap-3 py-6">
+                <span class="bi bi-arrow-repeat animate-spin text-2xl"></span>
+                <p>Loading your profile...</p>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="@(UiClasses.Card + " text-center text-rose-600")">
+            <p>@errorMessage</p>
+        </div>
+    }
+    else if (currentUser is not null)
+    {
+        var statTiles = new[]
+        {
+            new { Icon = "bi-journal-check", Label = "Current courses", Value = stats.CurrentCourses.ToString(), Meta = "Active enrollments" },
+            new { Icon = "bi-patch-check", Label = "Completed courses", Value = stats.CompletedCourses.ToString(), Meta = "Finished classes" },
+            new { Icon = "bi-graph-up-arrow", Label = "Average score", Value = stats.AverageDisplay, Meta = "Across graded courses" },
+            new { Icon = "bi-award", Label = "Classification", Value = stats.Classification, Meta = "Current standing" }
+        };
+
+        <div class="space-y-8">
+            <section class="relative overflow-hidden rounded-[32px] bg-gradient-to-r from-indigo-600 via-violet-500 to-blue-500 p-8 text-white shadow-xl">
+                <div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(circle at top right, rgba(255,255,255,0.65), transparent 55%);"></div>
+                <div class="relative grid gap-8 lg:grid-cols-[200px,1fr]">
+                    <div class="rounded-3xl bg-white/15 p-5 text-center backdrop-blur">
+                        @if (!string.IsNullOrWhiteSpace(currentUser.Avatar))
+                        {
+                            <img src="@currentUser.Avatar" alt="Profile avatar" class="mx-auto h-32 w-32 rounded-3xl object-cover shadow-2xl" />
+                        }
+                        else
+                        {
+                            <div class="mx-auto flex h-32 w-32 items-center justify-center rounded-3xl bg-white/30 text-4xl font-semibold text-white">
+                                @AvatarInitials
+                            </div>
+                        }
+                        <p class="mt-3 text-base font-semibold">@currentUser.Name</p>
+                        <p class="text-xs text-white/80">ID @StudentIdDisplay</p>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.4em] text-white/70">Profile</p>
+                                <h1 class="text-3xl font-bold">Your profile</h1>
+                                <p class="text-white/80">Review your information and keep your contact details current.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                <a class="inline-flex items-center gap-2 rounded-3xl bg-white px-5 py-2 text-sm font-semibold text-indigo-700 shadow" href="/edit-profile">
+                                    <i class="bi bi-pencil-square"></i>
+                                    <span>Update details</span>
+                                </a>
+                                <a class="inline-flex items-center gap-2 rounded-3xl border border-white/50 px-5 py-2 text-sm font-semibold text-white" href="javascript:history.back()">
+                                    <i class="bi bi-arrow-left"></i>
+                                    <span>Back to dashboard</span>
+                                </a>
+                            </div>
+                        </div>
+
+                        <dl class="grid gap-4 text-sm text-white/80 md:grid-cols-2">
+                            <div>
+                                <dt class="font-semibold text-white">Email</dt>
+                                <dd>@(currentUser.Email ?? "--")</dd>
+                            </div>
+                            <div>
+                                <dt class="font-semibold text-white">Phone</dt>
+                                <dd>@(string.IsNullOrWhiteSpace(currentUser.PhoneNumber) ? "Not provided" : currentUser.PhoneNumber)</dd>
+                            </div>
+                            <div>
+                                <dt class="font-semibold text-white">Date of birth</dt>
+                                <dd>@FormatDate(currentUser.DOB)</dd>
+                            </div>
+                            <div>
+                                <dt class="font-semibold text-white">Address</dt>
+                                <dd>@(string.IsNullOrWhiteSpace(currentUser.Address) ? "Not provided" : currentUser.Address)</dd>
+                            </div>
+                        </dl>
+
+                        <div class="flex flex-wrap gap-3">
+                            <span class="inline-flex items-center gap-2 rounded-3xl bg-white/20 px-4 py-2 text-sm font-semibold">
+                                <i class="bi bi-mortarboard-fill"></i>
+                                <span>@stats.Classification</span>
+                            </span>
+                            <span class="inline-flex items-center gap-2 rounded-3xl bg-white/10 px-4 py-2 text-sm font-semibold">
+                                <i class="bi @(currentUser.EmailConfirmed ? "bi-shield-check" : "bi-shield-exclamation")"></i>
+                                <span>@(currentUser.EmailConfirmed ? "Email verified" : "Verification pending")</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                @foreach (var tile in statTiles)
+                {
+                    <article class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
+                                <i class="bi @tile.Icon"></i>
+                            </span>
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-400">@tile.Meta</div>
+                        </div>
+                        <p class="pt-4 text-4xl font-bold text-slate-900">@tile.Value</p>
+                        <p class="text-sm text-slate-500">@tile.Label</p>
+                    </article>
+                }
+            </section>
+
+            <section class="grid gap-6 lg:grid-cols-2">
+                <article class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+                    <p class="@UiClasses.SectionTag">Contact details</p>
+                    <h2 class="text-2xl font-semibold text-slate-900">Personal information</h2>
+                    <dl class="mt-4 grid gap-4 text-sm text-slate-600 sm:grid-cols-2">
+                        <div>
+                            <dt class="@UiClasses.Label">Full name</dt>
+                            <dd>@(string.IsNullOrWhiteSpace(currentUser.Name) ? "Not provided" : currentUser.Name)</dd>
+                        </div>
+                        <div>
+                            <dt class="@UiClasses.Label">Student ID</dt>
+                            <dd>@StudentIdDisplay</dd>
+                        </div>
+                        <div>
+                            <dt class="@UiClasses.Label">Email</dt>
+                            <dd>@(currentUser.Email ?? "--")</dd>
+                        </div>
+                        <div>
+                            <dt class="@UiClasses.Label">Phone</dt>
+                            <dd>@(string.IsNullOrWhiteSpace(currentUser.PhoneNumber) ? "Not provided" : currentUser.PhoneNumber)</dd>
+                        </div>
+                        <div>
+                            <dt class="@UiClasses.Label">Date of birth</dt>
+                            <dd>@FormatDate(currentUser.DOB)</dd>
+                        </div>
+                        <div>
+                            <dt class="@UiClasses.Label">Address</dt>
+                            <dd>@(string.IsNullOrWhiteSpace(currentUser.Address) ? "Not provided" : currentUser.Address)</dd>
+                        </div>
+                    </dl>
+                </article>
+
+                <article class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+                    <p class="@UiClasses.SectionTag">Progress</p>
+                    <h2 class="text-2xl font-semibold text-slate-900">Academic highlights</h2>
+                    <ul class="mt-4 space-y-3 text-sm text-slate-600">
+                        <li class="flex items-center justify-between">
+                            <span>Courses in progress</span>
+                            <strong class="text-slate-900">@stats.CurrentCourses</strong>
+                        </li>
+                        <li class="flex items-center justify-between">
+                            <span>Completed courses</span>
+                            <strong class="text-slate-900">@stats.CompletedCourses</strong>
+                        </li>
+                        <li class="flex items-center justify-between">
+                            <span>Average score</span>
+                            <strong class="text-slate-900">@stats.AverageDisplay</strong>
+                        </li>
+                        <li class="flex items-center justify-between">
+                            <span>Status</span>
+                            <strong class="text-slate-900">@stats.Classification</strong>
+                        </li>
+                    </ul>
+                    <a class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-500" href="@AppRoutes.StudentGrades">
+                        <i class="bi bi-clipboard-data"></i>
+                        <span>Go to grades</span>
+                    </a>
+                </article>
+            </section>
+
+            <section class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+                <div class="flex flex-col gap-2 md:flex-row md:items-baseline md:justify-between">
+                    <div>
+                        <p class="@UiClasses.SectionTag">Enrollments</p>
+                        <h2 class="text-2xl font-bold text-slate-900">Current courses</h2>
+                        <p class="text-sm text-slate-500">Includes lecturer, semester, and schedule information.</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 overflow-x-auto">
+                    @if (!enrollments.Any())
+                    {
+                        <p class="text-sm text-slate-500">No active enrollments yet.</p>
+                    }
+                    else
+                    {
+                        <table class="min-w-full divide-y divide-slate-200 text-sm text-slate-600">
+                            <thead>
+                                <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                    <th class="py-3">Subject</th>
+                                    <th class="py-3">Course</th>
+                                    <th class="py-3">Lecturer</th>
+                                    <th class="py-3">Semester</th>
+                                    <th class="py-3">Schedule</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach (var enrollment in enrollments)
+                                {
+                                    <tr>
+                                        <td class="py-3 font-medium text-slate-900">@GetSubjectLabel(enrollment)</td>
+                                        <td class="py-3">@GetCourseName(enrollment)</td>
+                                        <td class="py-3">@GetLecturerName(enrollment)</td>
+                                        <td class="py-3">@GetSemesterName(enrollment)</td>
+                                        <td class="py-3">@GetScheduleLabel(enrollment)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    private ApplicationDbContext? context;
+    private ApplicationUser? currentUser;
+    private readonly List<Enrollment> enrollments = new();
+    private readonly List<Grade> grades = new();
+    private bool isLoading = true;
+    private string? errorMessage;
+    private ProfileStats stats = new();
+
+    [CascadingParameter]
+    public Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            context = DbFactory.CreateDbContext();
+
+            if (AuthenticationStateTask is null)
+            {
+                errorMessage = "Unable to access authentication context.";
+                return;
+            }
+
+            var authState = await AuthenticationStateTask;
+            var userPrincipal = authState.User;
+
+            if (userPrincipal.Identity?.IsAuthenticated != true)
+            {
+                errorMessage = "Please sign in to view your profile.";
+                return;
+            }
+
+            currentUser = await UserManager.GetUserAsync(userPrincipal);
+
+            if (currentUser is null)
+            {
+                errorMessage = "We could not locate your account.";
+                return;
+            }
+
+            await LoadAcademicDataAsync(currentUser.Id);
+            stats = BuildStats();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Unable to load profile: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadAcademicDataAsync(string userId)
+    {
+        if (context is null)
+        {
+            return;
+        }
+
+        enrollments.Clear();
+        grades.Clear();
+
+        var ctx = context;
+
+        enrollments.AddRange(await ctx.Enrollments
+            .Include(e => e.Course)!.ThenInclude(c => c.Subject)
+            .Include(e => e.Course)!.ThenInclude(c => c.Lecture)
+            .Include(e => e.Course)!.ThenInclude(c => c.Semester)
+            .Where(e => e.StudentID == userId)
+            .OrderBy(e => e.Course!.Name)
+            .ToListAsync());
+
+        grades.AddRange(await ctx.Grades
+            .Where(g => g.StudentID == userId)
+            .ToListAsync());
+    }
+
+    private ProfileStats BuildStats()
+    {
+        var validScores = grades
+            .Where(g => g.AverageScore.HasValue)
+            .Select(g => g.AverageScore!.Value)
+            .ToList();
+
+        var averageScore = validScores.Any() ? validScores.Average() : (double?)null;
+
+        return new ProfileStats
+        {
+            CurrentCourses = enrollments.Count,
+            CompletedCourses = grades.Count(g => g.IsPassed),
+            AverageScore = averageScore,
+            Classification = GetClassification(averageScore)
+        };
+    }
+
+    private static string GetClassification(double? score)
+    {
+        if (score is null)
+        {
+            return "Pending";
+        }
+
+        return score switch
+        {
+            >= 85 => "Excellent",
+            >= 70 => "Good",
+            >= 55 => "Fair",
+            _ => "Needs attention"
+        };
+    }
+
+    private string ClassificationBadgeClass => stats.Classification switch
+    {
+        "Excellent" => "bg-emerald-50 text-emerald-700",
+        "Good" => "bg-amber-50 text-amber-700",
+        "Fair" => "bg-blue-50 text-blue-700",
+        "Pending" => "bg-slate-100 text-slate-600",
+        _ => "bg-rose-50 text-rose-700"
+    };
+
+    private string AvatarInitials => string.IsNullOrWhiteSpace(currentUser?.Name)
+        ? "ST"
+        : string.Join(string.Empty, currentUser!.Name!
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => char.ToUpperInvariant(part[0])));
+
+    private string StudentIdDisplay => string.IsNullOrWhiteSpace(currentUser?.StudentId)
+        ? "Pending"
+        : currentUser!.StudentId!;
+
+    private static string GetSubjectLabel(Enrollment enrollment)
+    {
+        return enrollment.Course?.Subject is null
+            ? "Subject TBD"
+            : $"{enrollment.Course.Subject.Code} - {enrollment.Course.Subject.Name}";
+    }
+
+    private static string GetCourseName(Enrollment enrollment)
+    {
+        return enrollment.Course?.Name ?? "Course TBD";
+    }
+
+    private static string GetLecturerName(Enrollment enrollment)
+    {
+        return enrollment.Course?.Lecture?.Name
+            ?? enrollment.Course?.LectureID
+            ?? "Assigning";
+    }
+
+    private static string GetSemesterName(Enrollment enrollment)
+    {
+        return enrollment.Course?.Semester?.Name ?? "Semester TBD";
+    }
+
+    private static string GetScheduleLabel(Enrollment enrollment)
+    {
+        if (string.IsNullOrWhiteSpace(enrollment.DayOfWeek))
+        {
+            return "Schedule TBA";
+        }
+
+        var time = string.IsNullOrWhiteSpace(enrollment.TimeSlot) ? "Time TBA" : enrollment.TimeSlot;
+        var room = string.IsNullOrWhiteSpace(enrollment.Room) ? "Room TBA" : enrollment.Room;
+        return $"{enrollment.DayOfWeek} - {time} - {room}";
+    }
+
+    private static string FormatDate(DateTime? date)
+    {
+        return date?.ToString("dd MMM yyyy") ?? "Not provided";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (context is not null)
+        {
+            await context.DisposeAsync();
+        }
+    }
+
+    private sealed class ProfileStats
+    {
+        public int CurrentCourses { get; set; }
+        public int CompletedCourses { get; set; }
+        public double? AverageScore { get; set; }
+        public string Classification { get; set; } = "Pending";
+        public string AverageDisplay => AverageScore.HasValue ? AverageScore.Value.ToString("0.0") : "--";
+    }
+}

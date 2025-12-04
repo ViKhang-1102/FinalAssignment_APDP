@@ -8,52 +8,60 @@
 
 <PageTitle>Delete Course</PageTitle>
 
-@if (course is null)
-{
-    <p class="text-slate-500">Loading…</p>
-}
-else
-{
-    <div class="max-w-3xl space-y-6">
-        <div>
-            <h1 class="text-2xl font-semibold text-slate-900">Delete course</h1>
-            <p class="text-sm text-slate-500">This action cannot be undone.</p>
-        </div>
-
-        <div class="rounded-2xl bg-white p-6 shadow-sm">
-            <div class="mb-4 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
-                <span class="bi bi-exclamation-triangle-fill mr-2"></span>
-                This action cannot be undone. Students assigned to this course will lose the linkage.
+<div class="min-h-screen bg-slate-50/40 p-4 sm:p-6">
+    <div class="mx-auto max-w-2xl">
+        @if (course is null)
+        {
+            <div class="rounded-2xl bg-white p-6 text-center text-slate-500">
+                <p class="text-sm">Loading course…</p>
             </div>
-            
-            <dl class="divide-y divide-slate-100 text-sm">
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Name</dt>
-                    <dd class="col-span-2 text-slate-900">@course.Name</dd>
+        }
+        else
+        {
+            <div class="mb-6 flex items-center gap-3">
+                <a href="courses" class="inline-flex items-center justify-center rounded-full border border-slate-200 w-10 h-10 hover:bg-slate-50">
+                    <span class="text-lg">←</span>
+                </a>
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-slate-500">Delete Course</p>
+                    <h1 class="text-2xl font-semibold text-slate-900">@course.Name</h1>
                 </div>
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Subject</dt>
-                    <dd class="col-span-2 text-slate-900">@course.Subject?.Name</dd>
-                </div>
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Semester</dt>
-                    <dd class="col-span-2 text-slate-900">@course.Semester?.Name</dd>
-                </div>
-                <div class="grid grid-cols-3 gap-4 py-3">
-                    <dt class="font-medium text-slate-500">Lecturer</dt>
-                    <dd class="col-span-2 text-slate-900">@GetLecturerDisplayName(course.Lecture, course.LectureID)</dd>
-                </div>
-            </dl>
+            </div>
 
-            <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance>
-                <div class="mt-6 flex items-center gap-3">
-                    <button type="submit" class="inline-flex items-center rounded-full bg-rose-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-rose-500">Delete</button>
-                    <a href="@AppRoutes.Courses" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
+            <div class="rounded-2xl bg-white p-6 shadow-sm">
+                <div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 p-4">
+                    <p class="text-sm text-rose-800">
+                        <span class="font-semibold">⚠️ Warning:</span> This action cannot be undone. Students assigned to this course will lose the linkage.
+                    </p>
                 </div>
-            </EditForm>
-        </div>
+
+                <dl class="mb-6 grid gap-6 border-b border-slate-100 pb-6">
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Subject</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@(course.Subject?.Name ?? "Unassigned")</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Semester</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@(course.Semester?.Name ?? "Unassigned")</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-widest text-slate-500">Lecturer</dt>
+                        <dd class="mt-2 text-base font-medium text-slate-900">@GetLecturerLabel()</dd>
+                    </div>
+                </dl>
+
+                <EditForm method="post" Model="course" OnValidSubmit="DeleteCourse" FormName="delete" Enhance class="space-y-6">
+                    <div class="flex items-center justify-between gap-3">
+                        <a href="courses" class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Cancel</a>
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500" disabled="@(course is null)">
+                            <span>🗑</span> Delete Course
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        }
     </div>
-}
+</div>
 
 @code {
     private Course? course;
@@ -79,41 +87,20 @@ else
     private async Task DeleteCourse()
     {
         using var context = DbFactory.CreateDbContext();
-        var entity = await context.Courses.FindAsync(course!.Id);
-        if (entity is null)
-        {
-            NavigationManager.NavigateTo("/courses");
-            return;
-        }
-
-        context.Courses.Remove(entity);
+        context.Courses.Remove(course!);
         await context.SaveChangesAsync();
-        NavigationManager.NavigateTo(AppRoutes.Courses);
+        NavigationManager.NavigateTo("courses");
     }
 
-    private static string GetLecturerDisplayName(ApplicationUser? lecturer, string? fallbackId)
+    private string GetLecturerLabel()
     {
-        if (lecturer is null)
+        if (course?.Lecture is null)
         {
-            return fallbackId ?? string.Empty;
+            return course?.LectureID ?? "Unassigned";
         }
 
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(lecturer.Name))
-        {
-            parts.Add(lecturer.Name!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(lecturer.Email))
-        {
-            parts.Add(lecturer.Email!);
-        }
-
-        if (!string.IsNullOrWhiteSpace(lecturer.StudentId))
-        {
-            parts.Add($"ID: {lecturer.StudentId}");
-        }
-
-        return parts.Count == 0 ? fallbackId ?? string.Empty : string.Join(" | ", parts);
+        var identity = course.Lecture.Name;
+        var secondary = course.Lecture.Email ?? course.Lecture.UserName ?? course.Lecture.Id;
+        return string.IsNullOrWhiteSpace(identity) ? secondary : $"{identity}";
     }
 }

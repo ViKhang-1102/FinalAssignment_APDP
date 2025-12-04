@@ -9,37 +9,30 @@
 
 @if (Major is null)
 {
-    <p class="text-slate-500">Loading…</p>
+    <p class="text-slate-500">Loading...</p>
 }
 else
 {
-    <div class="max-w-3xl space-y-6">
+    <div class="max-w-2xl space-y-6">
         <div>
-            <h1 class="text-2xl font-semibold text-slate-900">Edit major</h1>
-            <p class="text-sm text-slate-500">Update the information and save your changes.</p>
+            <h1 class="text-2xl font-semibold text-slate-900">Edit Major</h1>
+            <p class="text-sm text-slate-500">Adjust the name and department, then save.</p>
         </div>
 
         <div class="rounded-2xl bg-white p-6 shadow-sm">
             <EditForm method="post" Model="Major" OnValidSubmit="UpdateMajor" FormName="edit" Enhance>
                 <DataAnnotationsValidator />
-                <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
-                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
-                {
-                    <p class="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">@ErrorMessage</p>
-                }
-
+                <ValidationSummary role="alert" class="mb-4 text-sm text-rose-600" />
                 <input type="hidden" name="Major.Id" value="@Major.Id" />
-
-                <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-4">
                     <div class="space-y-1">
                         <label for="name" class="text-sm font-medium text-slate-700">Name</label>
                         <InputText id="name" @bind-Value="Major.Name" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100" />
                         <ValidationMessage For="() => Major.Name" class="text-sm text-rose-600" />
                     </div>
                     <div class="space-y-1">
-                        <label for="department" class="text-sm font-medium text-slate-700">Department</label>
-                        <InputSelect id="department" @bind-Value="Major.DepartmentId" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                            <option value="0">-- Select department --</option>
+                        <label for="departmentid" class="text-sm font-medium text-slate-700">Department</label>
+                        <InputSelect id="departmentid" @bind-Value="Major.DepartmentId" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
                             @foreach (var department in Departments)
                             {
                                 <option value="@department.Id">@department.Name</option>
@@ -48,9 +41,8 @@ else
                         <ValidationMessage For="() => Major.DepartmentId" class="text-sm text-rose-600" />
                     </div>
                 </div>
-
                 <div class="mt-6 flex items-center gap-3">
-                    <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Save changes</button>
+                    <button type="submit" class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500">Save</button>
                     <a href="/majors" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
             </EditForm>
@@ -66,17 +58,14 @@ else
     private Major? Major { get; set; }
 
     private List<Department> Departments { get; set; } = new();
-    private string? ErrorMessage { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         using var context = DbFactory.CreateDbContext();
+        Major ??= await context.Majors.FirstOrDefaultAsync(m => m.Id == Id);
         Departments = await context.Departments
             .OrderBy(d => d.Name)
-            .ThenBy(d => d.Id)
             .ToListAsync();
-
-        Major ??= await context.Majors.FirstOrDefaultAsync(m => m.Id == Id);
 
         if (Major is null)
         {
@@ -86,27 +75,8 @@ else
 
     private async Task UpdateMajor()
     {
-        ErrorMessage = null;
-
-        if (Major!.DepartmentId <= 0)
-        {
-            ErrorMessage = "Please select a department.";
-            return;
-        }
-
         using var context = DbFactory.CreateDbContext();
-        var departmentExists = await context.Departments.AnyAsync(d => d.Id == Major.DepartmentId);
-        if (!departmentExists)
-        {
-            ErrorMessage = "Selected department no longer exists.";
-            Departments = await context.Departments
-                .OrderBy(d => d.Name)
-                .ThenBy(d => d.Id)
-                .ToListAsync();
-            return;
-        }
-
-        context.Attach(Major).State = EntityState.Modified;
+        context.Attach(Major!).State = EntityState.Modified;
 
         try
         {
@@ -114,7 +84,7 @@ else
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!MajorExists(Major.Id))
+            if (!MajorExists(Major!.Id))
             {
                 NavigationManager.NavigateTo("notfound");
             }

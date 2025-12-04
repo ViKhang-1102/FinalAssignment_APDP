@@ -1,4 +1,4 @@
-Ôªø@page "/subjects/create"
+@page "/subjects/create"
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.EntityFrameworkCore
 @using FinalAssignemnt_APDP.Data
@@ -47,7 +47,7 @@
         using var context = DbFactory.CreateDbContext();
         context.Subjects.Add(Subject);
         await context.SaveChangesAsync();
-        Toasts.Enqueue("Th√™m m√¥n h·ªçc th√†nh c√¥ng", FinalAssignemnt_APDP.Services.ToastType.Success);
+        Toasts.Enqueue("ThÍm mÙn h?c th‡nh cÙng", FinalAssignemnt_APDP.Services.ToastType.Success);
         NavigationManager.NavigateTo("/subjects");
     }
 }
