@@ -1,5 +1,7 @@
 @implements IDisposable
 
+@* NavMenu: side navigation with role-based sections and logo navigation *@
+
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using FinalAssignemnt_APDP.Constants
@@ -165,25 +167,29 @@
 </div>
 
 @code {
+    // current relative URL
     private string? currentUrl;
 
+    // subscribe to navigation changes
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
     }
-
+    // update currentUrl on location change
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
         StateHasChanged();
     }
 
+    // unsubscribe from location changes
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
+    // NavigateHome: route to role dashboard or root
     private async Task NavigateHome()
     {
         try
@@ -212,15 +218,16 @@
                 }
             }
 
-            // Fallback to root if no role matched or not authenticated
+            // fallback to root
             NavigationManager.NavigateTo("/");
         }
         catch
         {
+            // fallback to root on error
             NavigationManager.NavigateTo("/");
         }
     }
-
+    // Handle keyboard activation of the logo (Enter or Space)
     private async Task HandleLogoKey(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" || e.Key == " ")

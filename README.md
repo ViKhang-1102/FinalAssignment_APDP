@@ -1,130 +1,154 @@
-﻿# FinalAssignment-APDP
+﻿  # FinalAssignment-APDP
 
-Ứng dụng quản lý sinh viên và khóa học được xây dựng bằng Blazor Server targeting .NET 8. Ứng dụng sử dụng ASP.NET Core Identity và Entity Framework Core để quản lý người dùng, vai trò, khoa, chuyên ngành, môn học và khóa học.
+  This is an academic management web application (students, lecturers, courses) built with Blazor Server targeting .NET 8. It uses ASP.NET Core Identity for authentication/authorization and Entity Framework Core for data access.
 
-## Mục lục
-- Yêu cầu hệ thống
-- Cài đặt & Thiết lập
-- Chạy dự án
-- Kiểm tra
-- Chức năng chính
-- Cấu trúc dự án
-- Đóng góp
+  Purpose: this README provides an English summary of system requirements, installation steps (for VS Code and Visual Studio), how to run the project, verification steps, main features, and the project structure.
 
-## Yêu cầu hệ thống
-- .NET 8 SDK
-- SQL Server hoặc SQL Server Express
-- Visual Studio 2022 (hoặc VS Code + C# extension)
-- Git
+  **Table of Contents**
+  - [System Requirements](#system-requirements)
+  - [Installation](#installation)
+    - [Using Visual Studio Code (IDE)](#using-visual-studio-code-ide)
+    - [Using Visual Studio (VS)](#using-visual-studio-vs)
+  - [Running the Project](#running-the-project)
+  - [Verification / Testing](#verification--testing)
+  - [Main Features (Highlights)](#main-features-highlights)
+  - [Project Structure](#project-structure)
+  - [Tips & Troubleshooting](#tips--troubleshooting)
+  - [Contributing](#contributing)
 
-## Cài đặt & Thiết lập
+  ## System Requirements
+  - .NET 8 SDK (https://dotnet.microsoft.com)
+  - Visual Studio 2022/2023 (with ASP.NET workload) or Visual Studio Code + C# extensions
+  - SQL Server (Express/LocalDB) or compatible SQL Server instance
+  - (Optional) `dotnet-ef` tool for running migrations from CLI
 
-1. Clone repository
-```bash
-git clone https://github.com/tmthanhCT/FinalAssignment-APDP.git
-cd FinalAssignemnt-APDP
-```
+  ## Installation
 
-2. Cấu hình chuỗi kết nối
-- Mở file `appsettings.json` và sửa `ConnectionStrings:DefaultConnection` cho phù hợp với môi trường của bạn. Ví dụ:
-```json
-{
+  Notes: example commands assume PowerShell on Windows.
+
+  1) Clone repository
+
+  ```powershell
+  git clone https://github.com/tmthanhCT/FinalAssignment-APDP.git
+  cd "FinalAssignemnt_APDP"
+  ```
+
+  2) Configure connection string
+  - Edit `appsettings.json` (or `appsettings.Development.json`) and set `ConnectionStrings:DefaultConnection`. Example:
+
+  ```json
   "ConnectionStrings": {
-    "DefaultConnection": "Server=YOUR_SERVER;Database=SIMSDB;Trusted_Connection=True;Encrypt=false"
+    "DefaultConnection": "Server=localhost;Database=Simester5Db;Trusted_Connection=True;Encrypt=false"
   }
-}
-```
-- Nếu muốn, tạo database bằng SSMS hoặc:
-```sql
-CREATE DATABASE SIMSDB;
-```
+  ```
 
-3. Khôi phục package và áp dụng migrations
-```bash
-dotnet restore
-dotnet ef database update
-```
+  3) Restore dependencies and apply migrations (if required)
 
-4. Thiết lập Identity
-- Khi chạy ứng dụng lần đầu, EF Core sẽ tạo các bảng Identity nếu chưa tồn tại.
+  ```powershell
+  dotnet restore
+  # If you don't have dotnet-ef installed
+  dotnet tool install --global dotnet-ef
+  dotnet ef database update
+  ```
 
-## Chạy dự án
+  ### Using Visual Studio Code (IDE)
+  - Open the project folder in VS Code.
+  - Install recommended extensions: `C#` (OmniSharp) and any .NET tooling you prefer.
+  - Run the commands above in the integrated terminal to prepare the database.
+  - Start the app using:
 
-- Visual Studio: mở `FinalAssignemnt_APDP.sln` hoặc `FinalAssignemnt_APDP.csproj`, chọn profile và chạy (F5).
-- Dòng lệnh:
-```bash
-dotnet run --project FinalAssignemnt_APDP.csproj
-```
-- Để phát triển nhanh: `dotnet watch run` (nếu cần).
+  ```powershell
+  dotnet run --project .\FinalAssignemnt_APDP.csproj
+  ```
 
-## Kiểm tra
+  ### Using Visual Studio (VS)
+  - Open `FinalAssignemnt_APDP.sln` in Visual Studio.
+  - Ensure the proper run profile (IIS Express or Project) is selected.
+  - Update `appsettings.json` if needed, then press F5 to run.
 
-- Mở trình duyệt tới `https://localhost:{port}` (port hiển thị khi chạy).
-- Tạo tài khoản mới hoặc đăng nhập.
-- Truy cập các trang demo như `Counter`, `Weather` và các trang được bảo vệ (ví dụ `/auth`).
+  ## Running the Project
 
-## Chức năng chính
+  - From CLI (PowerShell):
 
-- Xác thực và phân quyền
-  - Đăng ký, đăng nhập, đăng xuất
-  - Quản lý hồ sơ người dùng
-  - Role-based authorization (vai trò)
+  ```powershell
+  dotnet build
+  dotnet run --project .\FinalAssignemnt_APDP.csproj
+  ```
 
-- Quản lý dữ liệu học thuật
-  - `Department` (Khoa)
-  - `Major` (Chuyên ngành)
-  - `Subject` (Môn học)
-  - `Course` (Khóa học)
+  - For hot-reload during development:
 
-- Quản lý người dùng
-  - Tạo/sửa/xóa người dùng
-  - Gán vai trò (Sinh viên/ Giảng viên / Admin)
+  ```powershell
+  dotnet watch run --project .\FinalAssignemnt_APDP.csproj
+  ```
 
-- Không gian quản trị (Admin Control Center)
-  - Bảng điều khiển tổng hợp thống kê phòng ban, chuyên ngành, môn, khóa, kỳ học, ghi danh và điểm
-  - Đường tắt tới mọi trang CRUD hiện có (Department, Major, Subject, Course, Semester, Enrollment, Users)
+  - To publish for production:
 
-- Quản lý điểm nâng cao
-  - Trang quản lý `/admin/grades` với bộ lọc theo sinh viên, khóa học, trạng thái đạt
-  - Nhập/xuất điểm CSV (`StudentId,CourseId,Midterm,Final,Note`) với tự động cập nhật/insert
-  - Form tạo/sửa cho phép tính điểm trung bình và xếp loại ngay trong UI
+  ```powershell
+  dotnet publish -c Release -o .\publish
+  ```
 
-- Thời khóa biểu dựa trên ghi danh
-  - Thông tin ngày, giờ, phòng được nhập trực tiếp trong bảng Enrollment và tự động kết hợp thành lịch học
-  - Lịch lớp trên trang Enrollment giúp admin xem nhanh tất cả các lớp đang mở
-  - Lecturer Workspace sử dụng dữ liệu Enrollment để hiển thị timetable cho giảng viên
+  After running, open the address shown in the console (for example `https://localhost:5001`).
 
-- Giao diện
-  - Blazor Server với layout responsive và sidebar điều hướng
-  - Các trang chính: `Home`, `Counter`, `Weather`, trang bảo vệ `Auth`
+  ## Verification / Testing
+  - Build validation:
 
-- Dịch vụ & API
-  - `UserService` xử lý logic người dùng và vai trò
-  - `LecturerWorkspaceService` tổng hợp Enrollment & Grade để cung cấp dashboard và timetable cho giảng viên
-  - Sử dụng Entity Framework Core cho tương tác database
+  ```powershell
+  dotnet build
+  ```
 
-## Cấu trúc dự án
+  - Migration & DB checks:
 
-```
-FinalAssignemnt-APDP/
-├── Components/           # Component phân theo chức năng (Account, Layout, Pages)
-├── Data/                 # DbContext, ApplicationUser, Services, Models
-│   ├── ApplicationDbContext.cs
-│   ├── ApplicationUser.cs
-│   ├── UserService.cs
-│   └── Models/           # Course, Department, Major, Subject, ...
-├── wwwroot/              # Static files
-├── Program.cs            # Entry point, DI và middleware
-├── appsettings.json      # Cấu hình (connection string)
-└── FinalAssignemnt_APDP.csproj
-```
+  ```powershell
+  dotnet ef migrations list
+  dotnet ef database update
+  ```
 
-## Đóng góp
+  - If the repository does not include unit tests, basic verification is: build succeeds, run the app, register/login and exercise key CRUD pages.
 
-- Fork repository
-- Tạo branch cho feature/fix mới
-- Commit và tạo Pull Request
+  ## Main Features (Highlights)
+  - Authentication & Authorization: registration, login, user profile management, role-based authorization (ASP.NET Identity).
+  - Academic data management: CRUD for `Department`, `Major`, `Subject`, `Course`, `Semester`, and `Enrollment`.
+  - User management: create/edit/delete users, assign roles (Student / Lecturer / Admin).
+  - Admin dashboard: overview metrics and quick access to CRUD pages and grade management.
+  - Grade management & CSV import/export: import/export CSV for grades, automatic insert/update, average score calculation and classification.
+  - Lecturer workspace: timetable and class/grade summaries for lecturers.
+  - UI: Blazor Server with responsive layout and sidebar navigation.
 
-## Giấy phép
+  ## Project Structure
 
-Dự án được phát hành theo giấy phép MIT.
+  Key folders and files:
+
+  ```
+  FinalAssignemnt-APDP/
+  ├─ Components/              # Razor components, layout, shared components
+  │  ├─ Account/              # Identity-related components
+  │  ├─ Layout/               # MainLayout, NavMenu
+  │  └─ Pages/                # Component pages
+  ├─ Pages/                   # Razor pages per module (Student, Lecturer, Admin...)
+  ├─ Data/                    # Models, DbContext, Seeder, Services (UserService, etc.)
+  │  ├─ ApplicationDbContext.cs
+  │  ├─ ApplicationUser.cs
+  │  ├─ UserService.cs
+  │  └─ Migrations/           # EF Core migrations
+  ├─ EndPoints/               # Minimal API / endpoint definitions
+  ├─ Services/                # Business services (FileUploadService, LecturerWorkspaceService,...)
+  ├─ wwwroot/                 # Static files (css, js, uploads)
+  ├─ appsettings.json         # Configuration (connection strings, app settings)
+  ├─ Program.cs               # DI setup, middleware, route mapping
+  └─ FinalAssignemnt_APDP.csproj
+  ```
+
+  ## Tips & Troubleshooting
+  - DB connection errors: confirm `ConnectionStrings` in `appsettings.json` and SQL Server access rights.
+  - `dotnet ef` errors: ensure `dotnet-ef` is installed: `dotnet tool install --global dotnet-ef`.
+  - HTTPS certificate issues in dev: accept the dev certificate in your browser or run the Dev Cert tool if needed.
+
+  ## Contributing
+  - Fork → create a feature/fix branch → commit → open a Pull Request.
+
+  ---
+
+  If you'd like, I can:
+  - Add a PowerShell script to set up the database and run the app.
+  - Add a seed script to create a default admin user.
+

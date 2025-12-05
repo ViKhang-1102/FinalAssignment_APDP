@@ -1,4 +1,7 @@
 @inherits LayoutComponentBase
+
+@* MainLayout: renders `NavMenu`, page content, and flushes toasts *@
+
 @inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 @inject IJSRuntime JSRuntime
 @using FinalAssignemnt_APDP.Constants
@@ -27,6 +30,7 @@
 </div>
 
 @code {
+    // Flush toast queue to browser via JS interop
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await Toasts.FlushAsync(JSRuntime);
