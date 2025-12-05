@@ -90,23 +90,24 @@ app.MapGet("/api/grades/export", async (IDbContextFactory<ApplicationDbContext> 
 {
     await using var context = await dbFactory.CreateDbContextAsync();
     var grades = await context.Grades
-        .Include(g => g.Course)
         .Include(g => g.Student)
+        .Include(g => g.Course)
         .OrderBy(g => g.StudentID)
         .ThenBy(g => g.CourseID)
         .ToListAsync();
 
     var sb = new StringBuilder();
-    // Export student name and course name instead of internal IDs for readability
-    sb.AppendLine("StudentName,CourseName,Midterm,Final,Average,Letter,Note");
+    // Export StudentId (mã sinh viên) and course info
+    // First column should be StudentId only (no student name)
+    sb.AppendLine("StudentId,CourseName,Midterm,Final,Average,Letter,Note");
     foreach (var grade in grades)
     {
-        // Use student name and course name for export
-        var studentName = grade.Student?.Name ?? grade.StudentID;
-        var courseName = grade.Course?.Name ?? grade.CourseID.ToString();
+        // Use StudentId from User table instead of GUID
+        var studentId = grade.Student?.StudentId ?? "Unknown";
+        var courseName = grade.Course?.Name.ToString();
 
         sb.AppendLine(string.Join(',',
-            FormatCsv(studentName),
+            FormatCsv(studentId),
             FormatCsv(courseName),
             FormatCsv(grade.MidtermScore),
             FormatCsv(grade.FinalScore),

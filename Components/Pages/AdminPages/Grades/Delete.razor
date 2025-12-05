@@ -1,0 +1,205 @@
+@page "/admin/grades/delete"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Admin,Lecturer")]
+@using Microsoft.EntityFrameworkCore
+@using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Delete Grade</PageTitle>
+
+@if (grade is null)
+{
+    <p class="text-slate-500">Loading…</p>
+}
+else
+{
+    <div class="max-w-3xl space-y-6">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Delete Grade Record</h1>
+            <p class="text-sm text-slate-500">Are you sure you want to delete this grade record?</p>
+        </div>
+
+        <!-- Warning Banner -->
+        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <div class="flex gap-3">
+                <span class="bi bi-exclamation-triangle-fill text-xl text-rose-600"></span>
+                <div class="flex-1">
+                    <p class="font-semibold text-rose-900">Warning: This action cannot be undone</p>
+                    <p class="mt-1 text-sm text-rose-700">
+                        The grade record will be permanently deleted from the database.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Details -->
+        <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <dl class="divide-y divide-slate-100 text-sm">
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Student</dt>
+                    <dd class="col-span-2 text-slate-900">
+                        @if (!string.IsNullOrWhiteSpace(grade.Student?.StudentId))
+                        {
+                            <span class="font-mono">@grade.Student.StudentId</span>
+                            <span class="mx-2">·</span>
+                        }
+                        <span>@(grade.Student?.Name ?? "Unknown Student")</span>
+                    </dd>
+                </div>
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Course</dt>
+                    <dd class="col-span-2 text-slate-900">@(grade.Course?.Name ?? $"Course #{grade.CourseID}")</dd>
+                </div>
+                @if (grade.Course?.Semester != null)
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Semester</dt>
+                        <dd class="col-span-2 text-slate-900">@grade.Course.Semester.Name</dd>
+                    </div>
+                }
+                @if (grade.MidtermScore.HasValue)
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Midterm Score</dt>
+                        <dd class="col-span-2 text-slate-900">@grade.MidtermScore.Value.ToString("F1")</dd>
+                    </div>
+                }
+                @if (grade.FinalScore.HasValue)
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Final Score</dt>
+                        <dd class="col-span-2 text-slate-900">@grade.FinalScore.Value.ToString("F1")</dd>
+                    </div>
+                }
+                @if (grade.AverageScore.HasValue)
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Average</dt>
+                        <dd class="col-span-2 text-slate-900">@grade.AverageScore.Value.ToString("F1")</dd>
+                    </div>
+                }
+                @if (!string.IsNullOrWhiteSpace(grade.LetterGrade))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Letter Grade</dt>
+                        <dd class="col-span-2 text-slate-900">
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                                @grade.LetterGrade
+                            </span>
+                        </dd>
+                    </div>
+                }
+                <div class="grid grid-cols-3 gap-4 py-3">
+                    <dt class="font-medium text-slate-500">Status</dt>
+                    <dd class="col-span-2">
+                        @if (grade.IsPassed)
+                        {
+                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">Passed</span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700">Failed</span>
+                        }
+                    </dd>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(grade.Note))
+                {
+                    <div class="grid grid-cols-3 gap-4 py-3">
+                        <dt class="font-medium text-slate-500">Note</dt>
+                        <dd class="col-span-2 text-slate-700">@grade.Note</dd>
+                    </div>
+                }
+            </dl>
+
+            <EditForm Model="Input" method="post" OnValidSubmit="DeleteGrade" FormName="delete" class="mt-6">
+                <div class="flex items-center gap-3">
+                    <button type="submit" 
+                            disabled="@isDeleting"
+                            class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        @if (isDeleting)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                            <span>Deleting...</span>
+                        }
+                        else
+                        {
+                            <span class="bi bi-trash-fill"></span>
+                            <span>Delete Grade</span>
+                        }
+                    </button>
+                    <a href="@AppRoutes.AdminGrades" 
+                       class="text-sm font-semibold text-slate-600 hover:text-slate-900">
+                        Cancel
+                    </a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private Grade? grade;
+    private bool isDeleting;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        
+        grade = await context.Grades
+            .Include(g => g.Student)
+            .Include(g => g.Course)
+                .ThenInclude(c => c!.Semester)
+            .Include(g => g.Course)
+                .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (grade is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    private async Task DeleteGrade()
+    {
+        if (grade is null)
+        {
+            return;
+        }
+
+        isDeleting = true;
+
+        try
+        {
+            using var context = await DbFactory.CreateDbContextAsync();
+            
+            // Find and remove the grade
+            var gradeToDelete = await context.Grades.FindAsync(Id);
+            
+            if (gradeToDelete != null)
+            {
+                context.Grades.Remove(gradeToDelete);
+                await context.SaveChangesAsync();
+            }
+
+            NavigationManager.NavigateTo(AppRoutes.AdminGrades);
+        }
+        catch (Exception)
+        {
+            // Handle error - could add toast notification here
+            isDeleting = false;
+            throw;
+        }
+    }
+
+    private sealed class InputModel
+    {
+    }
+}

@@ -160,7 +160,7 @@ else
 
             roster.Add(new RosterRow
             {
-                StudentId = group.Key,
+                StudentId = student?.StudentId ?? student?.Email ?? group.Key,
                 Name = string.IsNullOrWhiteSpace(student?.Name) ? (student?.Email ?? group.Key) : student!.Name!,
                 Email = student?.Email ?? "-",
                 MidtermScore = grade?.MidtermScore,

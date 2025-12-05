@@ -1,4 +1,3 @@
-
 @page "/admin/grades/import"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin,Lecturer")]
@@ -27,7 +26,7 @@
             <div class="overflow-hidden rounded-xl bg-white shadow-sm h-100">
                 <div class="p-6">
                     <h5 class="fw-bold">Template</h5>
-                    <p class="text-muted">Use CSV file with the following columns:</p>
+                    <p class="text-muted">Use CSV or Excel file with the following columns:</p>
                     <code class="d-block bg-slate-50 p-2 rounded small">StudentId,CourseId,Midterm,Final,Note</code>
                     <p class="text-muted mt-3 small">Download current data as reference:</p>
                     <button class="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow w-full" @onclick="DownloadExport"><i class="bi bi-download"></i> Download CSV</button>
@@ -169,29 +168,26 @@
         
         try
         {
-            // Set EPPlus license context
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            
             var extension = Path.GetExtension(file.Name).ToLowerInvariant();
             Console.WriteLine($"[ProcessFile] Extension: {extension}");
-            
-            Toasts.Enqueue($"Processing {extension} file...", FinalAssignemnt_APDP.Services.ToastType.Info);
-            
-            // Process the file directly from stream
+
+            // Use a single upload timestamp for all rows so we can update stored path later
+            var uploadTimestamp = DateTime.UtcNow;
+
             if (extension == ".csv")
             {
-                Console.WriteLine("[ProcessFile] Processing CSV file...");
-                await ProcessCsvFile(originalFileName);
+                Toasts.Enqueue($"Processing CSV file...", FinalAssignemnt_APDP.Services.ToastType.Info);
+                await ProcessCsvFile(originalFileName, uploadTimestamp);
             }
-            else if (extension == ".xlsx")
+            else if (extension == ".xlsx" || extension == ".xls")
             {
-                Console.WriteLine("[ProcessFile] Processing XLSX file...");
-                await ProcessExcelFile(originalFileName);
+                Toasts.Enqueue($"Processing Excel file...", FinalAssignemnt_APDP.Services.ToastType.Info);
+                await ProcessExcelFile(originalFileName, uploadTimestamp);
             }
             else
             {
                 Console.WriteLine($"[ProcessFile] ERROR: Unsupported extension: {extension}");
-                Toasts.Enqueue("Unsupported file format. Please upload CSV or XLSX file.", FinalAssignemnt_APDP.Services.ToastType.Error);
+                Toasts.Enqueue("Unsupported file format. Please upload a CSV or Excel (.xlsx) file.", FinalAssignemnt_APDP.Services.ToastType.Error);
                 return;
             }
 
@@ -203,7 +199,7 @@
             // Save file to uploads/grades if import was successful
             if (successCount > 0)
             {
-                await SaveUploadedFile(originalFileName);
+                await SaveUploadedFile(originalFileName, uploadTimestamp);
                 Toasts.Enqueue($"Import finished: {successCount} rows processed successfully", FinalAssignemnt_APDP.Services.ToastType.Success);
             }
             
@@ -229,7 +225,7 @@
         }
     }
 
-    private async Task ProcessCsvFile(string originalFileName)
+    private async Task ProcessCsvFile(string originalFileName, DateTime uploadTimestamp)
     {
         Console.WriteLine("[ProcessCsvFile] Starting CSV processing");
         
@@ -258,20 +254,29 @@
             }
 
             Console.WriteLine($"[ProcessCsvFile] Line {lineNumber}: {line}");
+            // Notify that the line is being read (lightweight progress)
+            Toasts.Enqueue($"Reading line {lineNumber}", FinalAssignemnt_APDP.Services.ToastType.Info);
             var cells = line.Split(',');
-            await ProcessRow(context, cells, lineNumber, originalFileName);
+            await ProcessRow(context, cells, lineNumber, originalFileName, uploadTimestamp);
         }
         
         Console.WriteLine($"[ProcessCsvFile] Finished processing {lineNumber} lines");
     }
 
-    private async Task ProcessExcelFile(string originalFileName)
+    private async Task ProcessExcelFile(string originalFileName, DateTime uploadTimestamp)
     {
         Console.WriteLine("[ProcessExcelFile] Starting Excel processing");
         
         using var context = await DbFactory.CreateDbContextAsync();
         using var stream = file!.OpenReadStream(5_000_000);
-        using var package = new ExcelPackage(stream);
+        // EPPlus performs synchronous reads; BrowserFileStream doesn't support them.
+        // Copy the browser stream into a MemoryStream asynchronously and pass that to EPPlus.
+        await using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+        // Ensure EPPlus license context is set (required by newer EPPlus versions)
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        using var package = new ExcelPackage(ms);
         
         var worksheet = package.Workbook.Worksheets.FirstOrDefault();
         if (worksheet == null)
@@ -301,13 +306,15 @@
             }
             
             Console.WriteLine($"[ProcessExcelFile] Row {row}: {string.Join(",", cells.Take(4))}");
-            await ProcessRow(context, cells, row, originalFileName);
+            // Lightweight progress notification per row
+            Toasts.Enqueue($"Reading row {row}", FinalAssignemnt_APDP.Services.ToastType.Info);
+            await ProcessRow(context, cells, row, originalFileName, uploadTimestamp);
         }
         
         Console.WriteLine($"[ProcessExcelFile] Finished processing {rowCount - 1} data rows");
     }
 
-    private async Task ProcessRow(ApplicationDbContext context, string[] cells, int rowNumber, string originalFileName)
+    private async Task ProcessRow(ApplicationDbContext context, string[] cells, int rowNumber, string originalFileName, DateTime? uploadTimestamp = null)
     {
         var studentId = cells.ElementAtOrDefault(0)?.Trim() ?? string.Empty;
         var courseCell = cells.ElementAtOrDefault(1)?.Trim() ?? string.Empty;
@@ -319,15 +326,30 @@
             var error = $"Row {rowNumber}: Expected at least 4 columns, got {cells.Length}";
             Console.WriteLine($"[ProcessRow] ERROR: {error}");
             results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
+            Toasts.Enqueue(error, FinalAssignemnt_APDP.Services.ToastType.Error);
             return;
         }
 
-        if (!int.TryParse(courseCell, out var courseId))
+        int courseId;
+        // Try parse as numeric CourseId first
+        if (!int.TryParse(courseCell, out courseId))
         {
-            var error = $"Row {rowNumber}: CourseId '{courseCell}' is not a valid number";
-            Console.WriteLine($"[ProcessRow] ERROR: {error}");
-            results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
-            return;
+            // If not numeric, try to find course by name (case-insensitive)
+            var courseNameLookup = courseCell?.Trim() ?? string.Empty;
+            Console.WriteLine($"[ProcessRow] Row {rowNumber}: Course lookup by name '{courseNameLookup}'");
+            var lookupLower = courseNameLookup.ToLowerInvariant();
+            var courseEntity = await context.Courses.FirstOrDefaultAsync(c => c.Name != null && c.Name.ToLower() == lookupLower);
+            if (courseEntity == null)
+            {
+                var error = $"Row {rowNumber}: Course '{courseCell}' not found in database";
+                Console.WriteLine($"[ProcessRow] ERROR: {error}");
+                results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
+                Toasts.Enqueue(error, FinalAssignemnt_APDP.Services.ToastType.Error);
+                return;
+            }
+
+            courseId = courseEntity.Id;
+            Console.WriteLine($"[ProcessRow] Row {rowNumber}: Resolved course name '{courseNameLookup}' to CourseID={courseId}");
         }
         
         double? midterm = TryParseDouble(cells.ElementAtOrDefault(2));
@@ -374,7 +396,8 @@
             
             // Save file metadata
             entity.UploadedFileName = originalFileName;
-            entity.UploadedFileDate = DateTime.UtcNow;
+            var ts = uploadTimestamp ?? DateTime.UtcNow;
+            entity.UploadedFileDate = ts;
             
             // Calculate grade
             entity.CalculateGrade();
@@ -385,7 +408,9 @@
             await context.SaveChangesAsync();
             
             Console.WriteLine($"[ProcessRow] Row {rowNumber}: ? Saved to database");
-            
+            // Notify success for this row (inserted or updated)
+            Toasts.Enqueue($"Row {rowNumber}: {(isNew ? "Inserted" : "Updated")} - {studentId}/{courseId}", FinalAssignemnt_APDP.Services.ToastType.Success);
+
             results.Add(new ImportResult(
                 studentId, 
                 courseCell, 
@@ -401,6 +426,7 @@
             Console.WriteLine($"[ProcessRow] StackTrace: {ex.StackTrace}");
             
             results.Add(new ImportResult(studentId, courseCell, ImportStatus.Failed, error));
+            Toasts.Enqueue(error, FinalAssignemnt_APDP.Services.ToastType.Error);
         }
     }
 
@@ -420,7 +446,9 @@
     {
         try
         {
-            await JSRuntime.InvokeVoidAsync("open", "/api/grades/export", "_blank");
+            // Try to read antiforgery token from a meta tag and use the enhanced download helper
+            var token = await JSRuntime.InvokeAsync<string>("getCsrfTokenFromMeta", "RequestVerificationToken");
+            await JSRuntime.InvokeVoidAsync("downloadFile", "/api/grades/export", new { csrfToken = token, csrfHeaderName = "RequestVerificationToken" });
         }
         catch (Exception ex)
         {
@@ -429,7 +457,7 @@
         }
     }
 
-    private async Task SaveUploadedFile(string originalFileName)
+    private async Task SaveUploadedFile(string originalFileName, DateTime uploadTimestamp)
     {
         try
         {
@@ -452,14 +480,39 @@
             }
             
             var filePath = Path.Combine(uploadsPath, newFileName);
-            
+
             // Reset file stream and save
             using var fileStream = file!.OpenReadStream(5_000_000);
             using var fs = new FileStream(filePath, FileMode.Create);
             await fileStream.CopyToAsync(fs);
-            
+
+            var relativePath = $"/uploads/grades/{newFileName}";
             Console.WriteLine($"[SaveUploadedFile] ✓ File saved: {newFileName}");
             Console.WriteLine($"[SaveUploadedFile] Path: {filePath}");
+
+            // Update DB rows that were processed in this import to store the path
+            try
+            {
+                using var ctx = await DbFactory.CreateDbContextAsync();
+                var rowsToUpdate = await ctx.Grades.ToListAsync();
+
+                foreach (var g in rowsToUpdate)
+                {
+                    g.UploadedFileName = originalFileName;
+                    g.UploadedFileStoredPath = relativePath;
+                    g.UploadedFileDate = uploadTimestamp;
+                }
+
+                if (rowsToUpdate.Count > 0)
+                {
+                    await ctx.SaveChangesAsync();
+                    Console.WriteLine($"[SaveUploadedFile] Updated {rowsToUpdate.Count} grade rows with stored path and metadata.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SaveUploadedFile] ERROR updating DB rows: {ex.Message}");
+            }
         }
         catch (Exception ex)
         {

@@ -193,7 +193,9 @@
 
         if (!string.IsNullOrWhiteSpace(studentSearch))
         {
-            query = query.Where(g => g.StudentID.Contains(studentSearch) || (g.Student != null && g.Student.Name!.Contains(studentSearch)));
+            query = query.Where(g => 
+                (g.Student != null && g.Student.StudentId != null && g.Student.StudentId.Contains(studentSearch)) ||
+                (g.Student != null && g.Student.Name != null && g.Student.Name.Contains(studentSearch)));
         }
 
         if (int.TryParse(selectedCourseId, out var courseId))
@@ -216,7 +218,9 @@
             gradeRows.Add(new GradeView
             {
                 Id = grade.Id,
-                Student = grade.Student?.Name ?? grade.StudentID,
+                Student = !string.IsNullOrWhiteSpace(grade.Student?.StudentId) 
+                    ? $"{grade.Student.StudentId} - {grade.Student.Name}" 
+                    : (grade.Student?.Name ?? "Unknown Student"),
                 Course = grade.Course?.Name ?? $"Course #{grade.CourseID}",
                 Semester = grade.Course?.Semester?.Name ?? "-",
                 Midterm = grade.MidtermScore,

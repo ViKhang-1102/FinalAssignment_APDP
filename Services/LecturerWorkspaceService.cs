@@ -50,7 +50,6 @@ namespace FinalAssignemnt_APDP.Services
 
             var grades = await context.Grades
                 .AsNoTracking()
-                .Include(g => g.Student)
                 .Where(g => courseIds.Contains(g.CourseID))
                 .ToListAsync(cancellationToken);
 

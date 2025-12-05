@@ -41,7 +41,6 @@ namespace FinalAssignemnt_APDP.Constants
         public const string UsersCreate = "/users/create";
         public const string AdminDashboard = "/admin";
         public const string AdminGrades = "/admin/grades";
-        public const string AdminGradesCreate = "/admin/grades/create";
         public const string AdminGradesImport = "/admin/grades/import";
 
         // Student Routes
