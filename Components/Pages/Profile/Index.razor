@@ -94,24 +94,40 @@
                             </div>
                         </div>
 
-                        <dl class="grid gap-4 text-sm text-white/80 md:grid-cols-2">
-                            <div>
-                                <dt class="font-semibold text-white">Email</dt>
-                                <dd>@(currentUser.Email ?? "--")</dd>
-                            </div>
-                            <div>
-                                <dt class="font-semibold text-white">Phone</dt>
-                                <dd>@(string.IsNullOrWhiteSpace(currentUser.PhoneNumber) ? "Not provided" : currentUser.PhoneNumber)</dd>
-                            </div>
-                            <div>
-                                <dt class="font-semibold text-white">Date of birth</dt>
-                                <dd>@FormatDate(currentUser.DOB)</dd>
-                            </div>
-                            <div>
-                                <dt class="font-semibold text-white">Address</dt>
-                                <dd>@(string.IsNullOrWhiteSpace(currentUser.Address) ? "Not provided" : currentUser.Address)</dd>
-                            </div>
-                        </dl>
+                        @if (!isAdmin)
+                        {
+                            <dl class="grid gap-4 text-sm text-white/80 md:grid-cols-2">
+                                <div>
+                                    <dt class="font-semibold text-white">Email</dt>
+                                    <dd>@(currentUser.Email ?? "--")</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-white">Phone</dt>
+                                    <dd>@(string.IsNullOrWhiteSpace(currentUser.PhoneNumber) ? "Not provided" : currentUser.PhoneNumber)</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-white">Date of birth</dt>
+                                    <dd>@FormatDate(currentUser.DOB)</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-white">Address</dt>
+                                    <dd>@(string.IsNullOrWhiteSpace(currentUser.Address) ? "Not provided" : currentUser.Address)</dd>
+                                </div>
+                            </dl>
+                        }
+                        else
+                        {
+                            <dl class="grid gap-4 text-sm text-white/80 md:grid-cols-2">
+                                <div>
+                                    <dt class="font-semibold text-white">Role</dt>
+                                    <dd>System Administrator</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-white">ID</dt>
+                                    <dd>@StudentIdDisplay</dd>
+                                </div>
+                            </dl>
+                        }
 
                         <div class="flex flex-wrap gap-3">
                             <span class="inline-flex items-center gap-2 rounded-3xl bg-white/20 px-4 py-2 text-sm font-semibold">
@@ -127,6 +143,8 @@
                 </div>
             </section>
 
+            @if (!isAdmin)
+            {
             <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 @foreach (var tile in statTiles)
                 {
@@ -245,6 +263,7 @@
                     }
                 </div>
             </section>
+            }
         </div>
     }
 </div>
@@ -252,6 +271,7 @@
 @code {
     private ApplicationDbContext? context;
     private ApplicationUser? currentUser;
+    private bool isAdmin;
     private readonly List<Enrollment> enrollments = new();
     private readonly List<Grade> grades = new();
     private bool isLoading = true;
@@ -289,6 +309,10 @@
                 errorMessage = "We could not locate your account.";
                 return;
             }
+
+            // determine if the current user is in an administrator role
+            var roles = await UserManager.GetRolesAsync(currentUser);
+            isAdmin = roles.Contains("Admin") || roles.Contains("Administrator") || userPrincipal.IsInRole("Admin") || userPrincipal.IsInRole("Administrator");
 
             await LoadAcademicDataAsync(currentUser.Id);
             stats = BuildStats();

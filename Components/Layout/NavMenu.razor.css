@@ -16,6 +16,14 @@
     color: inherit;
 }
 
+.navbar-brand {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
 .navbar-toggler {
     appearance: none;
     cursor: pointer;
@@ -145,7 +153,24 @@
         display: block;
 
         /* Allow sidebar to scroll for tall menus */
+        /* Pin the nav area so it stays in view while the page scrolls */
+        position: fixed;
+        /* Use the actual top-row/header height so the nav doesn't overlap it */
+        top: 3.5rem;
+        left: 0;
+        width: 250px; /* match sidebar width */
         height: calc(100vh - 3.5rem);
         overflow-y: auto;
+    }
+
+    /* Hide the small top-row inside the sidebar on wide screens to avoid a duplicated bar */
+    .navbar .top-row {
+        display: none;
+    }
+
+    /* Make nav-scrollable start below the (hidden) internal top-row so it doesn't occlude the brand */
+    .nav-scrollable {
+        top: 3.5rem;
+        height: calc(100vh - 3.5rem);
     }
 }

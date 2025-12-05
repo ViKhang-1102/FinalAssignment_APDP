@@ -2,6 +2,7 @@ using FinalAssignemnt_APDP.Components;
 using FinalAssignemnt_APDP.Components.Account;
 using FinalAssignemnt_APDP.Data;
 using FinalAssignemnt_APDP.Services;
+using FinalAssignemnt_APDP.Endpoints;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -142,5 +143,5 @@ app.MapGet("/api/grades/export", async (IDbContextFactory<ApplicationDbContext> 
 
     return Results.File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", $"grades_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
 });
-
+app.MapStudentEndpoints();
 app.Run();

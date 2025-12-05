@@ -6,6 +6,7 @@
 @using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject FinalAssignemnt_APDP.Services.FileUploadService FileUploadService
 
 <PageTitle>Delete Grade</PageTitle>
 
@@ -185,6 +186,28 @@ else
             
             if (gradeToDelete != null)
             {
+                // If the grade has an uploaded file stored, only delete the physical file
+                // when no other grade references the same stored path.
+                var storedPath = gradeToDelete.UploadedFileStoredPath;
+                if (!string.IsNullOrEmpty(storedPath))
+                {
+                    var stillReferenced = await context.Grades
+                        .AnyAsync(g => g.Id != gradeToDelete.Id && g.UploadedFileStoredPath == storedPath);
+
+                    if (!stillReferenced)
+                    {
+                        try
+                        {
+                            var deleted = FileUploadService.DeleteFile(storedPath);
+                            Console.WriteLine($"[DeleteGrade] Deleted file {storedPath}: {deleted}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[DeleteGrade] Error deleting file {storedPath}: {ex.Message}");
+                        }
+                    }
+                }
+
                 context.Grades.Remove(gradeToDelete);
                 await context.SaveChangesAsync();
             }

@@ -20,7 +20,32 @@ namespace FinalAssignemnt_APDP.Constants
             new(DayOfWeek.Thursday, "Thursday"),
             new(DayOfWeek.Friday, "Friday"),
             new(DayOfWeek.Saturday, "Saturday"),
+            new(DayOfWeek.Sunday, "Sunday"),
         ];
+
+        // Common abbreviations mapping (case-insensitive)
+        private static readonly IReadOnlyDictionary<string, DayOfWeek> Abbreviations =
+            new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["mon"] = DayOfWeek.Monday,
+                ["monday"] = DayOfWeek.Monday,
+                ["tue"] = DayOfWeek.Tuesday,
+                ["tues"] = DayOfWeek.Tuesday,
+                ["tuesday"] = DayOfWeek.Tuesday,
+                ["wed"] = DayOfWeek.Wednesday,
+                ["weds"] = DayOfWeek.Wednesday,
+                ["wednesday"] = DayOfWeek.Wednesday,
+                ["thu"] = DayOfWeek.Thursday,
+                ["thur"] = DayOfWeek.Thursday,
+                ["thurs"] = DayOfWeek.Thursday,
+                ["thursday"] = DayOfWeek.Thursday,
+                ["fri"] = DayOfWeek.Friday,
+                ["friday"] = DayOfWeek.Friday,
+                ["sat"] = DayOfWeek.Saturday,
+                ["saturday"] = DayOfWeek.Saturday,
+                ["sun"] = DayOfWeek.Sunday,
+                ["sunday"] = DayOfWeek.Sunday,
+            };
 
         private static readonly IReadOnlyDictionary<DayOfWeek, WeekdayOption> ByDay = Options.ToDictionary(o => o.Day);
         private static readonly IReadOnlyDictionary<string, WeekdayOption> ByLabel = Options.ToDictionary(o => o.Label, StringComparer.OrdinalIgnoreCase);
@@ -109,8 +134,28 @@ namespace FinalAssignemnt_APDP.Constants
                     day = sanitizedOption.Day;
                     return true;
                 }
-            }
 
+                // Support common abbreviations like Mon, Tue, Wed, Thu, Fri, Sat, Sun
+                if (!string.IsNullOrWhiteSpace(sanitized))
+                {
+                    var key = sanitized.Trim();
+                    if (Abbreviations.TryGetValue(key, out var abbrDay))
+                    {
+                        day = abbrDay;
+                        return true;
+                    }
+                    // try first-3-letters fallback
+                    if (key.Length >= 3)
+                    {
+                        var three = key[..3];
+                        if (Abbreviations.TryGetValue(three, out var shortDay))
+                        {
+                            day = shortDay;
+                            return true;
+                        }
+                    }
+                }
+            }
             day = DayOfWeek.Sunday;
             return false;
         }

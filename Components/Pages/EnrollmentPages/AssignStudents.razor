@@ -1,432 +1,276 @@
-﻿@page "/enrollments/assign-students"
+﻿@page "/enrollments/assign"
+@page "/enrollments/assign-students"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using FinalAssignemnt_APDP.Data
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Admin")]
-@using Microsoft.EntityFrameworkCore
-@using FinalAssignemnt_APDP.Components.Enrollments
-@using FinalAssignemnt_APDP.Data
-@using FinalAssignemnt_APDP.Constants
-@inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject UserManager<ApplicationUser> UserManager
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Assign Students to Course</PageTitle>
 
-<div class="max-w-5xl space-y-6">
-    <div>
-        <h1 class="text-2xl font-semibold text-slate-900">Assign students to course</h1>
-        <p class="text-sm text-slate-500">Select a course and add multiple students at once with the same schedule.</p>
+<div>
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-semibold text-slate-900"><span class="bi bi-person-plus text-indigo-600 mr-2"></span>Assign Students to Course</h1>
+        <a href="/enrollments" class="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100">
+            <span class="bi bi-arrow-left"></span> Back to List
+        </a>
     </div>
 
-    <div class="rounded-2xl bg-white p-6 shadow-sm">
-        @if (Courses.Count == 0)
-        {
-            <div class="space-y-3 text-sm text-slate-600">
-                <p class="font-medium text-slate-900">No courses available</p>
-                <p>Please create a course first before assigning students.</p>
-            </div>
-        }
-        else
-        {
-            <EditForm method="post" Model="Model" OnValidSubmit="AssignStudentsToCoursesAsync" FormName="assign-students">
+    <section class="mt-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <div class="mb-6">
+            <EditForm Model="Model" OnValidSubmit="AssignStudent" FormName="assign" data-enhance="false">
                 <DataAnnotationsValidator />
-                <ValidationSummary class="mb-4 text-sm text-rose-600" role="alert" />
-                
-                @if (!string.IsNullOrWhiteSpace(ErrorMessage))
-                {
-                    <p class="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">@ErrorMessage</p>
-                }     
-                @if (!string.IsNullOrWhiteSpace(SuccessMessage))
-                {
-                    <p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">@SuccessMessage</p>
-                }
+                <ValidationSummary class="text-rose-600" role="alert" />
 
-                <div class="space-y-6">
-                    <!-- Course Selection -->
-                    <div class="space-y-1">
-                        <label for="courseid" class="text-sm font-medium text-slate-700">Course</label>
-                        <InputSelect id="courseid" 
-                                     @bind-Value="Model.CourseID"
-                                     @bind-Value:after="LoadAvailableStudentsAsync"
-                                     class="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                            <option value="0">-- Select course --</option>
-                            @foreach (var course in Courses)
-                            {
-                                <option value="@course.Id">@EnrollmentDisplayHelper.FormatCourseOption(course)</option>
-                            }
-                        </InputSelect>
-                        <ValidationMessage For="() => Model.CourseID" class="text-sm text-rose-600" />
-                        @if (Model.CourseID > 0)
+                <div class="mb-4">
+                    <label for="courseId" class="block text-sm font-medium text-slate-700">Course</label>
+                    <InputSelect id="courseId" @bind-Value="Model.CourseId" @bind-Value:after="OnCourseChangedAsync" class="mt-1 block w-full rounded-md border border-slate-200 bg-white py-2 px-3 text-sm text-slate-700">
+                        <option value="0">-- Select Course --</option>
+                        @foreach (var course in Courses)
                         {
-                            var selectedCourse = Courses.FirstOrDefault(c => c.Id == Model.CourseID);
-                            if (selectedCourse != null)
-                            {
-                                <div class="mt-2 rounded-lg bg-slate-50 p-3 text-sm">
-                                    <p class="font-medium text-slate-900">@selectedCourse.Name</p>
-                                    <p class="text-xs text-slate-500">
-                                        @selectedCourse.Subject?.Name · @selectedCourse.Semester?.Name
-                                        @if (selectedCourse.Lecture != null)
-                                        {
-                                            <span> · Lecturer: @(selectedCourse.Lecture.Name ?? selectedCourse.Lecture.Email)</span>
-                                        }
-                                    </p>
-                                </div>
-                            }
+                            <option value="@course.Id">@course.Name (@(course.Subject?.Name ?? "Unknown") - @(course.Semester?.Name ?? "Unknown"))</option>
                         }
-                    </div>
+                    </InputSelect>
+                    <ValidationMessage For="() => Model.CourseId" class="text-rose-600 text-sm" />
+                </div>
 
-                    <!-- Student Selection -->
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <label class="text-sm font-medium text-slate-700">Select Students (@SelectedStudentIds.Count selected)</label>
-                            <div class="flex gap-2">
-                                <button type="button" @onclick="SelectAllStudents" class="text-xs font-semibold text-indigo-600 hover:text-indigo-500">Select All</button>
-                                <button type="button" @onclick="ClearAllStudents" class="text-xs font-semibold text-slate-600 hover:text-slate-900">Clear All</button>
-                            </div>
-                        </div>
+                <div class="mb-4">
+                    <label for="studentIds" class="block text-sm font-medium text-slate-700">Students</label>
+                    <select id="studentIds" multiple class="mt-1 block w-full rounded-md border border-slate-200 bg-white py-2 px-3 text-sm text-slate-700" style="width: 100%;"></select>
+                    <p class="mt-1 text-xs text-slate-500">Search and select students to assign to this course</p>
+                </div>
 
-                        @if (AvailableStudents.Count == 0)
+                @if (SelectedCourseId > 0)
+                {
+                    <div class="mb-4">
+                        <h3 class="text-sm font-semibold text-slate-900">Currently Enrolled Students</h3>
+                        @if (EnrolledStudents.Any())
                         {
-                            <p class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">No students available or all students are already enrolled in the selected course.</p>
+                            <ul class="mt-3 divide-y divide-slate-100">
+                                @foreach (var student in EnrolledStudents)
+                                {
+                                    <li class="py-3 flex items-center justify-between">
+                                        <div class="text-sm text-slate-700">@(student.Student?.Name ?? "Unknown") <span class="text-xs text-slate-400">(@(student.Student?.StudentId ?? ""))</span> <span class="text-xs text-slate-400">- @(student.Student?.Email ?? "")</span></div>
+                                        <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-rose-500" @onclick="() => RemoveEnrollment(student.Id)">
+                                            <span class="bi bi-trash"></span> Remove
+                                        </button>
+                                    </li>
+                                }
+                            </ul>
                         }
                         else
                         {
-                            <div class="max-h-96 overflow-y-auto rounded-lg border border-slate-200">
-                                <table class="min-w-full divide-y divide-slate-200 text-sm">
-                                    <thead class="sticky top-0 bg-slate-50">
-                                        <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
-                                            <th class="px-4 py-3 w-12">
-                                                <input type="checkbox"
-                                                       @onchange="ToggleAllStudents"
-                                                       checked="@(SelectedStudentIds.Count == AvailableStudents.Count && AvailableStudents.Count > 0)"
-                                                       class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                                            </th>
-                                            <th class="px-4 py-3">Student ID</th>
-                                            <th class="px-4 py-3">Name</th>
-                                            <th class="px-4 py-3">Email</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-100 bg-white">
-                                        @foreach (var student in AvailableStudents)
-                                        {
-                                            var isSelected = SelectedStudentIds.Contains(student.Id);
-                                            <tr class="@(isSelected ? "bg-indigo-50" : "") hover:bg-slate-50 cursor-pointer" @onclick="() => ToggleStudent(student.Id)">
-                                                <td class="px-4 py-3">
-                                                    <input type="checkbox"
-                                                           checked="@isSelected"
-                                                           @onclick:stopPropagation="true"
-                                                           @onchange="() => ToggleStudent(student.Id)"
-                                                           class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                                                </td>
-                                                <td class="px-4 py-3 font-medium text-slate-900">@student.StudentId</td>
-                                                <td class="px-4 py-3 text-slate-700">@student.Name</td>
-                                                <td class="px-4 py-3 text-slate-600">@student.Email</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
+                            <p class="mt-2 text-sm text-slate-500">No students enrolled in this course yet.</p>
                         }
                     </div>
+                }
 
-                    <!-- Summary -->
-                    @if (SelectedStudentIds.Count > 0 && Model.CourseID > 0)
-                    {
-                        <div class="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4">
-                            <p class="text-sm font-semibold text-indigo-900">Summary</p>
-                            <p class="text-sm text-indigo-700">
-                                You are about to enroll <strong>@SelectedStudentIds.Count student@(SelectedStudentIds.Count != 1 ? "s" : "")</strong>
-                                into <strong>@Courses.FirstOrDefault(c => c.Id == Model.CourseID)?.Name</strong>.
-                            </p>
-                        </div>
-                    }
-                </div>
-
-                <div class="mt-6 flex items-center gap-3">
-                    <button type="submit"
-                            disabled="@(SelectedStudentIds.Count == 0 || Model.CourseID == 0)"
-                            class="inline-flex items-center rounded-full bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
-                        <span class="bi bi-people-fill mr-2"></span>
-                        Assign @SelectedStudentIds.Count Student@(SelectedStudentIds.Count != 1 ? "s" : "")
+                <div class="mt-4">
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500" disabled="@(SelectedCourseId == 0)">
+                        <span class="bi bi-check-circle"></span> Assign Students
                     </button>
-                    <a href="/enrollments" class="text-sm font-semibold text-slate-600 hover:text-slate-900">Cancel</a>
                 </div>
             </EditForm>
-        }
-    </div>
+        </div>
+    </section>
 </div>
 
 @code {
-[SupplyParameterFromForm]
-private AssignStudentsModel Model { get; set; } = new();
+    [SupplyParameterFromForm]
+    private AssignModel Model { get; set; } = new();
 
-private List<ApplicationUser> AvailableStudents { get; set; } = new();
-private List<Course> Courses { get; set; } = new();
-private HashSet<string> SelectedStudentIds { get; set; } = new();
-private string? ErrorMessage { get; set; }
-private string? SuccessMessage { get; set; }
-private EnrollmentScheduleState ScheduleState = default!;
+    [SupplyParameterFromQuery]
+    private int? CourseId { get; set; }
 
-    private string _dayInput = string.Empty;
-    private string SelectedTimeBlockLabel
-    {
-        get => Model.TimeSlot ?? string.Empty;
-        set
-        {
-            Model.TimeSlot = string.IsNullOrWhiteSpace(value) ? null : value;
-
-            if (ScheduleState is null)
-            {
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                ScheduleState.StartTime = null;
-                ScheduleState.EndTime = null;
-                return;
-            }
-
-            if (TimeBlockCatalog.TryGetByLabel(value, out var block) && block is not null)
-            {
-                ScheduleState.StartTime = block.Start;
-                ScheduleState.EndTime = block.End;
-            }
-        }
-    }
-
-    private string DayInput
-    {
-        get => _dayInput;
-        set => ApplyDayInput(value);
-    }
+    private List<Course> Courses { get; set; } = new();
+    private List<Enrollment> EnrolledStudents { get; set; } = new();
+    private int SelectedCourseId { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        var tempEnrollment = new Enrollment();
-        ScheduleState = new EnrollmentScheduleState(tempEnrollment);
-        SyncDayInputFromState();
-
         using var context = DbFactory.CreateDbContext();
-        
-        // Load all courses with related data
         Courses = await context.Courses
             .Include(c => c.Subject)
             .Include(c => c.Semester)
-            .Include(c => c.Lecture)
-            .OrderBy(c => c.Semester!.Name)
-            .ThenBy(c => c.Name)
-            .ThenBy(c => c.Id)
+            .AsNoTracking()
             .ToListAsync();
 
-        await LoadAvailableStudentsAsync();
+        if (CourseId.HasValue && CourseId.Value > 0)
+        {
+            SelectedCourseId = CourseId.Value;
+            Model.CourseId = CourseId.Value;
+            await LoadEnrolledStudents(CourseId.Value);
+        }
     }
 
-    private async Task LoadAvailableStudentsAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        using var context = DbFactory.CreateDbContext();
-
-        var studentRoleId = await context.Roles
-            .Where(r => r.Name == "Student")
-            .Select(r => r.Id)
-            .FirstOrDefaultAsync();
-
-        if (string.IsNullOrEmpty(studentRoleId))
+        if (firstRender)
         {
-            AvailableStudents = new();
-            StateHasChanged();
-            return;
-        }
-
-        // Get all student users
-        var allStudents = await context.Users
-            .Where(u => context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == studentRoleId))
-            .OrderBy(u => u.StudentId)
-            .ThenBy(u => u.Name)
-            .ToListAsync();
-
-        // If a course is selected, filter out already enrolled students
-        if (Model.CourseID > 0)
-        {
-            var enrolledStudentIds = (await context.Enrollments
-                .Where(e => e.CourseID == Model.CourseID)
-                .Select(e => e.StudentID)
-                .ToListAsync())
-                .ToHashSet();
-
-            AvailableStudents = allStudents
-                .Where(s => !enrolledStudentIds.Contains(s.Id))
-                .ToList();
+            await InitializeSelect2();
         }
         else
         {
-            AvailableStudents = allStudents;
-        }
-        
-        StateHasChanged();
-    }
-
-    private void ToggleStudent(string studentId)
-    {
-        if (!SelectedStudentIds.Add(studentId))
-        {
-            SelectedStudentIds.Remove(studentId);
-        }
-        StateHasChanged();
-    }
-
-    private void ToggleAllStudents()
-    {
-        if (SelectedStudentIds.Count == AvailableStudents.Count)
-        {
-            SelectedStudentIds.Clear();
-        }
-        else
-        {
-            SelectAllStudents();
-        }
-        StateHasChanged();
-    }
-
-    private void SelectAllStudents()
-    {
-        SelectedStudentIds.Clear();
-        foreach (var student in AvailableStudents)
-        {
-            SelectedStudentIds.Add(student.Id);
-        }
-        StateHasChanged();
-    }
-
-    private void ClearAllStudents()
-    {
-        SelectedStudentIds.Clear();
-        StateHasChanged();
-    }
-
-    private async Task AssignStudentsToCoursesAsync()
-    {
-        ErrorMessage = null;
-        SuccessMessage = null;
-        ScheduleState.Persist();
-
-        if (Model.CourseID <= 0)
-        {
-            ErrorMessage = "Please select a course.";
-            return;
-        }
-
-        if (SelectedStudentIds.Count == 0)
-        {
-            ErrorMessage = "Please select at least one student.";
-            return;
-        }
-
-        if (Model.TotalSlots is < 0)
-        {
-            ErrorMessage = "Total slots cannot be negative.";
-            return;
-        }
-
-        using var context = DbFactory.CreateDbContext();
-
-        // Verify course exists
-        var courseExists = await context.Courses.AnyAsync(c => c.Id == Model.CourseID);
-        if (!courseExists)
-        {
-            ErrorMessage = "Selected course no longer exists.";
-            await LoadAvailableStudentsAsync();
-            return;
-        }
-
-        // Verify all students exist
-        var existingStudentIds = await context.Users
-            .Where(u => SelectedStudentIds.Contains(u.Id))
-            .Select(u => u.Id)
-            .ToListAsync();
-
-        if (existingStudentIds.Count != SelectedStudentIds.Count)
-        {
-            ErrorMessage = "Some selected students no longer exist.";
-            await LoadAvailableStudentsAsync();
-            return;
-        }
-
-        // Check for existing enrollments
-        var alreadyEnrolledIds = await context.Enrollments
-            .Where(e => e.CourseID == Model.CourseID && SelectedStudentIds.Contains(e.StudentID))
-            .Select(e => e.StudentID)
-            .ToListAsync();
-
-        if (alreadyEnrolledIds.Count > 0)
-        {
-            ErrorMessage = $"{alreadyEnrolledIds.Count} student(s) are already enrolled in this course.";
-            await LoadAvailableStudentsAsync();
-            return;
-        }
-
-        // Create enrollments for all selected students
-        var enrollments = new List<Enrollment>();
-        foreach (var studentId in SelectedStudentIds)
-        {
-            enrollments.Add(new Enrollment
+            try
             {
-                StudentID = studentId,
-                CourseID = Model.CourseID,
-                DayOfWeek = Model.DayOfWeek,
-                Room = Model.Room,
-                TimeSlot = Model.TimeSlot,
-                TotalSlots = Model.TotalSlots
-            });
-        }
-
-        context.Enrollments.AddRange(enrollments);
-        await context.SaveChangesAsync();
-
-        SuccessMessage = $"Successfully enrolled {SelectedStudentIds.Count} student(s) into the course.";
-        
-        // Clear selections and reload
-        SelectedStudentIds.Clear();
-        Model = new AssignStudentsModel();
-        await LoadAvailableStudentsAsync();
-    }
-
-    private void ApplyDayInput(string? value)
-    {
-        _dayInput = value ?? string.Empty;
-
-        if (ScheduleState is null)
-        {
-            return;
-        }
-
-        ScheduleState.SelectedDays.Clear();
-
-        var tokens = _dayInput
-            .Split(new[] { ',', ';', '\n', '\r', '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        foreach (var token in tokens)
-        {
-            if (WeekdayCatalog.TryResolveDay(token, out var day))
-            {
-                ScheduleState.SelectedDays.Add(day);
+                var elementExists = await JSRuntime.InvokeAsync<bool>("eval", "$('#studentIds').length > 0 && !$('#studentIds').hasClass('select2-hidden-accessible')");
+                if (elementExists)
+                {
+                    await InitializeSelect2();
+                }
             }
+            catch { }
         }
-
-        Model.DayOfWeek = ScheduleState.SelectedDays.Count == 0 ? null : WeekdayCatalog.Serialize(ScheduleState.SelectedDays);
     }
 
-    private void SyncDayInputFromState()
+    private async Task InitializeSelect2()
     {
-        _dayInput = ScheduleState.SelectedDays.Count == 0
-            ? string.Empty
-            : WeekdayCatalog.Serialize(ScheduleState.SelectedDays);
+        await Task.Delay(500);
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("initStudentSelect2");
+
+            try
+            {
+                var current = EnrolledStudents.Select(e => new {
+                    id = e.StudentID,
+                    text = $"{e.Student.Name} ({e.Student.StudentId}) - {e.Student.Email}"
+                }).ToArray();
+
+                await JSRuntime.InvokeVoidAsync("setSelectedStudents", current);
+            }
+            catch { }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error initializing Select2: {ex.Message}");
+        }
     }
 
-    private class AssignStudentsModel
+    private async Task OnCourseChangedAsync()
     {
-        public int CourseID { get; set; }
-        public string? DayOfWeek { get; set; }
-        public string? Room { get; set; }
-        public string? TimeSlot { get; set; }
-        public int? TotalSlots { get; set; }
+        if (Model.CourseId > 0)
+        {
+            SelectedCourseId = Model.CourseId;
+            await LoadEnrolledStudents(Model.CourseId);
+            try
+            {
+                var current = EnrolledStudents.Select(e => new {
+                    id = e.StudentID,
+                    text = $"{e.Student.Name} ({e.Student.StudentId}) - {e.Student.Email}"
+                }).ToArray();
+
+                await JSRuntime.InvokeVoidAsync("setSelectedStudents", current);
+            }
+            catch { }
+        }
+    }
+
+    private async Task LoadEnrolledStudents(int courseId)
+    {
+        using var context = DbFactory.CreateDbContext();
+        // Exclude template enrollments (those without a StudentID) so the UI
+        // doesn't display an "Unknown" list item for course templates.
+        EnrolledStudents = await context.Enrollments
+            .Include(e => e.Student)
+            .Where(e => e.CourseID == courseId && !string.IsNullOrWhiteSpace(e.StudentID))
+            .ToListAsync();
+    }
+
+    private async Task AssignStudent()
+    {
+        if (SelectedCourseId == 0) return;
+
+        try
+        {
+            var selectedStudentIds = await JSRuntime.InvokeAsync<string[]>("getSelectedStudents");
+
+            if (selectedStudentIds == null || selectedStudentIds.Length == 0)
+            {
+                return;
+            }
+
+            using var context = DbFactory.CreateDbContext();
+            var existingEnrollments = await context.Enrollments
+                .Where(e => e.CourseID == SelectedCourseId && selectedStudentIds.Contains(e.StudentID))
+                .Select(e => e.StudentID)
+                .ToListAsync();
+
+            var newStudentIds = selectedStudentIds.Except(existingEnrollments).ToList();
+
+            // Try to preserve schedule details by copying from a course-level template
+            var template = await context.Enrollments
+                .Where(e => e.CourseID == SelectedCourseId && e.StudentID == null)
+                .OrderByDescending(e => e.TotalSlots)
+                .FirstOrDefaultAsync();
+
+            foreach (var studentId in newStudentIds)
+            {
+                var enrollment = new Enrollment
+                {
+                    StudentID = studentId,
+                    CourseID = SelectedCourseId,
+                    DayOfWeek = template?.DayOfWeek,
+                    Room = template?.Room,
+                    TimeSlot = template?.TimeSlot,
+                    TotalSlots = template?.TotalSlots
+                };
+
+                context.Enrollments.Add(enrollment);
+            }
+
+            await context.SaveChangesAsync();
+            await LoadEnrolledStudents(SelectedCourseId);
+            try
+            {
+                var current = EnrolledStudents.Select(e => new {
+                    id = e.StudentID,
+                    text = $"{e.Student.Name} ({e.Student.StudentId}) - {e.Student.Email}"
+                }).ToArray();
+
+                await JSRuntime.InvokeVoidAsync("setSelectedStudents", current);
+            }
+            catch { }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error assigning students: {ex.Message}");
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task RemoveEnrollment(int enrollmentId)
+    {
+        using var context = DbFactory.CreateDbContext();
+        var enrollment = await context.Enrollments.FindAsync(enrollmentId);
+        if (enrollment != null)
+        {
+            context.Enrollments.Remove(enrollment);
+            await context.SaveChangesAsync();
+            await LoadEnrolledStudents(SelectedCourseId);
+            try
+            {
+                var current = EnrolledStudents.Select(e => new {
+                    id = e.StudentID,
+                    text = $"{e.Student.Name} ({e.Student.StudentId}) - {e.Student.Email}"
+                }).ToArray();
+
+                await JSRuntime.InvokeVoidAsync("setSelectedStudents", current);
+            }
+            catch { }
+
+            StateHasChanged();
+        }
+    }
+
+    private sealed class AssignModel
+    {
+        public int CourseId { get; set; }
     }
 }

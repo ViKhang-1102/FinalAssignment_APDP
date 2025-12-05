@@ -1,19 +1,26 @@
 @implements IDisposable
 
 @inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @using FinalAssignemnt_APDP.Constants
-
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">FinalAssignemnt-APDP</a>
-    </div>
-</div>
+@using Microsoft.AspNetCore.Components.Web
 
 <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <div class="navbar-brand site-logo"
+               role="link"
+                   tabindex="0"
+                   aria-label="Assignment Final APDP"
+                   @onclick="NavigateHome"
+                   @onkeydown="HandleLogoKey">
+            Assignment Final APDP
+        </div>
+    </div>
+</div>
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
-    
+
         <!-- Lecture Menu -->
         <AuthorizeView Roles="Lecture,Lecturer">
             <Authorized>
@@ -175,5 +182,50 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
+    private async Task NavigateHome()
+    {
+        try
+        {
+            var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = state.User;
+
+            if (user?.Identity?.IsAuthenticated ?? false)
+            {
+                if (user.IsInRole("Admin"))
+                {
+                    NavigationManager.NavigateTo(AppRoutes.AdminDashboard);
+                    return;
+                }
+
+                if (user.IsInRole("Lecture") || user.IsInRole("Lecturer"))
+                {
+                    NavigationManager.NavigateTo(AppRoutes.LecturerWorkspace);
+                    return;
+                }
+
+                if (user.IsInRole("Student"))
+                {
+                    NavigationManager.NavigateTo(AppRoutes.StudentDashboard);
+                    return;
+                }
+            }
+
+            // Fallback to root if no role matched or not authenticated
+            NavigationManager.NavigateTo("/");
+        }
+        catch
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleLogoKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            await NavigateHome();
+        }
     }
 }

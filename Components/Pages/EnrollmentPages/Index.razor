@@ -176,12 +176,6 @@ else
                                 </a>
                                 <AuthorizeView Roles="Admin">
                                     <Authorized>
-                                        <a href="@($"enrollments/edit?id={firstEnrollment.Id}")" 
-                                           class="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-500"
-                                           title="Edit enrollment">
-                                            <span class="bi bi-pencil-fill"></span>
-                                            <span class="hidden sm:inline">Edit</span>
-                                        </a>
                                         <a href="@($"enrollments/delete?id={firstEnrollment.Id}")" 
                                            class="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-rose-500"
                                            title="Delete enrollment">
@@ -280,17 +274,18 @@ private void BuildCourseEnrollments()
             var lecturerName = GetLecturerDisplayName(course.Lecture, course.LectureID);
             var slots = BuildSlots(group);
 
-            classSchedule.Add(new ClassScheduleCard
-            {
-                CourseId = course.Id,
-                CourseName = course.Name,
-                Subject = GetCourseMeta(course),
-                Semester = GetSemesterName(course.Semester),
-                Lecturer = lecturerName,
-                StudentCount = group.Select(e => e.StudentID).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
-                Slots = slots,
-                TotalSlots = group.Max(e => e.TotalSlots)
-            });
+                classSchedule.Add(new ClassScheduleCard
+                {
+                    CourseId = course.Id,
+                    CourseName = course.Name,
+                    Subject = GetCourseMeta(course),
+                    Semester = GetSemesterName(course.Semester),
+                    Lecturer = lecturerName,
+                    // Only count actual student IDs (exclude template rows where StudentID is null/empty)
+                    StudentCount = group.Select(e => e.StudentID).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+                    Slots = slots,
+                    TotalSlots = group.Max(e => e.TotalSlots)
+                });
         }
     }
 

@@ -81,5 +81,30 @@ namespace FinalAssignemnt_APDP.Services
                 return false;
             }
         }
+
+        // Generic delete helper for files stored under wwwroot (e.g. /uploads/grades/xxx)
+        public bool DeleteFile(string? relativePath)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(relativePath))
+                    return false;
+
+                var physicalPath = Path.Combine(_environment.WebRootPath, relativePath.TrimStart('/'));
+
+                if (File.Exists(physicalPath))
+                {
+                    File.Delete(physicalPath);
+                    return true;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting file: {FilePath}", relativePath);
+                return false;
+            }
+        }
     }
 }

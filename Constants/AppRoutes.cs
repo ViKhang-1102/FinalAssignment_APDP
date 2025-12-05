@@ -78,7 +78,6 @@ namespace FinalAssignemnt_APDP.Constants
         public static string SubjectsDelete(int id) => $"/subjects/delete?id={id}";
 
         // Enrollment Routes
-        public static string EnrollmentsEdit(int id) => $"/enrollments/edit?id={id}";
         public static string EnrollmentsDetails(int id) => $"/enrollments/details?id={id}";
         public static string EnrollmentsDelete(int id) => $"/enrollments/delete?id={id}";
 

@@ -17,6 +17,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 @inject IWebHostEnvironment WebHostEnvironment
+@inject FinalAssignemnt_APDP.Services.FileUploadService FileUploadService
 
 <PageTitle>Import Grades</PageTitle>
 <div class="container py-4">
@@ -489,6 +490,27 @@
             var relativePath = $"/uploads/grades/{newFileName}";
             Console.WriteLine($"[SaveUploadedFile] ✓ File saved: {newFileName}");
             Console.WriteLine($"[SaveUploadedFile] Path: {filePath}");
+
+            // Remove previous stored file (if any) to avoid orphaned files
+            try
+            {
+                await using var ctxForPrevious = await DbFactory.CreateDbContextAsync();
+                var previousPath = await ctxForPrevious.Grades
+                    .Where(g => !string.IsNullOrEmpty(g.UploadedFileStoredPath))
+                    .OrderByDescending(g => g.UploadedFileDate)
+                    .Select(g => g.UploadedFileStoredPath)
+                    .FirstOrDefaultAsync();
+
+                if (!string.IsNullOrEmpty(previousPath) && !string.Equals(previousPath, relativePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    var deleted = FileUploadService.DeleteFile(previousPath);
+                    Console.WriteLine($"[SaveUploadedFile] Deleted previous file: {previousPath} -> {deleted}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SaveUploadedFile] Warning deleting previous file: {ex.Message}");
+            }
 
             // Update DB rows that were processed in this import to store the path
             try

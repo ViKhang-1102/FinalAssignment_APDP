@@ -7,6 +7,7 @@
 @using FinalAssignemnt_APDP.Constants
 @inject IDbContextFactory<FinalAssignemnt_APDP.Data.ApplicationDbContext> DbFactory
 @inject NavigationManager NavigationManager
+@inject FinalAssignemnt_APDP.Services.ToastQueue Toasts
 
 <PageTitle>Remove Students from Course</PageTitle>
 
@@ -191,7 +192,7 @@ else
 
                     <div class="mt-4 flex items-center gap-3">
                         <button type="button"
-                                @onclick="RemoveSelectedStudents" 
+                                @onclick="ShowDeleteConfirmation"
                                 class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2">
                             <span class="bi bi-person-x-fill"></span>
                             Remove @SelectedStudentIds.Count Student@(SelectedStudentIds.Count != 1 ? "s" : "")
@@ -202,6 +203,18 @@ else
                             Cancel
                         </a>
                     </div>
+
+                    @if (ShowConfirmDelete)
+                    {
+                        <div class="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-4">
+                            <p class="text-sm font-semibold text-rose-900">Confirm permanent deletion</p>
+                            <p class="mt-1 text-sm text-rose-700">You are about to permanently delete <strong>@SelectedStudentIds.Count student@(SelectedStudentIds.Count != 1 ? "s" : "")</strong> from the enrollments table. This action cannot be undone.</p>
+                            <div class="mt-3 flex gap-3">
+                                <button type="button" @onclick="ConfirmRemoveSelectedStudents" class="inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500">Delete permanently</button>
+                                <button type="button" @onclick="CancelDelete" class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
         }
@@ -291,25 +304,52 @@ else
 
     private async Task RemoveSelectedStudents()
     {
+        // kept for compatibility but now unused; actual deletion happens in ConfirmRemoveSelectedStudents
+        return;
+    }
+
+    private bool ShowConfirmDelete { get; set; }
+
+    private void ShowDeleteConfirmation()
+    {
         if (SelectedStudentIds.Count == 0)
         {
             return;
         }
 
+        ShowConfirmDelete = true;
+    }
+
+    private void CancelDelete()
+    {
+        ShowConfirmDelete = false;
+    }
+
+    private async Task ConfirmRemoveSelectedStudents()
+    {
+        if (SelectedStudentIds.Count == 0)
+        {
+            ShowConfirmDelete = false;
+            return;
+        }
+
         using var context = DbFactory.CreateDbContext();
-        
-        // Load all selected enrollments
-        var enrollmentsToUpdate = await context.Enrollments
+
+        var enrollmentsToRemove = await context.Enrollments
             .Where(e => SelectedStudentIds.Contains(e.Id))
             .ToListAsync();
 
-        // Remove student assignments (set StudentID to null)
-        foreach (var e in enrollmentsToUpdate)
+        if (enrollmentsToRemove.Count == 0)
         {
-            e.StudentID = null;
+            ShowConfirmDelete = false;
+            return;
         }
 
+        context.Enrollments.RemoveRange(enrollmentsToRemove);
         await context.SaveChangesAsync();
+
+        Toasts.Enqueue($"Deleted {enrollmentsToRemove.Count} enrollment(s)", FinalAssignemnt_APDP.Services.ToastType.Success);
+
         NavigationManager.NavigateTo(AppRoutes.Enrollments);
     }
 
