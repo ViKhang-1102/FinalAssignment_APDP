@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using FinalAssignemnt_APDP.Data
+@using FinalAssignemnt_APDP.Constants
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
@@ -90,6 +91,20 @@
 
         Logger.LogInformation("User created a new account with password.");
 
+        // Assign default role 'Student' to newly registered users
+        try
+        {
+            var addRoleResult = await UserManager.AddToRoleAsync(user, "Student");
+            if (!addRoleResult.Succeeded)
+            {
+                Logger.LogWarning("Failed to assign 'Student' role to user {Email}: {Errors}", user.Email, string.Join(';', addRoleResult.Errors.Select(e => e.Description)));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Exception while assigning role to new user");
+        }
+
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
         code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
@@ -107,7 +122,10 @@
         }
 
         await SignInManager.SignInAsync(user, isPersistent: false);
-        RedirectManager.RedirectTo(ReturnUrl);
+
+        // If no return URL is specified, send new users to the student dashboard
+        var destination = string.IsNullOrWhiteSpace(ReturnUrl) ? AppRoutes.StudentDashboard : ReturnUrl;
+        RedirectManager.RedirectTo(destination);
     }
 
     private ApplicationUser CreateUser()
