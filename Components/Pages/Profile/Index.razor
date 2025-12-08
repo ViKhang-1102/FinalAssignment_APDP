@@ -73,7 +73,14 @@
                             </div>
                         }
                         <p class="mt-3 text-base font-semibold">@currentUser.Name</p>
-                        <p class="text-xs text-white/80">ID @StudentIdDisplay</p>
+                        @* Show role-specific ID label and value *@
+                        @{
+                            // Prefer to display the institutional StudentId when available.
+                            // Fallback to account GUID only when StudentId is not set.
+                            var idLabel = isAdmin ? "Admin ID" : isLecture ? "Lecture ID" : "Student ID";
+                            var idValue = !string.IsNullOrWhiteSpace(currentUser?.StudentId) ? currentUser!.StudentId! : (currentUser?.Id ?? string.Empty);
+                        }
+                        <p class="text-xs text-white/80">@idLabel @idValue</p>
                     </div>
                     <div class="space-y-6">
                         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -123,8 +130,8 @@
                                     <dd>System Administrator</dd>
                                 </div>
                                 <div>
-                                    <dt class="font-semibold text-white">ID</dt>
-                                    <dd>@StudentIdDisplay</dd>
+                                    <dt class="font-semibold text-white">@((isAdmin) ? "Admin ID" : (isLecture ? "Lecture ID" : "Student ID"))</dt>
+                                    <dd>@(isAdmin ? currentUser?.StudentId : (isLecture ? (string.IsNullOrWhiteSpace(currentUser?.StudentId) ? currentUser?.StudentId : currentUser.StudentId) : currentUser?.StudentId))</dd>
                                 </div>
                             </dl>
                         }
@@ -170,10 +177,13 @@
                             <dt class="@UiClasses.Label">Full name</dt>
                             <dd>@(string.IsNullOrWhiteSpace(currentUser.Name) ? "Not provided" : currentUser.Name)</dd>
                         </div>
-                        <div>
-                            <dt class="@UiClasses.Label">Student ID</dt>
-                            <dd>@StudentIdDisplay</dd>
-                        </div>
+                        @if (isStudent)
+                        {
+                            <div>
+                                <dt class="@UiClasses.Label">Student ID</dt>
+                                <dd>@StudentIdDisplay</dd>
+                            </div>
+                        }
                         <div>
                             <dt class="@UiClasses.Label">Email</dt>
                             <dd>@(currentUser.Email ?? "--")</dd>
@@ -272,6 +282,8 @@
     private ApplicationDbContext? context;
     private ApplicationUser? currentUser;
     private bool isAdmin;
+    private bool isStudent;
+    private bool isLecture;
     private readonly List<Enrollment> enrollments = new();
     private readonly List<Grade> grades = new();
     private bool isLoading = true;
@@ -310,9 +322,11 @@
                 return;
             }
 
-            // determine if the current user is in an administrator role
+            // determine if the current user is in an administrator, lecturer, or student role
             var roles = await UserManager.GetRolesAsync(currentUser);
             isAdmin = roles.Contains("Admin") || roles.Contains("Administrator") || userPrincipal.IsInRole("Admin") || userPrincipal.IsInRole("Administrator");
+            isStudent = roles.Contains("Student") || userPrincipal.IsInRole("Student");
+            isLecture = roles.Contains("Lecture") || roles.Contains("Lecturer") || userPrincipal.IsInRole("Lecture") || userPrincipal.IsInRole("Lecturer");
 
             await LoadAcademicDataAsync(currentUser.Id);
             stats = BuildStats();
