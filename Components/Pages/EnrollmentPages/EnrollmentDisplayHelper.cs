@@ -38,7 +38,19 @@ namespace FinalAssignemnt_APDP.Components.Enrollments
         public static string FormatCourseOption(Course course)
         {
             var parts = BuildCourseParts(course);
-            parts.Add(FormattableString.Invariant($"#{course.Id}"));
+            // Append lecturer name (preferred) or LectureID, fallback to course id display
+            if (!string.IsNullOrWhiteSpace(course.Lecture?.Name))
+            {
+                parts.Add(course.Lecture!.Name);
+            }
+            else if (!string.IsNullOrWhiteSpace(course.LectureID))
+            {
+                parts.Add(course.LectureID!);
+            }
+            else
+            {
+                parts.Add(FormattableString.Invariant($"#{course.Id}"));
+            }
             return string.Join(" | ", parts);
         }
 
@@ -50,7 +62,18 @@ namespace FinalAssignemnt_APDP.Components.Enrollments
             }
 
             var parts = BuildCourseParts(course);
-            parts.Add(FormattableString.Invariant($"#{course.Id}"));
+            if (!string.IsNullOrWhiteSpace(course.Lecture?.Name))
+            {
+                parts.Add(course.Lecture!.Name);
+            }
+            else if (!string.IsNullOrWhiteSpace(course.LectureID))
+            {
+                parts.Add(course.LectureID!);
+            }
+            else
+            {
+                parts.Add(FormattableString.Invariant($"#{course.Id}"));
+            }
             return string.Join(" | ", parts);
         }
 

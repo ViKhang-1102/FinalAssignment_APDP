@@ -33,7 +33,7 @@
                         <option value="0">-- Select Course --</option>
                         @foreach (var course in Courses)
                         {
-                            <option value="@course.Id">@course.Name (@(course.Subject?.Name ?? "Unknown") - @(course.Semester?.Name ?? "Unknown"))</option>
+                            <option value="@course.Id">@course.Name | @(course.Subject?.Name ?? "Unknown") | @(course.Semester?.Name ?? "Unknown") | @(course.Lecture?.Name ?? course.LectureID ?? "TBA")</option>
                         }
                     </InputSelect>
                     <ValidationMessage For="() => Model.CourseId" class="text-rose-600 text-sm" />
@@ -97,6 +97,7 @@
         Courses = await context.Courses
             .Include(c => c.Subject)
             .Include(c => c.Semester)
+            .Include(c => c.Lecture)
             .AsNoTracking()
             .ToListAsync();
 

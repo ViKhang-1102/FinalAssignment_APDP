@@ -157,6 +157,7 @@
         Courses = await context.Courses
             .Include(c => c.Subject)
             .Include(c => c.Semester)
+            .Include(c => c.Lecture)
             .OrderBy(c => c.Name)
             .ThenBy(c => c.Id)
             .ToListAsync();
