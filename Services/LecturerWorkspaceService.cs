@@ -170,6 +170,7 @@ namespace FinalAssignemnt_APDP.Services
                 roster.Add(new LecturerRosterRow
                 {
                     StudentId = group.Key,
+                    DisplayId = student?.StudentId ?? group.Key,
                     Name = string.IsNullOrWhiteSpace(student?.Name) ? (student?.Email ?? group.Key) : student!.Name!,
                     Email = student?.Email ?? "-",
                     MidtermScore = grade?.MidtermScore,
@@ -317,6 +318,7 @@ namespace FinalAssignemnt_APDP.Services
     public sealed class LecturerRosterRow
     {
         public string StudentId { get; init; } = string.Empty;
+        public string DisplayId { get; init; } = string.Empty;
         public string Name { get; init; } = string.Empty;
         public string Email { get; init; } = string.Empty;
         public double? MidtermScore { get; init; }

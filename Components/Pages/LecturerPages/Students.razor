@@ -59,7 +59,7 @@
                         <li>• Each score (Midterm/Final) can be edited up to <strong>2 times</strong></li>
                         <li>• <strong>Score range: 0 to 100</strong> (negative or >100 scores will be rejected)</li>
                         <li>• Average = (Midterm × 40%) + (Final × 60%)</li>
-                        <li>• Letter grades: D (≥80), M (≥65), P (≥50), F (&lt;50)</li>
+                        <li>• Letter grades: D (≥90), M (≥80), P (≥65), F (&lt;65)</li>
                     </ul>
                 </div>
             </div>
@@ -118,7 +118,7 @@
                                         <tr class="@(isEditing ? "bg-indigo-50" : "") hover:bg-slate-50/70">
                                             <td class="px-4 py-3">
                                                 <p class="font-semibold text-slate-900">@student.Name</p>
-                                                <p class="text-xs text-slate-500">@student.StudentId · @student.Email</p>
+                                                <p class="text-xs text-slate-500">@student.DisplayId · @student.Email</p>
                                             </td>
                                             
                                             @if (isEditing)
